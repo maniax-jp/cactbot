@@ -397,9 +397,10 @@ Options.Triggers.push({
     {
       id: 'TOP Party Synergy',
       type: 'Ability',
-      netRegex: { id: '7B3E', source: 'Omega', capture: false },
+      regex: /オメガFの「連携プログラムPT」/,
+      // netRegex: { id: '7B3E', source: 'Omega', capture: false },
       // Untargetable 3s after this, things appear ~2 after this, 2.5 for safety.
-      delaySeconds: 5.5,
+      delaySeconds: 5.0,
       promise: async (data) => {
         data.combatantData = [];
         // TODO: filter this by the combatants added right before Party Synergy???
