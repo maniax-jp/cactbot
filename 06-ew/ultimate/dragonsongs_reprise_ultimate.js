@@ -80,6 +80,7 @@ const matchedPositionTo4Dir = (combatant) => {
   return Math.round(2 - 2 * Math.atan2(x, y) / Math.PI) % 4;
 };
 Options.Triggers.push({
+  id: 'DragonsongsRepriseUltimate',
   zoneId: ZoneId.DragonsongsRepriseUltimate,
   timelineFile: 'dragonsongs_reprise_ultimate.txt',
   initData: () => {
@@ -117,17 +118,7 @@ Options.Triggers.push({
       regex: /Resentment/,
       beforeSeconds: 5,
       condition: (data) => data.phase === 'nidhogg',
-      infoText: (_data, _matches, output) => output.text(),
-      outputStrings: {
-        text: {
-          en: 'aoe + dot',
-          de: 'AoE + DoT',
-          fr: 'AoE + dot',
-          ja: 'AoE + DoT',
-          cn: 'AOE + dot',
-          ko: '전체공격 + 도트뎀',
-        },
-      },
+      response: Responses.bleedAoe(),
     },
     {
       id: 'DSR Mortal Vow',
@@ -2735,10 +2726,10 @@ Options.Triggers.push({
         'Haurchefant': 'Haurchefant',
         'Hraesvelgr': 'Hraesvelgr',
         '(?<!Dragon-)King Thordan': 'Thordan',
-        'Left Eye': 'Linkes Drachenauge',
+        'Left Eye': 'link(?:e|er|es|en) Auge',
         'Meteor Circle': 'Meteorsiegel',
         'Nidhogg': 'Nidhogg',
-        'Right Eye': 'Rechtes Drachenauge',
+        'Right Eye': 'recht(?:e|er|es|en) Auge',
         'Ser Adelphel': 'Adelphel',
         'Ser Charibert': 'Charibert',
         'Ser Grinnaux': 'Grinnaux',
@@ -2869,10 +2860,10 @@ Options.Triggers.push({
         'Haurchefant': 'Haurchefant',
         'Hraesvelgr': 'Hraesvelgr',
         '(?<!Dragon-)King Thordan': 'roi Thordan',
-        'Left Eye': 'Œil gauche',
+        'Left Eye': 'Œil gauche de Nidhogg',
         'Meteor Circle': 'sceau du météore',
         'Nidhogg': 'Nidhogg',
-        'Right Eye': 'Œil droit',
+        'Right Eye': 'Œil droit de Nidhogg',
         'Ser Adelphel': 'sire Adelphel',
         'Ser Charibert': 'sire Charibert',
         'Ser Grinnaux': 'sire Grinnaux',

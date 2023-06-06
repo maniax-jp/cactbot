@@ -1,6 +1,7 @@
 // ALEXANDER - THE ARM OF THE FATHER NORMAL
 // A3N
 Options.Triggers.push({
+  id: 'AlexanderTheArmOfTheFather',
   zoneId: ZoneId.AlexanderTheArmOfTheFather,
   timelineFile: 'a3n.txt',
   timelineTriggers: [
@@ -289,7 +290,6 @@ Options.Triggers.push({
     },
     {
       'locale': 'ko',
-      'missingTranslations': true,
       'replaceSync': {
         'Condensate Demineralizer .9': '제9대형복수기',
         'Hydrate Core': '액화 핵',

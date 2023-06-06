@@ -5,6 +5,7 @@ const tetraMap = {
   '7D49': 'right',
 };
 Options.Triggers.push({
+  id: 'Euphrosyne',
   zoneId: ZoneId.Euphrosyne,
   timelineFile: 'euphrosyne.txt',
   initData: () => {
@@ -45,24 +46,28 @@ Options.Triggers.push({
           en: 'Forwards March Out',
           de: 'Geisterlenkung Vorwärts Raus',
           fr: 'Marche forcée avant vers l\'extérieur',
+          cn: '向前强制移动到钢铁外',
           ko: '강제이동: 앞, 밖으로',
         },
         outWithBackwards: {
           en: 'Backwards March Out',
           de: 'Geisterlenkung Rückwärts Raus',
           fr: 'Marche forcée arrière vers l\'extérieur',
+          cn: '向后强制移动到钢铁外',
           ko: '강제이동: 뒤, 밖으로',
         },
         outWithLeft: {
           en: 'Left March Out',
           de: 'Geisterlenkung Links Raus',
           fr: 'Marche forcée gauche vers l\'extérieur',
+          cn: '向左强制移动到钢铁外',
           ko: '강제이동: 왼쪽, 밖으로',
         },
         outWithRight: {
           en: 'Right March Out',
           de: 'Geisterlenkung Rechts Raus',
           fr: 'Marche forcée droite vers l\'extérieur',
+          cn: '向右强制移动到钢铁外',
           ko: '강제이동: 오른쪽, 밖으로',
         },
       },
@@ -87,24 +92,28 @@ Options.Triggers.push({
           en: 'Forwards March In',
           de: 'Geisterlenkung Vorwärts Rein',
           fr: 'Marche forcée avant vers l\'intérieur',
+          cn: '向前强制移动到月环内',
           ko: '강제이동: 앞, 안으로',
         },
         inWithBackwards: {
           en: 'Backwards March In',
           de: 'Geisterlenkung Rückwärts Rein',
           fr: 'Marche forcée arrière vers l\'intérieur',
+          cn: '向后强制移动到月环内',
           ko: '강제이동: 뒤, 안으로',
         },
         inWithLeft: {
           en: 'Left March In',
           de: 'Geisterlenkung Links Rein',
           fr: 'Marche forcée gauche vers l\'intérieur',
+          cn: '向左强制移动到月环内',
           ko: '강제이동: 왼쪽, 안으로',
         },
         inWithRight: {
           en: 'Right March In',
           de: 'Geisterlenkung Rechts Rein',
           fr: 'Marche forcée droite vers l\'intérieur',
+          cn: '向右强制移动到月环内',
           ko: '강제이동: 오른쪽, 안으로',
         },
       },
@@ -234,24 +243,28 @@ Options.Triggers.push({
           en: '(look away soon)',
           de: '(bald wegschauen)',
           fr: '(regardez ailleurs bientôt)',
+          cn: '(稍后背对)',
           ko: '(곧 뒤돌기)',
         },
         lookTowards: {
           en: '(look towards soon)',
           de: '(bald hinschauen)',
           fr: '(regardez devant bientôt)',
+          cn: '(稍后看向)',
           ko: '(곧 쳐다보기)',
         },
         pyretic: {
           en: '(pyretic soon)',
           de: '(bald Pyretisch)',
           fr: '(feu bientôt)',
+          cn: '(稍后热病)',
           ko: '(곧 멈추기)',
         },
         freeze: {
           en: '(freeze soon)',
           de: '(bald Kühlung)',
           fr: '(gel bientôt)',
+          cn: '(稍后冻结)',
           ko: '(곧 움직이기)',
         },
       },
@@ -289,12 +302,14 @@ Options.Triggers.push({
           en: 'Look Away from Nymeia',
           de: 'Schau weg von Nymeia',
           fr: 'Ne regardez pas Nymeia',
+          cn: '背对妮美雅',
           ko: '니메이아에게서 뒤돌기',
         },
         lookTowards: {
           en: 'Look Towards Nymeia',
           de: 'Schau zu Nymeia',
           fr: 'Regardez Nymeia',
+          cn: '看向妮美雅',
           ko: '니메이아 쳐다보기',
         },
         stopEverything: Outputs.stopEverything,
@@ -330,6 +345,7 @@ Options.Triggers.push({
           en: 'Spread (avoid purple)',
           de: 'Verteilen (vermeide den lilanen Riss)',
           fr: 'Écartez-vous (évitez les fissures violettes)',
+          cn: '分散 (远离紫色区域)',
           ko: '산개 (보라색 바닥 피하기)',
         },
       },
@@ -344,6 +360,7 @@ Options.Triggers.push({
           en: 'Stand in purple fissure',
           de: 'Im lilanen Riss stehen',
           fr: 'Restez sur une fissure violette',
+          cn: '站进紫色区域',
           ko: '보라색 바닥 위로',
         },
       },
@@ -428,6 +445,7 @@ Options.Triggers.push({
           en: 'Knockback ${dir1} => ${dir2} => ${dir3}',
           de: 'Rückstoß ${dir1} => ${dir2} => ${dir3}',
           fr: 'Poussée ${dir1} => ${dir2} => ${dir3}',
+          cn: '击退 ${dir1} => ${dir2} => ${dir3}',
           ko: '넉백 ${dir1} => ${dir2} => ${dir3}',
         },
         dirSW: Outputs.dirSW,
@@ -480,6 +498,7 @@ Options.Triggers.push({
           en: '${dir1} > ${dir2} > ${dir3} > ${dir4}',
           de: '${dir1} > ${dir2} > ${dir3} > ${dir4}',
           fr: '${dir1} > ${dir2} > ${dir3} > ${dir4}',
+          cn: '${dir1} > ${dir2} > ${dir3} > ${dir4}',
           ko: '${dir1} > ${dir2} > ${dir3} > ${dir4}',
         },
         out: Outputs.out,
@@ -603,6 +622,7 @@ Options.Triggers.push({
           en: 'Get Out (avoid ring)',
           de: 'Geh raus (vermeide den Ring)',
           fr: 'Sortez (évitez l\'anneau)',
+          cn: '远离 (躲避圆环)',
           ko: '밖으로 (고리 장판 피하기)',
         },
       },
@@ -659,6 +679,7 @@ Options.Triggers.push({
           en: 'Sides of Moon',
           de: 'Geh seitlich des Mondes',
           fr: 'Côtés de la lune',
+          cn: '去月亮两侧',
           ko: '달 옆쪽으로',
         },
       },
@@ -673,21 +694,94 @@ Options.Triggers.push({
           en: 'Go to dark moon',
           de: 'Geh zum dunklen Mond',
           fr: 'Allez sur une lune noire',
+          cn: '去暗月亮',
           ko: '어두운 달 쪽으로',
         },
       },
     },
     {
-      id: 'Euphrosyne Menphina Midnight Frost Front Initial',
+      id: 'Euphrosyne Menphina Midnight Frost Back No Claw',
       type: 'StartsUsing',
-      netRegex: { id: '7BCC', source: 'Menphina', capture: false },
+      // 7BCC Midnight Frost = back cleave (7BCE damage) [no dog, first phase only]
+      // 7BD0 Midnight Frost = back cleave (7BD2 damage) [dog attached, during 4x Love's Light]
+      netRegex: { id: ['7BCC', '7BD0'], source: 'Menphina', capture: false },
       response: Responses.goFront(),
     },
     {
-      id: 'Euphrosyne Menphina Midnight Frost Back Initial',
+      id: 'Euphrosyne Menphina Midnight Frost Front No Claw',
       type: 'StartsUsing',
-      netRegex: { id: '7BCB', source: 'Menphina', capture: false },
+      // 7BCB Midnight Frost = front cleave (7BCD damage) [no dog, first phase only]
+      // 7BCF Midnight Frost = front cleave (7BD1 damage) [dog attached, during 4x Love's Light]
+      netRegex: { id: ['7BCB', '7BCF'], source: 'Menphina', capture: false },
       response: Responses.getBehind(),
+    },
+    {
+      id: 'Euphrosyne Menphina Waxing Claw',
+      type: 'StartsUsing',
+      netRegex: { id: ['7BE0', '7BE1'], source: 'Menphina' },
+      run: (data, matches) => {
+        // This is true regardless of whether the dog is attached or not.
+        if (matches.id === '7BE0')
+          data.menphinaWaxingClaw = 'right';
+        else if (matches.id === '7BE1')
+          data.menphinaWaxingClaw = 'left';
+        data.menphinaDogId = matches.sourceId;
+      },
+    },
+    {
+      id: 'Euphrosyne Menphina Waxing Claw Cleanup',
+      type: 'StartsUsing',
+      netRegex: { id: ['7BE0', '7BE1'], source: 'Menphina', capture: false },
+      delaySeconds: 10,
+      run: (data) => delete data.menphinaWaxingClaw,
+    },
+    {
+      id: 'Euphrosyne Menphina Midnight Frost Attached',
+      type: 'StartsUsing',
+      // 7BD7 Midnight Frost = front cleave (7BDD damage) [dog attached]
+      // 7BD8 Midnight Frost = front cleave (7BDD damage) [dog attached]
+      // 7BD9 Midnight Frost = back cleave (7BDE damage) [dog attached]
+      // 7BDA Midnight Frost = back cleave (7BDE damage) [dog attached]
+      // This ability seems possibly player targeted for initial facing, so use relative dirs.
+      netRegex: { id: ['7BD7', '7BD8', '7BD9', '7BDA'], source: 'Menphina' },
+      // These two abilities come out at the same time.  It seems that Waxing Claw always comes
+      // after, but trying not to make assumptions here.
+      delaySeconds: 0.3,
+      alertText: (data, matches, output) => {
+        // If claw is somehow undefined, don't print anything.
+        const claw = data.menphinaWaxingClaw;
+        const isFrontCleave = matches.id === '7BD7' || matches.id === '7BD8';
+        if (isFrontCleave && claw === 'right')
+          return output.backLeft();
+        if (isFrontCleave && claw === 'left')
+          return output.backRight();
+        if (!isFrontCleave && claw === 'right')
+          return output.frontLeft();
+        if (!isFrontCleave && claw === 'left')
+          return output.frontRight();
+      },
+      outputStrings: {
+        frontLeft: {
+          en: 'Front Left',
+          de: 'Vorne Links',
+          ko: '앞 왼쪽',
+        },
+        frontRight: {
+          en: 'Front Right',
+          de: 'Vorne Rechts',
+          ko: '앞 오른쪽',
+        },
+        backLeft: {
+          en: 'Back Left',
+          de: 'Hinten Links',
+          ko: '뒤 왼쪽',
+        },
+        backRight: {
+          en: 'Back Right',
+          de: 'Hinten Rechts',
+          ko: '뒤 오른쪽',
+        },
+      },
     },
     {
       id: 'Euphrosyne Menphina Lunar Kiss',
@@ -734,6 +828,13 @@ Options.Triggers.push({
     {
       id: 'Euphrosyne Menphina Winter Halo',
       type: 'StartsUsing',
+      // 7BC6 = no dog (7BC7 damage)
+      // 7BDB = dog cleaving right attached (7BDF damage)
+      // 7BDC = ? (probably dog cleaving left attached?)
+      // 7BE8 = dog cleaving right unattached (7BEC damage)
+      // 7BE9 = dog cleaving left unattached (7BEC damage)
+      // 7F0E = ? (probably dog cleaving right unattached?)
+      // 7F0F = dog cleaving left unattached (7BEC damage)
       netRegex: {
         id: ['7BC6', '7BE8', '7BE9', '7F0E', '7F0F', '7BDB', '7BDC'],
         source: 'Menphina',
@@ -1000,6 +1101,86 @@ Options.Triggers.push({
         'Winter Halo': '月暈',
         'Winter Solstice': '寒月',
         'Wrath of Halone': 'ラース・オブ・ハルオーネ',
+      },
+    },
+    {
+      'locale': 'cn',
+      'replaceSync': {
+        'Althyk(?! &)': '光阴神阿尔基克',
+        'Althyk & Nymeia': '阿尔基克和妮美雅',
+        'Euphrosynos Behemoth': '欧芙洛绪涅贝希摩斯',
+        'Euphrosynos Ktenos': '欧芙洛绪涅牲兽',
+        'Glacial Spear': '寒冰长枪',
+        'Halone': '哈罗妮',
+        'Menphina': '梅茵菲娜',
+        '(?<!& )Nophica': '诺菲卡',
+        'Nymeia': '妮美雅',
+        'The Barbs': '战争神之间',
+        'The Bole': '世界树',
+        'The Chamber Of Revolutions': '双月之间',
+        'The Fertile Plains': '丰饶之地',
+      },
+      'replaceText': {
+        'Abundance': '神力花雨',
+        'Ancient Blizzard': '古代冰结',
+        'Axioma': '公理',
+        'Blue Moon': '月神光',
+        'Blueblossoms': '蓝花飞散',
+        'Chalaza': '冰雹',
+        'Cheimon': '寒冬',
+        'Cratering Chill': '月冰击',
+        'Doom Spear': '厄运枪',
+        'First Blush': '月闪',
+        'Floral Haze': '魅惑的叶花',
+        'Full Bright': '月夜巡游',
+        'Furrow': '锄地',
+        'Fury\'s Aegis': '战女神之圣盾',
+        'Giltblossoms': '黄花飞散',
+        'Heavens\' Earth': '神界石',
+        'Hydroptosis': '水之倾泻',
+        'Hydrorythmos': '水之流动',
+        'Hydrostasis': '水之停滞',
+        'Ice Dart': '冰块',
+        'Ice Rondel': '大冰块',
+        'Inexorable Pull': '重力操纵',
+        'Keen Moonbeam': '月光枪',
+        'Landwaker': '大地复苏',
+        'Lochos': '伏枪',
+        'Love\'s Light': '慈爱的月亮',
+        'Lovers\' Bridge': '月辉',
+        'Lunar Kiss': '冷月闪',
+        'Matron\'s Breath': '丰饶的吐息',
+        'Matron\'s Harvest': '丰收的庆典',
+        'Matron\'s Plenty': '丰饶的神光',
+        'Midnight Frost': '月地冰霜',
+        'Moonset(?! Rays)': '落月踢',
+        'Moonset Rays': '明月流光',
+        'Mythril Greataxe': '秘银大斧',
+        'Neikos': '冲突',
+        'Niphas': '尘雪',
+        'Petrai': '群岩',
+        'Philotes': '爱',
+        'Playful Orbit': '游击机动',
+        'Rain of Spears': '冰枪之雨',
+        'Reaper\'s Gale': '镰风',
+        'Rise of the Twin Moons': '双月的指引',
+        'Season\'s Passing': '春夏交替',
+        'Selenain Mysteria': '双月之仪',
+        'Shockwave': '冲击波',
+        'Silver Mirror': '月霜',
+        'Sowing Circle': '耕作轮转',
+        'Spears Three': '战争神尖枪',
+        'Spinner\'s Wheel': '命运的纺车',
+        'Spring Flowers': '春之蔷薇',
+        'Tetrapagos': '寒枪四连',
+        'The Giving Land': '大地的恩惠',
+        'Thousandfold Thrust': '千枪连刺',
+        'Time and Tide': '时间操纵',
+        'Waxing Claw': '猎犬利爪',
+        'Will of the Fury': '战女神之意',
+        'Winter Halo': '月晕',
+        'Winter Solstice': '寒月',
+        'Wrath of Halone': '战女神之愤',
       },
     },
   ],

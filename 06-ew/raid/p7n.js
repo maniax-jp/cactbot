@@ -1,4 +1,5 @@
 Options.Triggers.push({
+  id: 'AbyssosTheSeventhCircle',
   zoneId: ZoneId.AbyssosTheSeventhCircle,
   timelineFile: 'p7n.txt',
   initData: () => {
@@ -122,7 +123,7 @@ Options.Triggers.push({
       id: 'P7N Spark Of Life',
       type: 'StartsUsing',
       netRegex: { id: '780B', source: 'Agdistis', capture: false },
-      response: Responses.aoe(),
+      response: Responses.bleedAoe(),
     },
     {
       id: 'P7N Static Moon',

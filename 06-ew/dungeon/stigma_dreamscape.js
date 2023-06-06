@@ -5,6 +5,7 @@ const limitCutNumberMap = {
   '0052': 4,
 };
 Options.Triggers.push({
+  id: 'TheStigmaDreamscape',
   zoneId: ZoneId.TheStigmaDreamscape,
   timelineFile: 'stigma_dreamscape.txt',
   initData: () => {
@@ -293,6 +294,12 @@ Options.Triggers.push({
           ko: '강제이동: 오른쪽',
         },
       },
+    },
+    {
+      id: 'Dreamscape Atomic Ray',
+      type: 'StartsUsing',
+      netRegex: { id: '6436', source: 'Stigma-4', capture: false },
+      response: Responses.bleedAoe(),
     },
   ],
   timelineReplace: [
