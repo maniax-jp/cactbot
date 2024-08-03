@@ -14,6 +14,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 
 type NearFar = 'near' | 'far'; // wherever you are...
 type InOut = 'in' | 'out';
+type PartnersSpread = 'partners' | 'spread';
 type NorthSouth = 'north' | 'south';
 type LeftRight = 'left' | 'right';
 type ActorPositions = { [id: string]: DirectionOutput8 };
@@ -106,7 +107,7 @@ export interface Data extends RaidbossData {
   witchGleamCount: number;
   electromines: { [id: string]: DirectionOutputIntercard };
   electrominesSafe: DirectionOutputIntercard[];
-  starEffect?: 'partners' | 'spread';
+  starEffect?: PartnersSpread;
   witchgleamSelfCount: number;
   condenserTimer?: 'short' | 'long';
   electronStreamSafe?: 'yellow' | 'blue';
@@ -120,6 +121,7 @@ export interface Data extends RaidbossData {
   twilightSafe: DirectionOutputIntercard[];
   replicaCleaveCount: number;
   secondTwilightCleaveSafe?: DirectionOutputIntercard;
+  midnightFirstMech?: PartnersSpread;
 }
 
 const triggerSet: TriggerSet<Data> = {
@@ -978,11 +980,24 @@ const triggerSet: TriggerSet<Data> = {
         },
       },
     },
+
+    // Midnight Sabbath
     {
-      id: 'R4S Scattered Burst',
+      id: 'R4S Concentrated/Scattered Burst',
       type: 'StartsUsing',
-      netRegex: { id: '962C', source: 'Wicked Thunder', capture: false },
-      response: Responses.spreadThenStack(),
+      netRegex: { id: ['962B', '962C'], source: 'Wicked Thunder' },
+      infoText: (data, matches, output) => {
+        data.midnightFirstMech = matches.id === '962B' ? 'partners' : 'spread';
+        return matches.id === '962B' ? output.partners!() : output.spread!();
+      },
+      outputStrings: {
+        partners: {
+          en: 'Partners => Spread',
+        },
+        spread: {
+          en: 'Spread => Partners',
+        },
+      },
     },
     // Sword Burst - # 95F9 - front, FA - mid, FB - back
   ],
