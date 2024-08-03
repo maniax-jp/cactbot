@@ -36,6 +36,7 @@ const witchHuntAlertOutputStrings = {
 } as const;
 
 export interface Data extends RaidbossData {
+  phase: 1 | 2;
   bewitchingBurstSafe?: InOut;
   hasForkedLightning: boolean;
   seenBasicWitchHunt: boolean;
@@ -59,6 +60,7 @@ const triggerSet: TriggerSet<Data> = {
   timelineFile: 'r4s.txt',
   initData: () => {
     return {
+      phase: 1,
       hasForkedLightning: false,
       seenBasicWitchHunt: false,
       witchGleamCount: 0,
@@ -70,10 +72,14 @@ const triggerSet: TriggerSet<Data> = {
     };
   },
   timelineTriggers: [
+    // Order: Soulshock => Impact x2 => Cannonbolt (entire sequence is ~9s).
+    // None of these have StartsUsing lines or other lines that could be used for pre-warn triggers;
+    // they seem to be entirely timeline based.  To avoid spam, use a single alert.
     {
       id: 'R4S Soulshock',
       regex: /Soulshock/,
-      beforeSeconds: 5,
+      beforeSeconds: 4,
+      durationSeconds: 13,
       response: Responses.bigAoe(),
     },
   ],
@@ -81,19 +87,28 @@ const triggerSet: TriggerSet<Data> = {
     // ***************** PHASE 1 ***************** //
     // General
     {
+      id: 'R4S Phase Tracker',
+      type: 'Ability',
+      // 98D0 = Cannonbolt (knockback to south platform)
+      netRegex: { id: '98D0', source: 'Wicked Thunder', capture: false },
+      suppressSeconds: 1,
+      run: (data) => data.phase = 2,
+    },
+    {
       id: 'R4S Wrath of Zeus',
       type: 'StartsUsing',
       netRegex: { id: '95EF', source: 'Wicked Thunder', capture: false },
       response: Responses.aoe(),
     },
     {
-      id: 'R4S Wicked Bolt Stack',
-      type: 'StartsUsing',
-      netRegex: { id: '92C2', capture: false },
-      response: Responses.stackMarker(),
+      id: 'R4S Wicked Bolt',
+      type: 'HeadMarker',
+      netRegex: { id: '013C' },
+      condition: (data) => data.phase === 1,
+      response: Responses.stackMarkerOn(),
     },
     {
-      id: 'R4S Wicked Jolt Tankbuster',
+      id: 'R4S Wicked Jolt',
       type: 'StartsUsing',
       netRegex: { id: '95F0' },
       response: Responses.tankBusterSwap(),
@@ -669,6 +684,7 @@ const triggerSet: TriggerSet<Data> = {
           return output.far!();
         return output.near!();
       },
+      run: (data) => data.conductionPointTargets = [],
       outputStrings: {
         near: {
           en: 'In Front of Partner',
