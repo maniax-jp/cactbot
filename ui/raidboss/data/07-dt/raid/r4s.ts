@@ -2,7 +2,12 @@ import Conditions from '../../../../../resources/conditions';
 import { UnreachableCode } from '../../../../../resources/not_reached';
 import Outputs from '../../../../../resources/outputs';
 import { Responses } from '../../../../../resources/responses';
-import { DirectionOutput8, DirectionOutputCardinal, DirectionOutputIntercard, Directions } from '../../../../../resources/util';
+import {
+  DirectionOutput8,
+  DirectionOutputCardinal,
+  DirectionOutputIntercard,
+  Directions,
+} from '../../../../../resources/util';
 import ZoneId from '../../../../../resources/zone_id';
 import { RaidbossData } from '../../../../../types/data';
 import { TriggerSet } from '../../../../../types/trigger';
@@ -797,7 +802,8 @@ const triggerSet: TriggerSet<Data> = {
       id: 'R4S Mustard Bomb Initial',
       type: 'StartsUsing',
       netRegex: { id: '961E', source: 'Wicked Thunder', capture: false },
-      infoText: (data, _matches, output) => data.role === 'tank' ? output.tank!() : output.nonTank!(),
+      infoText: (data, _matches, output) =>
+        data.role === 'tank' ? output.tank!() : output.nonTank!(),
       outputStrings: {
         tank: Outputs.tetherBusters,
         nonTank: Outputs.spread,
@@ -837,13 +843,6 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       id: 'R4S Wicked Special In',
-      type: 'StartsUsing',
-      netRegex: { id: '9612', source: 'Wicked Thunder', capture: false },
-      condition: (data) => data.secondTwilightCleaveSafe === undefined,
-      response: Responses.getIn(),
-    },
-    {
-      id: 'R4S Twilight Sabbath Wicked Special In',
       type: 'StartsUsing',
       netRegex: { id: '9612', source: 'Wicked Thunder', capture: false },
       condition: (data) => data.secondTwilightCleaveSafe === undefined,
@@ -899,7 +898,7 @@ const triggerSet: TriggerSet<Data> = {
     {
       id: 'R4S Wicked Blaze',
       type: 'HeadMarker',
-      netRegex: { id: '013C' },
+      netRegex: { id: '013C', capture: false },
       condition: (data) => data.phase === 2,
       suppressSeconds: 1,
       infoText: (_data, _matches, output) => output.stacks!(),
@@ -964,7 +963,7 @@ const triggerSet: TriggerSet<Data> = {
       alertText: (data, matches, output) => {
         const dir = data.secondTwilightCleaveSafe;
         if (dir === undefined)
-          throw new UnreachableCode;
+          throw new UnreachableCode();
 
         return matches.id === '9610'
           ? output.combo!({ dir: output[dir]!(), inSides: output.sides!() })
