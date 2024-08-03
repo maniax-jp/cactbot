@@ -538,7 +538,7 @@ const triggerSet: TriggerSet<Data> = {
       // 95D6 - Yellow cannon north, Blue cannnon south
       // 95D7 - Blue cannon north, Yellow cannon south
       netRegex: { id: ['95D6', '95D7'], source: 'Wicked Thunder' },
-      condition: (data) => data.electronStreamSide === undefined,
+      condition: (data) => !data.seenConductorDebuffs,
       alertText: (data, matches, output) => {
         if (data.electronStreamSafe === 'yellow')
           data.electronStreamSide = matches.id === '95D6' ? 'north' : 'south';
@@ -595,8 +595,10 @@ const triggerSet: TriggerSet<Data> = {
         else if (data.electronStreamSafe === 'blue')
           safeSide = matches.id === '95D6' ? 'south' : 'north';
 
-        if (safeSide !== 'unknown')
+        if (safeSide !== 'unknown') {
           dir = safeSide === data.electronStreamSide ? 'stay' : 'swap';
+          data.electronStreamSide = safeSide; // for the next comparison
+        }
 
         const text = data.role === 'tank'
           ? output.tank!({ dir: output[dir]!() })
