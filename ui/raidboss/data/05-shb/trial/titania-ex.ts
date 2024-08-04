@@ -15,6 +15,7 @@ export interface Data extends RaidbossData {
 
 // Titania Extreme
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheDancingPlagueExtreme',
   zoneId: ZoneId.TheDancingPlagueExtreme,
   timelineFile: 'titania-ex.txt',
   triggers: [
@@ -128,10 +129,21 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       id: 'TitaniaEx Bramble 2',
-      type: 'StartsUsing',
-      netRegex: { id: '42D7', source: 'Titania', capture: false },
-      delaySeconds: 3,
-      response: Responses.moveAway('alert'),
+      type: 'Tether',
+      netRegex: { id: '0012' },
+      alertText: (data, matches, output) => {
+        const partner = matches.target === data.me ? matches.source : matches.target;
+        return output.breakTether!({ player: data.party.member(partner) });
+      },
+      outputStrings: {
+        breakTether: {
+          en: 'Break Tether (w/${player})',
+          de: 'Verbindungen brechen (mit ${player})',
+          fr: 'Cassez les liens (avec ${player})',
+          cn: '拉断连线 (与${player})',
+          ko: '선 끊기 (+${player})',
+        },
+      },
     },
     {
       id: 'TitaniaEx Bramble Knockback',
@@ -226,7 +238,7 @@ const triggerSet: TriggerSet<Data> = {
       id: 'TitaniaEx Pummel',
       type: 'StartsUsing',
       netRegex: { id: '3D37', source: 'Puck', capture: false },
-      condition: (data) => data.role === 'tank',
+      condition: (data) => data.role === 'tank' || data.job === 'BLU',
       preRun: (data) => {
         data.pummelCount ??= 0;
         data.pummelCount++;
@@ -272,7 +284,7 @@ const triggerSet: TriggerSet<Data> = {
         if (data.bomb && data.bomb[data.me])
           return;
 
-        return output.stackOn!({ player: data.ShortName(matches.target) });
+        return output.stackOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         stackOnYou: Outputs.stackOnYou,

@@ -35,6 +35,7 @@ const colorMap = {
 } as const;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'EdensVerseIconoclasmSavage',
   zoneId: ZoneId.EdensVerseIconoclasmSavage,
   timelineFile: 'e7s.txt',
   triggers: [
@@ -98,8 +99,8 @@ const triggerSet: TriggerSet<Data> = {
 
         if (!data.betwixtWorldsStack || data.betwixtWorldsStack.length === 1)
           return;
-        const names = data.betwixtWorldsStack.map((x) => data.ShortName(x)).sort();
-        return output.stackOn!({ players: names.join(', ') });
+        const names = data.betwixtWorldsStack.map((x) => data.party.member(x)).sort();
+        return output.stackOn!({ players: names });
       },
       outputStrings: {
         stackOnYou: Outputs.stackOnYou,
@@ -220,7 +221,7 @@ const triggerSet: TriggerSet<Data> = {
         if (data.me === matches.target)
           return output.stackOnYou!();
 
-        return output.stackOn!({ player: data.ShortName(matches.target) });
+        return output.stackOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         stackOnYou: Outputs.stackOnYou,
@@ -257,8 +258,8 @@ const triggerSet: TriggerSet<Data> = {
 
         if (!data.insatiableLightStack || data.insatiableLightStack.length === 1)
           return;
-        const names = data.insatiableLightStack.map((x) => data.ShortName(x)).sort();
-        return output.stackPlayers!({ players: names.join(', ') });
+        const names = data.insatiableLightStack.map((x) => data.party.member(x)).sort();
+        return output.stackPlayers!({ players: names });
       },
       outputStrings: {
         stackOnYou: Outputs.stackOnYou,
@@ -363,7 +364,7 @@ const triggerSet: TriggerSet<Data> = {
         if (data.boundless.light === data.boundless.dark) {
           if (matches.target === data.me)
             return;
-          return { infoText: output.text!({ player: data.ShortName(matches.target) }) };
+          return { infoText: output.text!({ player: data.party.member(matches.target) }) };
         }
 
         return Responses.stackMarkerOn();

@@ -7,6 +7,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheLostCityOfAmdapor',
   zoneId: ZoneId.TheLostCityOfAmdapor,
   triggers: [
     {
@@ -25,6 +26,8 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'Drop Puddle Outside',
           de: 'Fläche draußen ablegen',
+          fr: 'Déposez les flaques à l\'extérieur',
+          ja: '外周に捨てる',
           cn: '远离放置圈圈',
           ko: '바깥쪽으로 장판 유도하기',
         },

@@ -9,6 +9,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheFinalCoilOfBahamutTurn4',
   zoneId: ZoneId.TheFinalCoilOfBahamutTurn4,
   timelineFile: 't13.txt',
   initData: () => {
@@ -59,7 +60,7 @@ const triggerSet: TriggerSet<Data> = {
       infoText: (data, matches, output) => {
         if (matches.target === data.me)
           return;
-        return output.flattenOn!({ player: data.ShortName(matches.target) });
+        return output.flattenOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         flattenOn: {
@@ -131,7 +132,7 @@ const triggerSet: TriggerSet<Data> = {
       },
       infoText: (data, matches, output) => {
         if (matches.target !== data.me)
-          return output.akhMornOn!({ player: data.ShortName(matches.target) });
+          return output.akhMornOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         akhMornOn: {

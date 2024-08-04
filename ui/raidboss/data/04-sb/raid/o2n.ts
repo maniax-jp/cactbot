@@ -12,6 +12,7 @@ export interface Data extends RaidbossData {
 
 // O2N - Deltascape 2.0 Normal
 const triggerSet: TriggerSet<Data> = {
+  id: 'DeltascapeV20',
   zoneId: ZoneId.DeltascapeV20,
   timelineFile: 'o2n.txt',
   timelineTriggers: [
@@ -45,7 +46,7 @@ const triggerSet: TriggerSet<Data> = {
         if (data.me === matches.target)
           return output.stackMarkerOnYou!();
 
-        return output.stackOn!({ player: data.ShortName(matches.target) });
+        return output.stackOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         stackMarkerOnYou: {

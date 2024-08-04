@@ -11,6 +11,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'EdensGateResurrectionSavage',
   zoneId: ZoneId.EdensGateResurrectionSavage,
   timelineFile: 'e1s.txt',
   timeline: [
@@ -79,7 +80,7 @@ const triggerSet: TriggerSet<Data> = {
         return;
 
       const goof = goofs[Math.floor(Math.random() * goofs.length)];
-      if (goof)
+      if (goof !== undefined)
         return `${time} "${goof}"`;
     },
   ],

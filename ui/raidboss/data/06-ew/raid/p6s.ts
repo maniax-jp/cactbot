@@ -47,6 +47,7 @@ const crossTileFlags = '00020001'; // mapEffect flags for '+' tile effect
 const diagonalTileFlags = '00400020'; // mapEffect flags for 'x' tile effect
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'AbyssosTheSixthCircleSavage',
   zoneId: ZoneId.AbyssosTheSixthCircleSavage,
   timelineFile: 'p6s.txt',
   initData: () => {
@@ -1157,7 +1158,6 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       'locale': 'fr',
-      'missingTranslations': true,
       'replaceSync': {
         'Hegemone': 'Hégémone',
         'Parasitos': 'créature parasite',
@@ -1179,6 +1179,7 @@ const triggerSet: TriggerSet<Data> = {
         'Pathogenic Cells': 'Souffle de cellules parasites',
         'Polyominoid Sigma': 'Polyomino éthéré Σ',
         'Polyominous Dark IV': 'Polyomino Giga Ténèbres',
+        '(?<!Dual )Predation': 'Attaque parasitaire',
         'Ptera Ixou': 'Ptera Ixou',
         'Reek Havoc': 'Exhalaison',
         'Synergy': 'Synergie',

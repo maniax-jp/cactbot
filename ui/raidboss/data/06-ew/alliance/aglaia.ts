@@ -28,6 +28,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'Aglaia',
   zoneId: ZoneId.Aglaia,
   timelineFile: 'aglaia.txt',
   initData: () => {
@@ -399,7 +400,7 @@ const triggerSet: TriggerSet<Data> = {
       alertText: (data, matches, output) => {
         if (data.naldSmeltingSpread.includes(data.me))
           return;
-        return output.stackOnPlayer!({ player: data.ShortName(matches.target) });
+        return output.stackOnPlayer!({ player: data.party.member(matches.target) });
       },
       run: (data) => data.naldSmeltingSpread = [],
       outputStrings: {
@@ -493,7 +494,7 @@ const triggerSet: TriggerSet<Data> = {
       delaySeconds: 0.5,
       alertText: (data, matches, output) => {
         if (data.naldLastColor === 'orange')
-          return output.lineStackOn!({ player: data.ShortName(matches.target) });
+          return output.lineStackOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         lineStackOn: {
@@ -795,8 +796,8 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       'locale': 'fr',
-      'missingTranslations': true,
       'replaceSync': {
+        '--hammer--': '--Marteau--',
         'Azeyma': 'Azeyma',
         'Azeyma\'s Heat': 'mirage d\'Azeyma',
         'Byregot': 'Byregot',
@@ -820,6 +821,10 @@ const triggerSet: TriggerSet<Data> = {
         'The Twin Halls': 'Palais jumeau',
       },
       'replaceText': {
+        '--hammer--': '--Marteau--',
+        '\(fake\)': 'Faux',
+        '\(proximity\)': 'Proche',
+        '\(summon\)': 'Invocation',
         'Advent of the Eighth': 'Anneaux astraux',
         'As Above, So Below': 'Flamme de vie, flamme de mort',
         '(?<! )Balance': 'Jugement pananimique',
@@ -902,7 +907,6 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       'locale': 'ja',
-      'missingTranslations': true,
       'replaceSync': {
         'Azeyma(?!\')': 'アーゼマ',
         'Azeyma\'s Heat': 'アーゼマの蜃気楼',
@@ -927,6 +931,7 @@ const triggerSet: TriggerSet<Data> = {
         'The Twin Halls': '二面宮',
       },
       'replaceText': {
+        '--hammer--': '--ハンマー--',
         'Advent of the Eighth': '彗星輪',
         'As Above, So Below': '死生択一の炎',
         'Balance': '魂の清算',

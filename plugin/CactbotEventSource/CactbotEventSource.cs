@@ -43,7 +43,7 @@ namespace Cactbot {
     private Version overlay_plugin_version_;
     private Version ffxiv_plugin_version_;
     private Version act_version_;
-    private GameRegion game_region_ = GameRegion.International;
+    private Cactbot.VersionChecker.GameRegion game_region_ = Cactbot.VersionChecker.GameRegion.International;
 
     public delegate void ForceReloadHandler(JSEvents.ForceReloadEvent e);
     public event ForceReloadHandler OnForceReload;
@@ -78,6 +78,8 @@ namespace Cactbot {
 
     public CactbotEventSource(TinyIoCContainer container) : base(container) {
       Name = "Cactbot Config";
+
+      container.Register(new CactbotPathWarning(container));
 
       RegisterPresets();
 
@@ -159,7 +161,7 @@ namespace Cactbot {
         url = Path.GetFullPath(Path.Combine(dir, configFile));
 
       control.VisibleChanged += (o, e) => {
-        if (initDone)
+        if (initDone || !control.Visible)
           return;
         initDone = true;
         control.Init(url);
@@ -249,11 +251,11 @@ namespace Cactbot {
 
       switch (game_region_)
       {
-        case GameRegion.Chinese:
+        case Cactbot.VersionChecker.GameRegion.Chinese:
           ffxiv_ = new FFXIVProcessCn(this.logger);
           logger.Log(LogLevel.Info, Strings.Version, "cn");
           break;
-        case GameRegion.Korean:
+        case Cactbot.VersionChecker.GameRegion.Korean:
           ffxiv_ = new FFXIVProcessKo(this.logger);
           logger.Log(LogLevel.Info, Strings.Version, "ko");
           break;
@@ -658,7 +660,6 @@ namespace Cactbot {
       RegisterPreset("Raidboss", width:320, height:220, Strings.PresetRaidbossTimelineOnly, "raidboss_timeline_only");
       RegisterPreset("Jobs", width:600, height:300, Strings.PresetJobs);
       RegisterPreset("Eureka", width:400, height:400, Strings.PresetEureka);
-      RegisterPreset("Fisher", width:500, height:500, Strings.PresetFisher);
       RegisterPreset("OopsyRaidsy", width:400, height:400, Strings.PresetOopsyRaidsy);
       RegisterPreset("PullCounter", width:200, height:200, Strings.PresetPullCounter);
       RegisterPreset("Radar", width:300, height:400, Strings.PresetRadar);

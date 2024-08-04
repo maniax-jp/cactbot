@@ -1,3 +1,4 @@
+import { Lang } from '../../../../resources/languages';
 import { UnreachableCode } from '../../../../resources/not_reached';
 import { EventResponses, LogEvent } from '../../../../types/event';
 import { RaidbossFileData } from '../../../../types/trigger';
@@ -167,6 +168,9 @@ export default class RaidEmulatorPopupText extends StubbedPopupText {
         zoneName: enc.encounterZoneName,
         zoneID: parseInt(enc.encounterZoneId, 16),
       });
+
+      // Always reset when changing encounters
+      this.Reset();
     });
   }
 
@@ -189,7 +193,7 @@ export default class RaidEmulatorPopupText extends StubbedPopupText {
     _lowerTextKey: TextText,
     duration: number,
   ): void {
-    const textElementClass = textType + '-text';
+    const textElementClass = `${textType}-text`;
     const e = this._makeTextElement(triggerHelper, text, textElementClass);
     this.addDisplayText(e, this.emulatedOffset + duration * 1000);
   }
@@ -258,5 +262,9 @@ export default class RaidEmulatorPopupText extends StubbedPopupText {
       element: $e,
       expires: endTimestamp,
     });
+  }
+
+  setParserLanguage(lang: Lang): void {
+    this.parserLang = lang;
   }
 }

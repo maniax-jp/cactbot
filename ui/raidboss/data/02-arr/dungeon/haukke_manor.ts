@@ -1,5 +1,4 @@
 import Conditions from '../../../../../resources/conditions';
-import NetRegexes from '../../../../../resources/netregexes';
 import { Responses } from '../../../../../resources/responses';
 import ZoneId from '../../../../../resources/zone_id';
 import { RaidbossData } from '../../../../../types/data';
@@ -8,6 +7,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'HaukkeManor',
   zoneId: ZoneId.HaukkeManor,
   triggers: [
     {
@@ -48,33 +48,6 @@ const triggerSet: TriggerSet<Data> = {
       response: Responses.getBehind('info'),
     },
     {
-      // Void Lamp Spawn
-      id: 'Haukke Normal Void Lamps',
-      type: 'GameLog',
-      netRegex: NetRegexes.message({
-        line: 'The void lamps have begun emitting an eerie glow',
-        capture: false,
-      }),
-      infoText: (_data, _matches, output) => output.text!(),
-      outputStrings: {
-        text: {
-          en: 'Turn off Lamps',
-          de: 'Schalte die Lampen aus',
-          fr: 'Éteignez les lampes',
-          ja: '消灯する',
-          cn: '关灯',
-          ko: '등불 끄기',
-        },
-      },
-    },
-    {
-      // Lady's Candle Spawn
-      id: 'Haukke Normal Ladys Candle',
-      type: 'AddedCombatant',
-      netRegex: { npcNameId: '425', capture: false },
-      response: Responses.killAdds(),
-    },
-    {
       // 2 Lady's Handmaiden and 1 Manor Sentry Spawn
       // The sentry outside the bosses room loads when you enter the zone.
       // This causes the trigger to go off early, parsing for the Handmaiden fixes the problem.
@@ -104,8 +77,6 @@ const triggerSet: TriggerSet<Data> = {
         'Manor Claviger': 'Herrenhaus-Schlüsselträgerin',
         'Lady Amandine': 'Lady Amandine',
         'Manor Steward': 'Seneschall',
-        'The void lamps have begun emitting an eerie glow':
-          'Die düsteren Lampen flackern unheilvoll auf',
       },
     },
     {
@@ -126,7 +97,6 @@ const triggerSet: TriggerSet<Data> = {
         'Manor Claviger': '夫人付きクラヴィジャー',
         'Lady Amandine': 'レディ・アマンディヌ',
         'Manor Steward': '御用邸の執事長',
-        'The void lamps have begun emitting an eerie glow': '不気味なランプが妖しく輝き始めた',
       },
     },
     {
@@ -136,7 +106,6 @@ const triggerSet: TriggerSet<Data> = {
         'Manor Claviger': '随从女工',
         'Lady Amandine': '阿芒迪娜女士',
         'Manor Steward': '庄园的总管',
-        'The void lamps have begun emitting an eerie glow': '怪异的灯开始发出令人不安的光芒',
       },
     },
     {
@@ -146,7 +115,6 @@ const triggerSet: TriggerSet<Data> = {
         'Manor Claviger': '부인의 청지기',
         'Lady Amandine': '레이디 아망딘',
         'Manor Steward': '별궁의 집사장',
-        'The void lamps have begun emitting an eerie glow': '불길한 등불이 요사스러운 빛을 발합니다',
       },
     },
   ],

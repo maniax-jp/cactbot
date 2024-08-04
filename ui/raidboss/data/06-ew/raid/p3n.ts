@@ -10,6 +10,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'AsphodelosTheThirdCircle',
   zoneId: ZoneId.AsphodelosTheThirdCircle,
   timelineFile: 'p3n.txt',
   triggers: [
@@ -116,7 +117,7 @@ const triggerSet: TriggerSet<Data> = {
       netRegex: { name: 'Sunbird', capture: false },
       suppressSeconds: 1,
       alertText: (data, _matches, output) => {
-        if (data.role === 'tank')
+        if (data.role === 'tank' || data.job === 'BLU')
           return output.tank!();
         return output.text!();
       },

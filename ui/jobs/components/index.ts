@@ -6,30 +6,32 @@ import { Bars } from '../bars';
 import { BuffTracker } from '../buff_tracker';
 import { kWellFedContentTypes } from '../constants';
 import { JobsEventEmitter } from '../event_emitter';
-import { FfxivRegion } from '../jobs';
+import { FfxivVersion } from '../jobs';
 import { JobsOptions } from '../jobs_options';
 import { Player } from '../player';
 import { doesJobNeedMPBar, isPvPZone, RegexesHolder } from '../utils';
 
-import { ASTComponent } from './ast';
+import { AST6xComponent, ASTComponent } from './ast';
 import { BaseComponent, ComponentInterface, ShouldShow } from './base';
-import { BLMComponent } from './blm';
+import { BLM6xComponent, BLMComponent } from './blm';
 import { BLUComponent } from './blu';
 import { BRDComponent } from './brd';
 import { DNCComponent } from './dnc';
-import { DRGComponent } from './drg';
-import { DRKComponent } from './drk';
+import { DRG6xComponent, DRGComponent } from './drg';
+import { DRK6xComponent, DRKComponent } from './drk';
 import { GNBComponent } from './gnb';
 import { MCHComponent } from './mch';
-import { MNKComponent } from './mnk';
-import { NINComponent } from './nin';
-import { PLDComponent } from './pld';
+import { MNK6xComponent, MNKComponent } from './mnk';
+import { NIN6xComponent, NINComponent } from './nin';
+import { PCTComponent } from './pct';
+import { PLD6xComponent, PLDComponent } from './pld';
 import { RDMComponent } from './rdm';
 import { RPRComponent } from './rpr';
 import { SAMComponent } from './sam';
 import { SCHComponent } from './sch';
 import { SGEComponent } from './sge';
 import { SMNComponent } from './smn';
+import { VPRComponent } from './vpr';
 import { WARComponent } from './war';
 import { WHMComponent } from './whm';
 
@@ -56,6 +58,7 @@ const ComponentMap: Record<Job, typeof BaseComponent> = {
   NIN: NINComponent,
   SAM: SAMComponent,
   RPR: RPRComponent,
+  VPR: VPRComponent,
   // ranged dps
   ARC: BRDComponent,
   BRD: BRDComponent,
@@ -67,6 +70,7 @@ const ComponentMap: Record<Job, typeof BaseComponent> = {
   THM: BLMComponent,
   BLM: BLMComponent,
   RDM: RDMComponent,
+  PCT: PCTComponent,
   BLU: BLUComponent,
   // crafter & gatherer
   CRP: BaseComponent,
@@ -89,7 +93,7 @@ export class ComponentManager {
   ee: JobsEventEmitter;
   options: JobsOptions;
   partyTracker: PartyTracker;
-  ffxivRegion: FfxivRegion;
+  ffxivVersion: FfxivVersion;
   player: Player;
   regexes?: RegexesHolder;
   component?: BaseComponent;
@@ -113,7 +117,7 @@ export class ComponentManager {
     this.options = o.options;
     this.partyTracker = o.partyTracker;
     this.player = o.player;
-    this.ffxivRegion = o.ffxivRegion;
+    this.ffxivVersion = o.ffxivVersion;
 
     this.shouldShow = {};
     this.contentType = undefined;
@@ -129,10 +133,22 @@ export class ComponentManager {
   }
 
   getJobComponents(job: Job): BaseComponent {
-    // if (this.o.ffxivRegion === 'cn/ko') {
-    //   if (job === 'XXX')
-    //     return new XXXOldComponent(this.o);
-    // }
+    if (this.o.ffxivVersion < 700) {
+      if (job === 'PLD')
+        return new PLD6xComponent(this.o);
+      if (job === 'DRK')
+        return new DRK6xComponent(this.o);
+      if (job === 'AST')
+        return new AST6xComponent(this.o);
+      if (job === 'MNK')
+        return new MNK6xComponent(this.o);
+      if (job === 'DRG')
+        return new DRG6xComponent(this.o);
+      if (job === 'NIN')
+        return new NIN6xComponent(this.o);
+      if (job === 'BLM')
+        return new BLM6xComponent(this.o);
+    }
 
     const Component = ComponentMap[job];
 
@@ -169,6 +185,7 @@ export class ComponentManager {
         ...data,
         inCombat: this.component?.inCombat ?? false,
         umbralStacks: umbralStacks,
+        ffxivVersion: this.ffxivVersion,
       });
 
       // update mp bar color
@@ -238,9 +255,15 @@ export class ComponentManager {
           this.bars.o.leftBuffsList,
           this.bars.o.rightBuffsList,
           this.partyTracker,
-          this.ffxivRegion,
+          this.ffxivVersion,
         );
       }
+
+      // Emit stats event for the new job
+      this.player.emit('stat', this.player.stats, {
+        gcdSkill: this.player.gcdSkill,
+        gcdSpell: this.player.gcdSpell,
+      });
     });
 
     // update RegexesHolder when the player name changes

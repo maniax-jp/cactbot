@@ -16,7 +16,7 @@ export interface Data extends RaidbossData {
   decOffset?: number;
   fruitCount: number;
   unhatchedEggs?: PluginCombatantState[];
-  bondsDebuff?: string;
+  bondsDebuff?: 'stackMarker' | 'spread';
   rootsCount: number;
   tetherCollect: string[];
   stopTethers?: boolean;
@@ -68,6 +68,7 @@ const effectIdToOutputStringKey: { [effectId: string]: PurgationDebuff } = {
 };
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'AbyssosTheSeventhCircleSavage',
   zoneId: ZoneId.AbyssosTheSeventhCircleSavage,
   timelineFile: 'p7s.txt',
   initData: () => ({
@@ -444,17 +445,7 @@ const triggerSet: TriggerSet<Data> = {
       id: 'P7S Spark of Life',
       type: 'StartsUsing',
       netRegex: { id: '7839', source: 'Agdistis', capture: false },
-      infoText: (_data, _matches, output) => output.text!(),
-      outputStrings: {
-        text: {
-          en: 'aoe + bleed',
-          de: 'AoE + Blutung',
-          fr: 'AoE + Saignement',
-          ja: '全体攻撃 + 出血',
-          cn: 'AOE + 流血',
-          ko: '전체 공격 + 도트',
-        },
-      },
+      response: Responses.bleedAoe(),
     },
     {
       id: 'P7S Inviolate Bonds',
@@ -601,7 +592,7 @@ const triggerSet: TriggerSet<Data> = {
         if (!data.tetherCollect.includes(data.me)) {
           // Prevent duplicate callout
           data.tetherCollect.push(data.me);
-          if (!data.tetherCollectPhase)
+          if (data.tetherCollectPhase === undefined)
             return { infoText: output.noTether!() };
           if (data.tetherCollectPhase === 'famine')
             return { alertText: output.famineNoTether!() };
@@ -823,7 +814,6 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       'locale': 'fr',
-      'missingTranslations': true,
       'replaceSync': {
         'Agdistis': 'Agdistis',
         'Immature Io': 'Io immature',
@@ -831,6 +821,11 @@ const triggerSet: TriggerSet<Data> = {
         'Immature Stymphalide': 'Stymphalide immature',
       },
       'replaceText': {
+        '--chasing aoe--': '--AoE en ligne--',
+        '--eggs--': '--Œufs--',
+        'arrow': 'Flèche',
+        'close': 'Proche',
+        'far': 'Loin',
         'Blades of Attis': 'Lames d\'Attis',
         'Bough of Attis': 'Grandes branches d\'Attis',
         'Bronze Bellows': 'Frappe rafale',

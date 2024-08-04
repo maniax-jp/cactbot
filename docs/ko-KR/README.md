@@ -2,8 +2,8 @@
 
 <img align="right" src="../../screenshots/cactbot-logo-320x320.png">
 
-[![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/quisquous/cactbot/Test/main)](https://github.com/quisquous/cactbot/actions?query=workflow%3ATest+branch%3Amain)
-[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/quisquous/cactbot?color=brightgreen&sort=semver)](https://github.com/quisquous/cactbot/releases/latest)
+[![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/OverlayPlugin/cactbot/test.yml?branch=main)](https://github.com/OverlayPlugin/cactbot/actions?query=workflow%3ATest+branch%3Amain)
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/OverlayPlugin/cactbot?color=brightgreen&sort=semver)](https://github.com/OverlayPlugin/cactbot/releases/latest)
 
 🌎 [[English](../../README.md)] [[简体中文](../zh-CN/README.md)] [**한국어**]
 
@@ -40,10 +40,6 @@ cactbot은 다음 모듈을 제공합니다:
 * eureka: 에우레카 NM 트래커 지도
 
 ![eureka 스크린샷](../../screenshots/promo_eureka.png)
-
-* fisher: 낚시 캐스팅 시간 트래커
-
-![fisher 스크린샷](../../screenshots/promo_fishing.png)
 
 * radar: 마물 방향, 첫 어글자 알림
 
@@ -178,7 +174,7 @@ cactbot은 테스트 UI를 기본으로 제공합니다.
 ### 의존성 설치: 스크립트 방식
 
 1. `curl`이 반드시 설치되어 있어야 합니다. (의존성 파일들을 다운로드하기 위해 사용됩니다.)
-1. `./util/fetch_deps.py` 스크립트를 실행하세요.
+1. `node --import node --loader=ts-node/esm ./util/fetch_deps.ts` 스크립트를 실행하세요.
 1. **빌드하는 단계**로 이동하세요.
 
 ### 의존성 설치: 수동
@@ -264,7 +260,7 @@ Webpack에 대해 더 자세히 알고 싶다면
 텍스트와 사운드 알람은 ACT의 "커스텀 트리거" 기능과 비슷한 방식으로, 전투 타임라인이나 게임에서 찍히는 로그 메시지를 기반으로 제공됩니다.
 이 모듈은 월드 오브 워크래프트의 [BigWigs Bossmods](https://www.curseforge.com/wow/addons/big-wigs) 애드온과 비슷하게 보이고 느껴지도록 디자인 되었습니다.
 
-[이 페이지](https://quisquous.github.io/cactbot/util/coverage/coverage.html?lang=ko)에는
+[이 페이지](https://overlayplugin.github.io/cactbot/util/coverage/coverage.html?lang=ko)에는
 현재 cactbot이 지원하는 컨텐츠 목록이 나열되어 있습니다.
 지원하는 컨텐츠는 계속해서 늘리고 있습니다.
 하지만 많은 수의 오래된 컨텐츠들이 아직 지원되지 않습니다.
@@ -411,24 +407,6 @@ oopsy에 경고(:warning:)나 실패(:no_entry_sign:) 로그가 찍혀서 무엇
 `cactbot/user/radar-example.js`에서 더 많은 옵션을 확인할 수 있습니다.
 
 ![radar 스크린샷](../../screenshots/promo_radar.png)
-
-### [fisher](../../ui/fisher) 모듈
-
-이 모듈을 사용하려면,
-**ui/fisher/fisher.html** 파일을 URL 부분에서 선택하거나 `Cactbot Fisher` 프리셋을 사용하세요.
-
-낚싯터에서 낚시를 하면, 이 모듈이 사용자가 낚은 물고기를 추적합니다. 이를 통해 사용자가 물고기를 낚을 때 어떤 물고기를 낚게 될지 예상할 수 있게 해줍니다.
-
-![fishing 스크린샷](../../screenshots/promo_fishing.png)
-
-물고기가 잡히는 낚시 캐스팅 시간 정보는 사용자가 직접 물고기를 낚을 때 기록됩니다.
-따라서 각 물고기를 낚기 전에는 아무런 데이터가 없을 것입니다.
-초록색 바는 입질이 약한 물고기(섬세한 낚아채기 사용)를 의미하며,
-노란색 바는 입질이 중간인 물고기를 의미하고,
-빨간색 바는 전설 물고기 또는 입질이 강한 물고기를 의미합니다.
-*번역자가 낚시에 대해 잘 알지 못해 물고기 종류에 대해 번역을 잘못했을 수 있음*
-
-일반적인 문제 해결 팁은 [여기](../FAQ-Troubleshooting.md#fisher-module)를 확인하세요.
 
 ### [dps](../../ui/dps) 미터기
 

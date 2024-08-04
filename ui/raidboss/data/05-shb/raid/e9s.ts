@@ -11,7 +11,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 export interface Data extends RaidbossData {
   phaserOutputs?: string[];
   phase?: string;
-  finalArtOfDarkness?: string;
+  finalArtOfDarkness?: 'goLeft' | 'goRight';
   artOfDarkness?: string[];
   artOfDarknessIdMap?: { [id: string]: string };
   artOfDarknessExpected?: string;
@@ -146,6 +146,7 @@ const calculateSummonSafeZone = (
 };
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'EdensPromiseUmbraSavage',
   zoneId: ZoneId.EdensPromiseUmbraSavage,
   timelineFile: 'e9s.txt',
   triggers: [
@@ -185,7 +186,7 @@ const triggerSet: TriggerSet<Data> = {
           return output.tankSwap!();
 
         if (data.role === 'healer')
-          return output.tankBusters!({ player: data.ShortName(matches.target) });
+          return output.tankBusters!({ player: data.party.member(matches.target) });
       },
       infoText: (data, _matches, output) => {
         if (data.role !== 'tank' && data.role !== 'healer')
@@ -283,7 +284,7 @@ const triggerSet: TriggerSet<Data> = {
       delaySeconds: 7,
       alertText: (data, _matches, output) => {
         const key = data.phaserOutputs?.shift();
-        if (key)
+        if (key !== undefined)
           return output[key]!();
       },
       outputStrings: phaserOutputStrings,
@@ -295,7 +296,7 @@ const triggerSet: TriggerSet<Data> = {
       delaySeconds: 12,
       alertText: (data, _matches, output) => {
         const key = data.phaserOutputs?.shift();
-        if (key)
+        if (key !== undefined)
           return output[key]!();
       },
       outputStrings: phaserOutputStrings,
@@ -323,7 +324,7 @@ const triggerSet: TriggerSet<Data> = {
       delaySeconds: 8,
       alertText: (data, _matches, output) => {
         const key = data.phaserOutputs?.shift();
-        if (key)
+        if (key !== undefined)
           return output[key]!();
       },
       outputStrings: phaserOutputStrings,
@@ -335,7 +336,7 @@ const triggerSet: TriggerSet<Data> = {
       delaySeconds: 12,
       alertText: (data, _matches, output) => {
         const key = data.phaserOutputs?.shift();
-        if (key)
+        if (key !== undefined)
           return output[key]!();
       },
       outputStrings: phaserOutputStrings,
@@ -413,7 +414,7 @@ const triggerSet: TriggerSet<Data> = {
         for (let i = 0; i < 4; ++i) {
           const hexPivot = (idPivot + i).toString(16).toUpperCase().padStart(4, '0');
           const outputKey = artOfDarknessOutputKeys[i];
-          if (!outputKey)
+          if (outputKey === undefined)
             throw new UnreachableCode();
           data.artOfDarknessIdMap[hexPivot] = outputKey;
         }

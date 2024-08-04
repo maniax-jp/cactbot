@@ -75,7 +75,7 @@ namespace Cactbot {
         id = e.id;
         level = e.level;
         name = e.name;
-        job = e.job.ToString();
+        job = e.job.ToString().ToUpper();
         currentHP = e.hp;
         maxHP = e.max_hp;
         currentMP = e.mp;
@@ -88,7 +88,6 @@ namespace Cactbot {
         pos = new Point3F(e.pos_x, e.pos_y, e.pos_z);
         rotation = e.rotation;
         jobDetail = null;
-        bait = e.bait;
         debugJob = e.debug_job;
         currentShield = e.shield_value;
       }
@@ -114,7 +113,6 @@ namespace Cactbot {
 
       public Point3F pos;
       public float rotation;
-      public uint bait;
 
       // One of the FooJobDetails structures, depending on the value of |job|.
       public object jobDetail;

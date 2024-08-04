@@ -1,4 +1,3 @@
-import NetRegexes from '../../../../../resources/netregexes';
 import { Responses } from '../../../../../resources/responses';
 import ZoneId from '../../../../../resources/zone_id';
 import { RaidbossData } from '../../../../../types/data';
@@ -9,6 +8,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheSecondCoilOfBahamutTurn3',
   zoneId: ZoneId.TheSecondCoilOfBahamutTurn3,
   timelineFile: 't8.txt',
   initData: () => {
@@ -24,9 +24,11 @@ const triggerSet: TriggerSet<Data> = {
       response: Responses.stackMarkerOn('info'),
     },
     {
+      // https://xivapi.com/LogMessage/2278
+      // en: Landmines have been scattered...
       id: 'T8 Landmine Start',
-      type: 'GameLog',
-      netRegex: NetRegexes.message({ line: 'Landmines have been scattered.*?', capture: false }),
+      type: 'SystemLogMessage',
+      netRegex: { id: '8E6', capture: false },
       alertText: (_data, _matches, output) => output.text!(),
       run: (data) => data.landmines = {},
       outputStrings: {
@@ -85,7 +87,7 @@ const triggerSet: TriggerSet<Data> = {
       netRegex: { id: '0005', target: 'The Avatar' },
       suppressSeconds: 6,
       infoText: (data, matches, output) => {
-        return output.text!({ player: data.ShortName(matches.source) });
+        return output.text!({ player: data.party.member(matches.source) });
       },
       outputStrings: {
         text: {
@@ -108,7 +110,7 @@ const triggerSet: TriggerSet<Data> = {
       },
       infoText: (data, matches, output) => {
         if (data.me !== matches.target)
-          return output.brainjackOn!({ player: data.ShortName(matches.target) });
+          return output.brainjackOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         brainjackOn: {
@@ -139,7 +141,7 @@ const triggerSet: TriggerSet<Data> = {
       },
       infoText: (data, matches, output) => {
         if (data.me !== matches.target)
-          return output.allaganFieldOn!({ player: data.ShortName(matches.target) });
+          return output.allaganFieldOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         allaganFieldOn: {
@@ -184,7 +186,6 @@ const triggerSet: TriggerSet<Data> = {
         'Allagan Field': 'Allagisches Feld',
         'Allagan Mine': 'Allagische Mine',
         'Clockwork Dreadnaught': 'Brummonaut',
-        'Landmines have been scattered': 'Die Landminen haben sich verteilt',
         'The Avatar': 'Avatar',
         'The central bow': 'Rumpf-Zentralsektor',
       },
@@ -206,7 +207,6 @@ const triggerSet: TriggerSet<Data> = {
         'Allagan Field': 'Champ Allagois',
         'Allagan Mine': 'Mine Allagoise',
         'Clockwork Dreadnaught': 'Cuirassé Dreadnaught',
-        'Landmines have been scattered': 'Des mines ont été répandues',
         'The Avatar': 'Bio-Tréant',
         'The central bow': 'l\'axe central - proue',
       },
@@ -228,7 +228,6 @@ const triggerSet: TriggerSet<Data> = {
         'Allagan Field': 'アラガンフィールド',
         'Allagan Mine': 'アラガンマイン',
         'Clockwork Dreadnaught': 'ドレッドノート',
-        'Landmines have been scattered': '地雷が散布された',
         'The Avatar': 'アバター',
         'The central bow': '中枢艦首区',
       },
@@ -250,7 +249,6 @@ const triggerSet: TriggerSet<Data> = {
         'Allagan Field': '亚拉戈领域',
         'Allagan Mine': '亚拉戈机雷',
         'Clockwork Dreadnaught': '恐慌装甲',
-        'Landmines have been scattered': '地雷分布在了各处',
         'The Avatar': '降世化身',
         'The central bow': '中枢舰首区',
       },
@@ -272,7 +270,6 @@ const triggerSet: TriggerSet<Data> = {
         'Allagan Field': '알라그 필드',
         'Allagan Mine': '알라그 지뢰',
         'Clockwork Dreadnaught': '드레드노트',
-        'Landmines have been scattered': '지뢰가 뿌려졌습니다',
         'The Avatar': '아바타',
         'The central bow': '중추 함수 구역',
       },

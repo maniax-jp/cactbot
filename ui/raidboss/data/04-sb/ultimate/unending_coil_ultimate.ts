@@ -1,10 +1,11 @@
 import Conditions from '../../../../../resources/conditions';
-import NetRegexes from '../../../../../resources/netregexes';
 import Outputs from '../../../../../resources/outputs';
+import { callOverlayHandler } from '../../../../../resources/overlay_plugin_api';
 import { Responses } from '../../../../../resources/responses';
-import Util from '../../../../../resources/util';
+import Util, { Directions } from '../../../../../resources/util';
 import ZoneId from '../../../../../resources/zone_id';
 import { RaidbossData } from '../../../../../types/data';
+import { PluginCombatantState } from '../../../../../types/event';
 import { TriggerSet } from '../../../../../types/trigger';
 
 export interface Data extends RaidbossData {
@@ -18,6 +19,8 @@ export interface Data extends RaidbossData {
   dooms?: { [doomIdx: number]: string | null };
   fireDebuff: boolean;
   iceDebuff: boolean;
+  thunderDebuffs: string[];
+  thunderOnYou: boolean;
   naelFireballCount: number;
   fireballs: { [fireballIdx: number]: string[] };
   tookThreeFireballs?: boolean;
@@ -29,7 +32,9 @@ export interface Data extends RaidbossData {
   wideThirdDive: boolean;
   unsafeThirdMark: boolean;
   naelDiveMarkerCount: number;
-  trio?: string;
+  trio?: 'quickmarch' | 'blackfire' | 'fellruin' | 'heavensfall' | 'tenstrike' | 'octet';
+  trioSourceIds: { [name: string]: number };
+  combatantData: PluginCombatantState[];
   shakers: string[];
   megaStack: string[];
   octetMarker: string[];
@@ -39,10 +44,24 @@ export interface Data extends RaidbossData {
   mornAfahCount: number;
 }
 
-const resetTrio = (data: Data, trio: string) => {
+const resetTrio = (data: Data, trio: Data['trio']) => {
   data.trio = trio;
   data.shakers = [];
   data.megaStack = [];
+};
+
+const centerX = 0;
+const centerY = 0;
+
+export const isClockwise = (start: number, compare: number) => {
+  // assumes both start and compare are 0-360.
+  // returns false if start = compare
+  let isCW = false;
+  if (compare > start)
+    isCW = compare - start <= 180;
+  else if (compare < start)
+    isCW = start - compare >= 180;
+  return isCW;
 };
 
 // Begin copy and paste from dragon_test.js.
@@ -175,6 +194,7 @@ export const findDragonMarks = (
 
 // UCU - The Unending Coil Of Bahamut (Ultimate)
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheUnendingCoilOfBahamutUltimate',
   zoneId: ZoneId.TheUnendingCoilOfBahamutUltimate,
   timelineFile: 'unending_coil_ultimate.txt',
   initData: () => {
@@ -185,6 +205,8 @@ const triggerSet: TriggerSet<Data> = {
       currentPhase: 2,
       fireDebuff: false,
       iceDebuff: false,
+      thunderDebuffs: [],
+      thunderOnYou: false,
       naelFireballCount: 0,
       fireballs: {
         1: [],
@@ -198,6 +220,8 @@ const triggerSet: TriggerSet<Data> = {
       wideThirdDive: false,
       unsafeThirdMark: false,
       naelDiveMarkerCount: 0,
+      trioSourceIds: {},
+      combatantData: [],
       shakers: [],
       megaStack: [],
       octetMarker: [],
@@ -216,6 +240,20 @@ const triggerSet: TriggerSet<Data> = {
       // mitigation on the other, so just always play this for both tanks.
       suppressSeconds: 1,
       response: Responses.tankBuster(),
+    },
+    {
+      id: 'UCU Plummet',
+      regex: /Plummet/,
+      beforeSeconds: 3,
+      suppressSeconds: 10,
+      response: Responses.tankCleave(),
+    },
+    {
+      id: 'UCU Flare Breath',
+      regex: /Flare Breath/,
+      beforeSeconds: 4,
+      suppressSeconds: 10,
+      response: Responses.tankCleave(),
     },
   ],
   triggers: [
@@ -324,18 +362,8 @@ const triggerSet: TriggerSet<Data> = {
     {
       id: 'UCU Death Sentence',
       type: 'StartsUsing',
-      netRegex: { id: '26A9', source: 'Twintania', capture: false },
-      alertText: (_data, _matches, output) => output.text!(),
-      outputStrings: {
-        text: {
-          en: 'Death Sentence',
-          de: 'Todesurteil',
-          fr: 'Peine de mort',
-          ja: 'デスセンテンス',
-          cn: '死刑',
-          ko: '사형 선고',
-        },
-      },
+      netRegex: { id: '26A9', source: 'Twintania' },
+      response: Responses.tankBusterSwap(),
     },
     {
       id: 'UCU Hatch Collect',
@@ -371,7 +399,7 @@ const triggerSet: TriggerSet<Data> = {
       infoText: (data, _matches, output) => {
         if (!data.hatch)
           return;
-        const hatches = data.hatch.map((n) => data.ShortName(n)).join(', ');
+        const hatches = data.hatch.map((n) => data.party.member(n));
         delete data.hatch;
         return output.text!({ players: hatches });
       },
@@ -430,12 +458,10 @@ const triggerSet: TriggerSet<Data> = {
     // --- Nael ---
     {
       // https://xivapi.com/NpcYell/6497?pretty=true
+      // en: From on high I descend, the hallowed moon to call!
       id: 'UCU Nael Quote 1',
-      type: 'GameLog',
-      netRegex: NetRegexes.dialog({
-        line: 'From on high I descend, the hallowed moon to call.*?',
-        capture: false,
-      }),
+      type: 'NpcYell',
+      netRegex: { npcYellId: '1961', capture: false },
       durationSeconds: 6,
       infoText: (_data, _matches, output) => output.text!(),
       outputStrings: {
@@ -451,12 +477,10 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       // https://xivapi.com/NpcYell/6496?pretty=true
+      // en: From on high I descend, the iron path to walk!
       id: 'UCU Nael Quote 2',
-      type: 'GameLog',
-      netRegex: NetRegexes.dialog({
-        line: 'From on high I descend, the iron path to walk.*?',
-        capture: false,
-      }),
+      type: 'NpcYell',
+      netRegex: { npcYellId: '1960', capture: false },
       durationSeconds: 6,
       infoText: (_data, _matches, output) => output.text!(),
       outputStrings: {
@@ -472,9 +496,10 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       // https://xivapi.com/NpcYell/6495?pretty=true
+      // en: Take fire, O hallowed moon!
       id: 'UCU Nael Quote 3',
-      type: 'GameLog',
-      netRegex: NetRegexes.dialog({ line: 'Take fire, O hallowed moon.*?', capture: false }),
+      type: 'NpcYell',
+      netRegex: { npcYellId: '195F', capture: false },
       durationSeconds: 6,
       infoText: (_data, _matches, output) => output.text!(),
       outputStrings: {
@@ -490,12 +515,10 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       // https://xivapi.com/NpcYell/6494?pretty=true
+      // en: Blazing path, lead me to iron rule!
       id: 'UCU Nael Quote 4',
-      type: 'GameLog',
-      netRegex: NetRegexes.dialog({
-        line: 'Blazing path, lead me to iron rule.*?',
-        capture: false,
-      }),
+      type: 'NpcYell',
+      netRegex: { npcYellId: '195E', capture: false },
       infoText: (_data, _matches, output) => output.text!(),
       outputStrings: {
         text: {
@@ -510,12 +533,10 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       // https://xivapi.com/NpcYell/6493?pretty=true
+      // en: O hallowed moon, take fire and scorch my foes!
       id: 'UCU Nael Quote 5',
-      type: 'GameLog',
-      netRegex: NetRegexes.dialog({
-        line: 'O hallowed moon, take fire and scorch my foes.*?',
-        capture: false,
-      }),
+      type: 'NpcYell',
+      netRegex: { npcYellId: '195D', capture: false },
       infoText: (_data, _matches, output) => output.text!(),
       outputStrings: {
         text: {
@@ -530,12 +551,10 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       // https://xivapi.com/NpcYell/6492?pretty=true
+      // en: O hallowed moon, shine you the iron path!
       id: 'UCU Nael Quote 6',
-      type: 'GameLog',
-      netRegex: NetRegexes.dialog({
-        line: 'O hallowed moon, shine you the iron path.*?',
-        capture: false,
-      }),
+      type: 'NpcYell',
+      netRegex: { npcYellId: '195C', capture: false },
       infoText: (_data, _matches, output) => output.text!(),
       outputStrings: {
         text: {
@@ -550,12 +569,10 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       // https://xivapi.com/NpcYell/6501?pretty=true
+      // en: Fleeting light! 'Neath the red moon, scorch you the earth!
       id: 'UCU Nael Quote 7',
-      type: 'GameLog',
-      netRegex: NetRegexes.dialog({
-        line: 'Fleeting light! \'Neath the red moon, scorch you the earth.*?',
-        capture: false,
-      }),
+      type: 'NpcYell',
+      netRegex: { npcYellId: '1965', capture: false },
       delaySeconds: 4,
       durationSeconds: 6,
       // Make this alert so it doesn't overlap with the dive infoText occuring here.
@@ -573,12 +590,10 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       // https://xivapi.com/NpcYell/6500?pretty=true
+      // en: Fleeting light! Amid a rain of stars, exalt you the red moon!
       id: 'UCU Nael Quote 8',
-      type: 'GameLog',
-      netRegex: NetRegexes.dialog({
-        line: 'Fleeting light! Amid a rain of stars, exalt you the red moon.*?',
-        capture: false,
-      }),
+      type: 'NpcYell',
+      netRegex: { npcYellId: '1964', capture: false },
       delaySeconds: 4,
       durationSeconds: 6,
       // Make this alert so it doesn't overlap with the dive infoText occuring here.
@@ -596,12 +611,10 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       // https://xivapi.com/NpcYell/6502?pretty=true
+      // en: From on high I descend, the moon and stars to bring!
       id: 'UCU Nael Quote 9',
-      type: 'GameLog',
-      netRegex: NetRegexes.dialog({
-        line: 'From on high I descend, the moon and stars to bring.*?',
-        capture: false,
-      }),
+      type: 'NpcYell',
+      netRegex: { npcYellId: '1966', capture: false },
       durationSeconds: 9,
       infoText: (_data, _matches, output) => output.text!(),
       outputStrings: {
@@ -617,12 +630,10 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       // https://xivapi.com/NpcYell/6503?pretty=true
+      // en: From hallowed moon I descend, a rain of stars to bring!
       id: 'UCU Nael Quote 10',
-      type: 'GameLog',
-      netRegex: NetRegexes.dialog({
-        line: 'From hallowed moon I descend, a rain of stars to bring.*?',
-        capture: false,
-      }),
+      type: 'NpcYell',
+      netRegex: { npcYellId: '1967', capture: false },
       durationSeconds: 9,
       infoText: (_data, _matches, output) => output.text!(),
       outputStrings: {
@@ -638,12 +649,10 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       // https://xivapi.com/NpcYell/6507?pretty=true
+      // en: From hallowed moon I bare iron, in my descent to wield!
       id: 'UCU Nael Quote 11',
-      type: 'GameLog',
-      netRegex: NetRegexes.dialog({
-        line: 'From hallowed moon I bare iron, in my descent to wield.*?',
-        capture: false,
-      }),
+      type: 'NpcYell',
+      netRegex: { npcYellId: '196B', capture: false },
       durationSeconds: 9,
       infoText: (_data, _matches, output) => output.text!(),
       outputStrings: {
@@ -659,12 +668,10 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       // https://xivapi.com/NpcYell/6506?pretty=true
+      // en: From hallowed moon I descend, upon burning earth to tread!
       id: 'UCU Nael Quote 12',
-      type: 'GameLog',
-      netRegex: NetRegexes.dialog({
-        line: 'From hallowed moon I descend, upon burning earth to tread.*?',
-        capture: false,
-      }),
+      type: 'NpcYell',
+      netRegex: { npcYellId: '196A', capture: false },
       durationSeconds: 9,
       infoText: (_data, _matches, output) => output.text!(),
       outputStrings: {
@@ -680,12 +687,10 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       // https://xivapi.com/NpcYell/6504?pretty=true
+      // en: Unbending iron, take fire and descend!
       id: 'UCU Nael Quote 13',
-      type: 'GameLog',
-      netRegex: NetRegexes.dialog({
-        line: 'Unbending iron, take fire and descend.*?',
-        capture: false,
-      }),
+      type: 'NpcYell',
+      netRegex: { npcYellId: '1968', capture: false },
       durationSeconds: 9,
       infoText: (_data, _matches, output) => output.text!(),
       outputStrings: {
@@ -701,12 +706,10 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       // https://xivapi.com/NpcYell/6505?pretty=true
+      // en: Unbending iron, descend with fiery edge!
       id: 'UCU Nael Quote 14',
-      type: 'GameLog',
-      netRegex: NetRegexes.dialog({
-        line: 'Unbending iron, descend with fiery edge.*?',
-        capture: false,
-      }),
+      type: 'NpcYell',
+      netRegex: { npcYellId: '1969', capture: false },
       durationSeconds: 9,
       infoText: (_data, _matches, output) => output.text!(),
       outputStrings: {
@@ -721,21 +724,52 @@ const triggerSet: TriggerSet<Data> = {
       },
     },
     {
+      id: 'UCU Nael Thunder Collect',
+      type: 'Ability',
+      netRegex: { source: 'Thunderwing', id: '26C7' },
+      run: (data, matches) => {
+        data.thunderDebuffs.push(matches.target);
+        if (data.me === matches.target)
+          data.thunderOnYou = true;
+      },
+    },
+    {
       id: 'UCU Nael Thunderstruck',
       type: 'Ability',
       // Note: The 0A event happens before 'gains the effect' and 'starts
       // casting on' only includes one person.
-      netRegex: { source: 'Thunderwing', id: '26C7' },
-      condition: Conditions.targetIsYou(),
-      alarmText: (_data, _matches, output) => output.text!(),
+      netRegex: { source: 'Thunderwing', id: '26C7', capture: false },
+      delaySeconds: 0.5,
+      suppressSeconds: 5,
+      alarmText: (data, _matches, output) => {
+        if (data.thunderOnYou)
+          return output.thunderOnYou!();
+      },
+      infoText: (data, _matches, output) => {
+        if (!data.thunderOnYou) {
+          const [thunder1, thunder2] = data.thunderDebuffs.map((p) => data.party.member(p));
+          return output.thunderOnOthers!({ player1: thunder1, player2: thunder2 });
+        }
+      },
+      run: (data) => {
+        data.thunderDebuffs = [];
+        data.thunderOnYou = false;
+      },
       outputStrings: {
-        text: {
+        thunderOnYou: {
           en: 'Thunder on YOU',
           de: 'Blitz auf DIR',
           fr: 'Foudre sur VOUS',
           ja: '自分にサンダー',
           cn: '雷点名',
           ko: '나에게 번개',
+        },
+        thunderOnOthers: {
+          en: 'Thunder on ${player1}, ${player2}',
+          de: 'Blitz auf ${player1}, ${player2}',
+          fr: 'Foudre sur ${player1}, ${player2}',
+          cn: '雷点 ${player1}, ${player2}',
+          ko: '번개 ${player1}, ${player2}',
         },
       },
     },
@@ -847,8 +881,8 @@ const triggerSet: TriggerSet<Data> = {
         if (data.dooms)
           name = data.dooms[data.doomCount];
         data.doomCount++;
-        if (name)
-          return output.text!({ num: data.doomCount, player: data.ShortName(name) });
+        if (typeof name === 'string')
+          return output.text!({ num: data.doomCount, player: data.party.member(name) });
       },
       outputStrings: {
         text: {
@@ -939,7 +973,7 @@ const triggerSet: TriggerSet<Data> = {
           return;
 
         if (tookTwo && tookTwo.length > 0) {
-          const players = tookTwo.map((name) => data.ShortName(name)).join(', ');
+          const players = tookTwo.map((name) => data.party.member(name));
           return output.fireInPlayersOut!({ players: players });
         }
         return output.fireIn!();
@@ -1031,8 +1065,7 @@ const triggerSet: TriggerSet<Data> = {
         const y = parseFloat(matches.y);
         // Positions are the 8 cardinals + numerical slop on a radius=24 circle.
         // N = (0, -24), E = (24, 0), S = (0, 24), W = (-24, 0)
-        // Map N = 0, NE = 1, ..., NW = 7
-        const dir = Math.round(4 - 4 * Math.atan2(x, y) / Math.PI) % 8;
+        const dir = Directions.xyTo8DirNum(x, y, centerX, centerY);
 
         data.naelDragons[dir] = 1;
 
@@ -1042,9 +1075,8 @@ const triggerSet: TriggerSet<Data> = {
         const result = findDragonMarks(data.naelDragons);
         if (!result)
           return;
-        const dirNames = ['dirN', 'dirNE', 'dirE', 'dirSE', 'dirS', 'dirSW', 'dirW', 'dirNW'];
         data.naelMarks = result.marks.map((i) => {
-          return dirNames[i] ?? 'unknown';
+          return Directions.output8Dir[i] ?? 'unknown';
         });
         data.wideThirdDive = result.wideThirdDive;
         data.unsafeThirdMark = result.unsafeThirdMark;
@@ -1094,15 +1126,7 @@ const triggerSet: TriggerSet<Data> = {
           cn: '标记: ${dive1}, ${dive2}, ${dive3} (大)',
           ko: '징: ${dive1}, ${dive2}, ${dive3} (넓음)',
         },
-        dirN: Outputs.dirN,
-        dirNE: Outputs.dirNE,
-        dirE: Outputs.dirE,
-        dirSE: Outputs.dirSE,
-        dirS: Outputs.dirS,
-        dirSW: Outputs.dirSW,
-        dirW: Outputs.dirW,
-        dirNW: Outputs.dirNW,
-        unknown: Outputs.unknown,
+        ...Directions.outputStrings8Dir,
       },
     },
     {
@@ -1113,7 +1137,7 @@ const triggerSet: TriggerSet<Data> = {
       alarmText: (data, matches, output) => {
         if (matches.target !== data.me)
           return;
-        const dir = data.naelMarks?.[data.naelDiveMarkerCount] ?? 'unknownDir';
+        const dir = data.naelMarks?.[data.naelDiveMarkerCount] ?? 'unknown';
         return output.text!({ dir: output[dir]!() });
       },
       outputStrings: {
@@ -1125,15 +1149,7 @@ const triggerSet: TriggerSet<Data> = {
           cn: '带着点名去${dir}',
           ko: '${dir}으로 이동',
         },
-        dirN: Outputs.dirN,
-        dirNE: Outputs.dirNE,
-        dirE: Outputs.dirE,
-        dirSE: Outputs.dirSE,
-        dirS: Outputs.dirS,
-        dirSW: Outputs.dirSW,
-        dirW: Outputs.dirW,
-        dirNW: Outputs.dirNW,
-        unknownDir: Outputs.unknown,
+        ...Directions.outputStrings8Dir,
       },
     },
     {
@@ -1145,7 +1161,7 @@ const triggerSet: TriggerSet<Data> = {
         if (matches.target === data.me)
           return;
         const num = data.naelDiveMarkerCount + 1;
-        return output.text!({ num: num, player: data.ShortName(matches.target) });
+        return output.text!({ num: num, player: data.party.member(matches.target) });
       },
       outputStrings: {
         text: {
@@ -1165,6 +1181,8 @@ const triggerSet: TriggerSet<Data> = {
       condition: (data) => !data.trio,
       run: (data) => data.naelDiveMarkerCount++,
     },
+
+    // --- Bahamut Prime ---
     {
       // Octet marker tracking (77=nael, 14=dragon, 29=baha, 2A=twin)
       id: 'UCU Octet Marker Tracking',
@@ -1179,7 +1197,7 @@ const triggerSet: TriggerSet<Data> = {
         const partyList = Object.keys(data.partyList);
 
         if (partyList.length !== 8) {
-          console.error('Octet error: bad party list size: ' + JSON.stringify(partyList));
+          console.error(`Octet error: bad party list size: ${JSON.stringify(partyList)}`);
           return;
         }
         const uniqDict: { [name: string]: boolean } = {};
@@ -1202,8 +1220,9 @@ const triggerSet: TriggerSet<Data> = {
         if (remainingPlayers.length !== 1) {
           // This could happen if the party list wasn't unique.
           console.error(
-            'Octet error: failed to find player, ' + JSON.stringify(partyList) + ' ' +
-              JSON.stringify(data.octetMarker),
+            `Octet error: failed to find player, ${JSON.stringify(partyList)} ${
+              JSON.stringify(data.octetMarker)
+            }`,
           );
           return;
         }
@@ -1219,7 +1238,7 @@ const triggerSet: TriggerSet<Data> = {
       condition: (data) => data.trio === 'octet',
       infoText: (data, matches, output) => {
         const num = data.octetMarker.length;
-        return output.text!({ num: num, player: data.ShortName(matches.target) });
+        return output.text!({ num: num, player: data.party.member(matches.target) });
       },
       outputStrings: {
         text: {
@@ -1239,7 +1258,7 @@ const triggerSet: TriggerSet<Data> = {
       condition: (data) => data.trio === 'octet',
       infoText: (data, matches, output) => {
         const num = data.octetMarker.length;
-        return output.text!({ num: num, player: data.ShortName(matches.target) });
+        return output.text!({ num: num, player: data.party.member(matches.target) });
       },
       outputStrings: {
         text: {
@@ -1259,7 +1278,7 @@ const triggerSet: TriggerSet<Data> = {
       condition: (data) => data.trio === 'octet',
       infoText: (data, matches, output) => {
         const num = data.octetMarker.length;
-        return output.text!({ num: num, player: data.ShortName(matches.target) });
+        return output.text!({ num: num, player: data.party.member(matches.target) });
       },
       outputStrings: {
         text: {
@@ -1283,16 +1302,16 @@ const triggerSet: TriggerSet<Data> = {
           return output.twinOnYou!();
       },
       infoText: (data, _matches, output) => {
-        if (!data.lastOctetMarker)
+        if (data.lastOctetMarker === undefined)
           return output.twinOnUnknown!();
 
         // If this person is not alive, then everybody should stack,
         // but tracking whether folks are alive or not is a mess.
         if (data.lastOctetMarker !== data.me)
-          return output.twinOnPlayer!({ player: data.ShortName(data.lastOctetMarker) });
+          return output.twinOnPlayer!({ player: data.party.member(data.lastOctetMarker) });
       },
       tts: (data, _matches, output) => {
-        if (!data.lastOctetMarker || data.lastOctetMarker === data.me)
+        if (data.lastOctetMarker === undefined || data.lastOctetMarker === data.me)
           return output.stackTTS!();
       },
       outputStrings: {
@@ -1348,6 +1367,13 @@ const triggerSet: TriggerSet<Data> = {
       },
     },
     {
+      id: 'UCU Bahamut Flatten',
+      type: 'StartsUsing',
+      netRegex: { id: '26D5', source: 'Bahamut Prime' },
+      condition: Conditions.caresAboutPhysical(),
+      response: Responses.tankBuster(),
+    },
+    {
       id: 'UCU Bahamut Gigaflare',
       type: 'StartsUsing',
       netRegex: { id: '26D6', source: 'Bahamut Prime', capture: false },
@@ -1361,6 +1387,91 @@ const triggerSet: TriggerSet<Data> = {
           cn: '十亿核爆',
           ko: '기가플레어',
         },
+      },
+    },
+    {
+      id: 'UCU Quickmarch Dive Dir',
+      type: 'StartsUsing',
+      netRegex: { id: '26E1', source: 'Bahamut Prime' },
+      condition: (data) => data.trio === 'quickmarch',
+      alertText: (_data, matches, output) => {
+        // Bosses jump, and dive placement is locked once Bahamut starts casting.
+        // Position data is always updated by now, so need to rely on combatant data from OP.
+        // Bahamut will always be on an exact cardinal/intercardinal (w/Nael & Twin on either side)
+        const x = parseFloat(matches.x);
+        const y = parseFloat(matches.y);
+        const diveDir = Directions.xyTo8DirOutput(x, y, centerX, centerY);
+        return output.dive!({ dir: output[diveDir]!() });
+      },
+      outputStrings: {
+        dive: {
+          en: '${dir} Dive',
+          de: '${dir} Sturzbombe',
+          fr: 'Plongée ${dir}',
+          cn: '${dir} 俯冲',
+          ko: '${dir} 다이브',
+        },
+        ...Directions.outputStrings8Dir,
+      },
+    },
+    // Collect sourceIds for Nael, Twin & Bahamut when they dive during Quickmarch
+    // Will use these ids later to get combatant data from Overlay Plugin
+    {
+      id: 'UCU P3 Nael Collect',
+      type: 'StartsUsing',
+      netRegex: { id: '26C3', source: 'Nael deus Darnus' },
+      condition: (data) => data.trio === 'quickmarch',
+      run: (data, matches) => data.trioSourceIds.nael = parseInt(matches.sourceId, 16),
+    },
+    {
+      id: 'UCU P3 Bahamut Collect',
+      type: 'StartsUsing',
+      netRegex: { id: '26E1', source: 'Bahamut Prime' },
+      condition: (data) => data.trio === 'quickmarch',
+      run: (data, matches) => data.trioSourceIds.bahamut = parseInt(matches.sourceId, 16),
+    },
+    {
+      id: 'UCU P3 Twintania Collect',
+      type: 'StartsUsing',
+      netRegex: { id: '26B2', source: 'Twintania' },
+      condition: (data) => data.trio === 'quickmarch',
+      run: (data, matches) => data.trioSourceIds.twin = parseInt(matches.sourceId, 16),
+    },
+    // For Blackfire:
+    // After bosses jump, there's no clear log line we can trigger off of to find Nael's position
+    // until it's effectively too late.  The best way to do this seems to be to fire the trigger
+    // with a delay when Bahamut uses Blackfire Trio before all 3 bosses jump.
+    {
+      id: 'UCU Blackfire Party Dir',
+      type: 'Ability',
+      netRegex: { id: '26E3', source: 'Bahamut Prime', capture: false },
+      condition: (data) => data.trio === 'blackfire',
+      delaySeconds: 3.5,
+      promise: async (data) => {
+        if (data.trioSourceIds.nael === undefined)
+          return;
+        data.combatantData = [];
+        data.combatantData = (await callOverlayHandler({
+          call: 'getCombatants',
+          ids: [data.trioSourceIds.nael],
+        })).combatants;
+      },
+      alertText: (data, _matches, output) => {
+        if (data.combatantData[0] === undefined)
+          return;
+        const nael = data.combatantData[0];
+        const naelDirOutput = Directions.combatantStatePosTo8DirOutput(nael, centerX, centerY);
+        return output.naelPosition!({ dir: output[naelDirOutput]!() });
+      },
+      outputStrings: {
+        naelPosition: {
+          en: 'Nael is ${dir}',
+          de: 'Nael ist im ${dir}',
+          fr: 'Nael est vers ${dir}',
+          cn: '奈尔在 ${dir}',
+          ko: '넬 ${dir}',
+        },
+        ...Directions.outputStrings8Dir,
       },
     },
     {
@@ -1400,7 +1511,7 @@ const triggerSet: TriggerSet<Data> = {
         if (data.trio === 'blackfire')
           return output.blackfireTower!();
 
-        if (!data.lastOctetMarker || data.lastOctetMarker === data.me)
+        if (data.lastOctetMarker === undefined || data.lastOctetMarker === data.me)
           return output.octetTowerPlusTwin!();
 
         return output.octetTower!();
@@ -1456,10 +1567,10 @@ const triggerSet: TriggerSet<Data> = {
       infoText: (data, _matches, output) => {
         if (data.trio !== 'blackfire' && data.trio !== 'octet' || data.megaStack.length !== 4)
           return;
-        if (!data.lastOctetMarker || data.lastOctetMarker === data.me)
+        if (data.lastOctetMarker === undefined || data.lastOctetMarker === data.me)
           return;
 
-        const twin = data.ShortName(data.lastOctetMarker);
+        const twin = data.party.member(data.lastOctetMarker);
         if (data.megaStack.includes(data.lastOctetMarker))
           return output.twinHasMegaflare!({ player: twin });
         return output.twinHasTower!({ player: twin });
@@ -1482,6 +1593,66 @@ const triggerSet: TriggerSet<Data> = {
           cn: '${player} (双塔) 需要踩塔',
           ko: '${player} (트윈 징 대상자) => 기둥',
         },
+      },
+    },
+    {
+      id: 'UCU Heavensfall Nael Spot',
+      type: 'StartsUsing',
+      // Grab position data once Bahamut begins casting Megaflare Dive
+      netRegex: { id: '26E1', source: 'Bahamut Prime', capture: false },
+      condition: (data) => data.trio === 'heavensfall',
+      promise: async (data) => {
+        data.combatantData = [];
+        if (
+          data.trioSourceIds.nael === undefined ||
+          data.trioSourceIds.twin === undefined ||
+          data.trioSourceIds.bahamut === undefined
+        )
+          return;
+        data.combatantData = (await callOverlayHandler({
+          call: 'getCombatants',
+          ids: [data.trioSourceIds.nael, data.trioSourceIds.bahamut, data.trioSourceIds.twin],
+        })).combatants;
+      },
+      alertText: (data, _matches, output) => {
+        // Bosses line up adjacent to one another, but don't necessarily have discrete directional positions (based on 8Dir scale).
+        // But we can calculate their position as an angle (relative to circular arena): 0 = N, 90 = E, 180 = S, 270 = W, etc.
+        let naelAngle;
+        let bahamutAngle;
+        let twinAngle;
+        let naelPos = 'unknown';
+        for (const mob of data.combatantData) {
+          const mobAngle = (Math.round(180 - 180 * Math.atan2(mob.PosX, mob.PosY) / Math.PI) % 360);
+          // As OP does not return combatants in the order, they were passed, match based on sourceId.
+          if (mob.ID === data.trioSourceIds.nael)
+            naelAngle = mobAngle;
+          else if (mob.ID === data.trioSourceIds.bahamut)
+            bahamutAngle = mobAngle;
+          else if (mob.ID === data.trioSourceIds.twin)
+            twinAngle = mobAngle;
+        }
+        if (naelAngle === undefined || bahamutAngle === undefined || twinAngle === undefined)
+          return;
+        if (naelAngle >= 0 && bahamutAngle >= 0 && twinAngle >= 0) {
+          if (isClockwise(naelAngle, bahamutAngle))
+            naelPos = isClockwise(naelAngle, twinAngle) ? 'left' : 'middle';
+          else
+            naelPos = isClockwise(naelAngle, twinAngle) ? 'middle' : 'right';
+        }
+        return output.naelPosition!({ dir: output[naelPos]!() });
+      },
+      outputStrings: {
+        naelPosition: {
+          en: '${dir} Nael',
+          de: '${dir} Nael',
+          fr: 'Nael ${dir}',
+          cn: '${dir} 奈尔',
+          ko: '넬 ${dir}',
+        },
+        left: Outputs.left,
+        middle: Outputs.middle,
+        right: Outputs.right,
+        unknown: Outputs.unknown,
       },
     },
     {
@@ -1551,6 +1722,97 @@ const triggerSet: TriggerSet<Data> = {
         },
       },
     },
+    // For Grand Octet:
+    // After bosses and dragons start spawning, there's no clear log line we can trigger off of to find bosses' position
+    // until it's effectively too late.  The best way to do this seems to be to fire the trigger
+    // with a delay when Bahamut uses Grand Octet before all 3 bosses jump.
+    {
+      id: 'UCU Grand Octet Run & Rotate',
+      type: 'Ability',
+      // Grab mob position data after dragons/bosses are positioned
+      netRegex: { id: '26E7', source: 'Bahamut Prime', capture: false },
+      delaySeconds: 4.8,
+      promise: async (data) => {
+        data.combatantData = [];
+        if (
+          data.trioSourceIds.nael === undefined ||
+          data.trioSourceIds.bahamut === undefined
+        )
+          return;
+        data.combatantData = (await callOverlayHandler({
+          call: 'getCombatants',
+          ids: [data.trioSourceIds.nael, data.trioSourceIds.bahamut],
+        })).combatants;
+      },
+      alertText: (data, _matches, output) => {
+        let naelDirIdx;
+        let bahaDirIdx;
+
+        for (const mob of data.combatantData) {
+          const mobDirIdx = Directions.combatantStatePosTo8Dir(mob, centerX, centerY);
+          if (mob.ID === data.trioSourceIds.nael)
+            naelDirIdx = mobDirIdx;
+          else if (mob.ID === data.trioSourceIds.bahamut)
+            bahaDirIdx = mobDirIdx;
+        }
+
+        if (naelDirIdx === undefined || bahaDirIdx === undefined)
+          return;
+
+        // If Bahamut spaws on a cardinal, the party goes opposite and rotates counter-clockwise; if intercardinal, clockwise.
+        // If Nael is directly opposite Bahamut, the party instead starts one directional position over (same as the rotation direction)
+        // http://clees.me/guides/ucob/
+        let rotationIdxModifier; // this is used to modify the party starting spot in directions[] if Nael is opposite Bahamut
+        let rotationPath;
+
+        const bahaOutputStr = Directions.output8Dir[bahaDirIdx];
+        const cardinalDirs: string[] = Directions.outputCardinalDir;
+        if (bahaOutputStr === undefined)
+          return;
+        if (cardinalDirs.includes(bahaOutputStr)) {
+          rotationIdxModifier = -1;
+          rotationPath = 'counterclockwise';
+        } else {
+          rotationIdxModifier = 1;
+          rotationPath = 'clockwise';
+        }
+
+        // start by going directly opposite Bahamut
+        let partyStartIdx = bahaDirIdx >= 4 ? bahaDirIdx - 4 : bahaDirIdx + 4;
+        // If Nael is there, instead go +1/-1 direction (depending on the rotation direction)
+        if (naelDirIdx === partyStartIdx) {
+          partyStartIdx += rotationIdxModifier;
+          // if this pushes partyStartIdx beyond the array boundary, wrap around
+          if (partyStartIdx === -1) {
+            partyStartIdx = 7;
+          } else if (partyStartIdx === 8) {
+            partyStartIdx = 0;
+          }
+        }
+        const partyStartDir = Directions.output8Dir[partyStartIdx] ?? 'unknown';
+
+        if (partyStartDir === undefined || rotationPath === undefined)
+          return;
+        return output.grandOctet!({
+          startDir: output[partyStartDir]!(),
+          path: output[rotationPath]!(),
+        });
+      },
+      outputStrings: {
+        grandOctet: {
+          en: 'Bait dash, go ${startDir}, rotate ${path}',
+          de: 'Ansturm ködern, gehe nach ${startDir}, rotiere ${path}',
+          fr: 'Attirez le dash, allez ${startDir}, tournez ${path}',
+          cn: '诱导俯冲, 去 ${startDir}, ${path} 转',
+          ko: '돌진 유도, ${startDir}쪽으로, ${path}',
+        },
+        clockwise: Outputs.clockwise,
+        counterclockwise: Outputs.counterclockwise,
+        ...Directions.outputStrings8Dir,
+      },
+    },
+
+    // --- Golden Bahamut ---
     {
       id: 'UCU Morn Afah',
       type: 'StartsUsing',
@@ -1561,7 +1823,7 @@ const triggerSet: TriggerSet<Data> = {
           return output.mornAfahYou!({ num: data.mornAfahCount });
         return output.mornAfahPlayer!({
           num: data.mornAfahCount,
-          player: data.ShortName(matches.target),
+          player: data.party.member(matches.target),
         });
       },
       outputStrings: {
@@ -1634,30 +1896,6 @@ const triggerSet: TriggerSet<Data> = {
         'Tail of Darkness': 'Dunkelschweif',
         'Thunderwing': 'Donnerschwinge',
         'Twintania': 'Twintania',
-        'From on high I descend, the hallowed moon to call':
-          'Seht, ich steige herab, vom rotglühenden Monde',
-        'From on high I descend, the iron path to walk':
-          'Seht, ich steige herab, um euch zu beherrschen',
-        'Take fire, O hallowed moon': 'Flammender Pfad, geschaffen vom roten Mond',
-        'Blazing path, lead me to iron rule': 'Umloderter Pfad, führe mich zur Herrschaft',
-        'O hallowed moon, take fire and scorch my foes': 'O roter Mond! Umlodere meinen Pfad',
-        'O hallowed moon, shine you the iron path': 'O roter Mond! Führe mich zur Herrschaft',
-        'Fleeting light! \'Neath the red moon, scorch you the earth':
-          'Neues Gestirn! Glühe herab und umlodere meinen Pfad',
-        'Fleeting light! Amid a rain of stars, exalt you the red moon':
-          'Neues Gestirn! Überstrahle jede Sternschnuppe',
-        'From on high I descend, the moon and stars to bring':
-          'Ich steige herab zu Ehre des roten Mondes! Einer Sternschnuppe gleich',
-        'From hallowed moon I descend, a rain of stars to bring':
-          'O roter Mond, sieh mich herabsteigen! Einer Sternschnuppe gleich',
-        'From hallowed moon I bare iron, in my descent to wield':
-          'O roter Mond, als Künder deiner Herrschaft stieg ich herab',
-        'From hallowed moon I descend, upon burning earth to tread':
-          'O roter Mond! Ich stieg herab, um deine Herrschaft zu bringen',
-        'Unbending iron, take fire and descend':
-          'Zur Herrschaft führt mein umloderter Pfad! Auf diesen steige ich herab',
-        'Unbending iron, descend with fiery edge':
-          'Zur Herrschaft steige ich herab, auf umlodertem Pfad',
       },
       'replaceText': {
         '--push--': '--stoß--',
@@ -1726,41 +1964,15 @@ const triggerSet: TriggerSet<Data> = {
       'locale': 'fr',
       'replaceSync': {
         'Bahamut Prime': 'Primo-Bahamut',
-        'Blazing path, lead me to iron rule':
-          'La voie marquée par l\'incandescence mène à la domination',
         'Fang of Light': 'croc de lumière',
         'Firehorn': 'corne-de-feu',
-        'Fleeting light! Amid a rain of stars, exalt you the red moon':
-          'Supernova, brille de tout ton feu et glorifie la lune rouge',
-        'Fleeting light! \'Neath the red moon, scorch you the earth':
-          'Supernova, brille de tout ton feu et irradie la terre rougie',
-        'From hallowed moon I bare iron, in my descent to wield':
-          'De la lune je m\'arme d\'acier et descends',
-        'From hallowed moon I descend, a rain of stars to bring':
-          'Depuis la lune, j\'invoque une pluie d\'étoiles',
-        'From hallowed moon I descend, upon burning earth to tread':
-          'De la lune, je descends et marche sur la terre ardente',
-        'From on high I descend, the hallowed moon to call':
-          'Des cieux je vais descendre et révérer la lune',
-        'From on high I descend, the iron path to walk':
-          'Du haut des cieux, je vais descendre pour conquérir',
-        'From on high I descend, the moon and stars to bring':
-          'Du haut des cieux, j\'appelle une pluie d\'étoiles',
         'Iceclaw': 'griffe-de-glace',
         'Nael Deus Darnus': 'Nael deus Darnus',
         'Nael Geminus': 'Nael Geminus',
-        'O hallowed moon, shine you the iron path': 'Ô lune! Éclaire la voie de la domination',
-        'O hallowed moon, take fire and scorch my foes':
-          'Que l\'incandescence de la lune brûle mes ennemis',
         'Ragnarok': 'Ragnarok',
         'Tail of Darkness': 'queue de ténèbres',
-        'Take fire, O hallowed moon': 'Baignez dans la bénédiction de la lune incandescente',
         'Thunderwing': 'aile-de-foudre',
         'Twintania': 'Gémellia',
-        'Unbending iron, descend with fiery edge':
-          'Fier acier! Sois ma lame plongeante et deviens incandescent',
-        'Unbending iron, take fire and descend':
-          'Ô noble acier! Rougis ardemment et deviens ma lame transperçante',
       },
       'replaceText': {
         '--push--': '--poussé(e)--',
@@ -1841,22 +2053,6 @@ const triggerSet: TriggerSet<Data> = {
         'Tail of Darkness': 'ダークテイル',
         'Thunderwing': 'サンダーウィング',
         'Twintania': 'ツインタニア',
-        'From on high I descend, the hallowed moon to call': '我、舞い降りて\\s*月を仰がん！',
-        'From on high I descend, the iron path to walk': '我、舞い降りて\\s*鉄の覇道を征く！',
-        'Take fire, O hallowed moon': '赤熱せし\\s*月の祝福を！',
-        'Blazing path, lead me to iron rule': '赤熱し、焼かれし道を\\s*鉄の覇道と成す！',
-        'O hallowed moon, take fire and scorch my foes': '月よ！\\s*赤熱し、神敵を焼け！',
-        'O hallowed moon, shine you the iron path': '月よ！\\s*鉄の覇道を照らせ！',
-        'Fleeting light! \'Neath the red moon, scorch you the earth':
-          '超新星よ、輝きを増せ！\\s*紅月下の赤熱せし地を照らせ！',
-        'Fleeting light! Amid a rain of stars, exalt you the red moon':
-          '超新星よ、輝きを増せ！\\s*星降りの夜に、紅月を称えよ！',
-        'From on high I descend, the moon and stars to bring': '我、舞い降りて月を仰ぎ\\s*星降りの夜を招かん！',
-        'From hallowed moon I descend, a rain of stars to bring': '我、月より舞い降りて\\s*星降りの夜を招かん！',
-        'From hallowed moon I bare iron, in my descent to wield': '我、月より鉄を備え\\s*舞い降りん！',
-        'From hallowed moon I descend, upon burning earth to tread': '我、月より舞い降りて\\s*赤熱せし地を歩まん！',
-        'Unbending iron, take fire and descend': '鉄よ、赤熱せよ！\\s*舞い降りし我が刃となれ！',
-        'Unbending iron, descend with fiery edge': '鉄よ、舞い降りし\\s*我の刃となり赤熱せよ！',
       },
       'replaceText': {
         '--push--': '--フェイス切替--',
@@ -1934,21 +2130,6 @@ const triggerSet: TriggerSet<Data> = {
         'Tail of Darkness': '暗尾',
         'Thunderwing': '雷翼',
         'Twintania': '双塔尼亚',
-        'From on high I descend, the hallowed moon to call': '我降临于此，\\s*对月长啸！',
-        'From on high I descend, the iron path to walk': '我降临于此，\\s*征战铁血霸道！',
-        'Take fire, O hallowed moon': '炽热燃烧！\\s*给予我月亮的祝福！',
-        'Blazing path, lead me to iron rule': '被炽热灼烧过的轨迹\\s*乃成铁血霸道！',
-        'O hallowed moon, take fire and scorch my foes': '月光啊！\\s*用你的炽热烧尽敌人！',
-        'O hallowed moon, shine you the iron path': '月光啊！\\s*照亮铁血霸道！',
-        'Fleeting light! \'Neath the red moon, scorch you the earth': '超新星啊，更加闪耀吧！\\s*照亮红月下炽热之地！',
-        'Fleeting light! Amid a rain of stars, exalt you the red moon':
-          '超新星啊，更加闪耀吧！\\s*在星降之夜，称赞红月！',
-        'From on high I descend, the moon and stars to bring': '我降临于此对月长啸！\\s*召唤星降之夜！',
-        'From hallowed moon I descend, a rain of stars to bring': '我自月而来降临于此，\\s*召唤星降之夜！',
-        'From hallowed moon I bare iron, in my descent to wield': '我自月而来携钢铁降临于此！',
-        'From hallowed moon I descend, upon burning earth to tread': '我自月而来降临于此，\\s*踏过炽热之地！',
-        'Unbending iron, take fire and descend': '钢铁燃烧吧！\\s*成为我降临于此的刀剑吧！',
-        'Unbending iron, descend with fiery edge': '钢铁成为我降临于此的燃烧之剑！',
       },
       'replaceText': {
         '--push--': '--开怪--',
@@ -2026,24 +2207,6 @@ const triggerSet: TriggerSet<Data> = {
         'Tail of Darkness': '어둠의 꼬리',
         'Thunderwing': '번개날개',
         'Twintania': '트윈타니아',
-        'From on high I descend, the hallowed moon to call': '흉조가 내려와 달을 올려다보리라!',
-        'From on high I descend, the iron path to walk': '흉조가 내려와 강철의 패도를 걸으리라!',
-        'Take fire, O hallowed moon': '붉게 타오른 달의 축복을!',
-        'Blazing path, lead me to iron rule': '붉게 타오른 길을 강철의 패도로 만들겠노라!',
-        'O hallowed moon, take fire and scorch my foes': '달이여! 붉게 타올라 신의 적을 태워버려라!',
-        'O hallowed moon, shine you the iron path': '달이여! 강철의 패도를 비춰라!',
-        'Fleeting light! \'Neath the red moon, scorch you the earth':
-          '초신성이여, 빛을 더하라! 붉은 달 아래, 붉게 타오르는 땅을 비춰라!',
-        'Fleeting light! Amid a rain of stars, exalt you the red moon':
-          '초신성이여, 빛을 더하라! 유성이 쏟아지는 밤에, 붉은 달을 우러러보라!',
-        'From on high I descend, the moon and stars to bring':
-          '흉조가 내려와, 달을 올려다보니 유성이 쏟아지는 밤이 도래하리라!',
-        'From hallowed moon I descend, a rain of stars to bring': '달로부터 흉조가 내려와 유성이 쏟아지는 밤이 도래하리라!',
-        'From hallowed moon I bare iron, in my descent to wield': '달로부터 강철의 패도를 거쳐 흉조가 내려오리라!',
-        'From hallowed moon I descend, upon burning earth to tread':
-          '달로부터 흉조가 내려와 붉게 타오르는 땅을 걸으리라!',
-        'Unbending iron, take fire and descend': '강철이여, 붉게 타올라라! 흉조가 내려오니 그 칼날이 되어라!',
-        'Unbending iron, descend with fiery edge': '강철이여, 흉조가 내려오는도다! 그 칼날이 되어 붉게 타올라라!',
       },
       'replaceText': {
         '--push--': '--최소 RDPS컷--',

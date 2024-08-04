@@ -7,6 +7,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheTempleOfTheFist',
   zoneId: ZoneId.TheTempleOfTheFist,
   timelineFile: 'temple_of_the_fist.txt',
   timelineTriggers: [
@@ -114,8 +115,9 @@ const triggerSet: TriggerSet<Data> = {
       id: 'Temple Touch Of Slaughter',
       type: 'StartsUsing',
       netRegex: { id: '1FE6', source: 'Ivon Coeurlfist' },
-      condition: (data) => data.role === 'healer',
-      infoText: (data, matches, output) => output.text!({ player: data.ShortName(matches.target) }),
+      condition: (data) => data.role === 'healer' || data.job === 'BLU',
+      infoText: (data, matches, output) =>
+        output.text!({ player: data.party.member(matches.target) }),
       outputStrings: {
         text: {
           en: 'Heal ${player} soon',

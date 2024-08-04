@@ -7,6 +7,8 @@ const aquapolisOutputStrings = {
   spawn: {
     en: '${name} spawned!',
     de: '${name} erscheint!',
+    fr: '${name} vient d\'apparaitre !',
+    ja: '${name} 出現！',
     cn: '已生成 ${name}!',
     ko: '${name} 등장!',
   },
@@ -15,6 +17,7 @@ const aquapolisOutputStrings = {
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheAquapolis',
   zoneId: ZoneId.TheAquapolis,
 
   triggers: [

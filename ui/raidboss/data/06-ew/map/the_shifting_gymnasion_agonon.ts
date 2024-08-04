@@ -5,14 +5,8 @@ import ZoneId from '../../../../../resources/zone_id';
 import { RaidbossData } from '../../../../../types/data';
 import { TriggerSet } from '../../../../../types/trigger';
 
-// TODO: ::lesser summons::
-// TODO: Gymnasiou Leon: Roar - large PBAoE
-// TODO: Gymnasiou Leon: Pounce - tankbuster
-// TODO: Gymnasiou Megakantha: all abilities
-// TODO: Gymnasiou Pithekos: all abilities
 // TODO: ::greater summons::
 // TODO: Gymnasiou Acheloios: Volcanic Howl - ???
-// TODO: Gymnasiou Styphnolobion: all abilities
 // TODO: ::elder summons::
 // TODO: ::final summons::
 // TODO: Narkissos: Rock Hard - ???
@@ -24,6 +18,7 @@ const agononOutputStrings = {
   spawn: {
     en: '${name} spawned!',
     de: '${name} erscheint!',
+    fr: '${name} apparait !',
     ja: '${name} 現れる！',
     cn: '已生成 ${name}!',
     ko: '${name} 등장!',
@@ -31,6 +26,7 @@ const agononOutputStrings = {
   adds: {
     en: 'Adds soon',
     de: 'Bald Adds',
+    fr: 'Adds bientôt',
     ja: 'まもなくザコ出ます',
     cn: '小怪即将出现',
     ko: '곧 쫄 나옴',
@@ -40,6 +36,7 @@ const agononOutputStrings = {
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheShiftingGymnasionAgonon',
   zoneId: ZoneId.TheShiftingGymnasionAgonon,
 
   triggers: [
@@ -72,7 +69,9 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'Gymnasiou Mandragorai spawned, kill in order!',
           de: 'Gymnasiou-Mandragorai erscheinen, in Reihenfolge besiegen!',
+          fr: 'Les mandragores apparaissent, tuez-les dans l\'ordre',
           ja: 'マンドラゴラ！順番に倒して！',
+          cn: '已生成 育体蔓德拉!',
           ko: '만드라즈 등장, 순서대로 잡기',
         },
       },
@@ -92,8 +91,18 @@ const triggerSet: TriggerSet<Data> = {
       netRegex: { id: '8030', source: 'Gymnasiou Leon', capture: false },
       response: Responses.aoe(),
     },
-    // TODO: Gymnasiou Leon: Roar - large PBAoE
-    // TODO: Gymnasiou Leon: Pounce - tankbuster
+    {
+      id: 'Shifting Gymnasion Agonon Gymnasiou Leon Roar',
+      type: 'StartsUsing',
+      netRegex: { id: '7DC9', source: 'Gymnasiou Leon', capture: false },
+      response: Responses.getOut('info'),
+    },
+    {
+      id: 'Shifting Gymnasion Agonon Gymnasiou Leon Pounce',
+      type: 'StartsUsing',
+      netRegex: { id: '7DC8', source: 'Gymnasiou Leon' },
+      response: Responses.tankBuster(),
+    },
     {
       id: 'Shifting Gymnasion Agonon Gymnasiou Satyros Storm Wing',
       type: 'StartsUsing',
@@ -160,16 +169,65 @@ const triggerSet: TriggerSet<Data> = {
       netRegex: { id: '7DCE', source: 'Gymnasiou Tigris' },
       response: Responses.tankBuster(),
     },
-    // Gymnasiou Megakantha: Odious Atmosphere - persistent front 180 channeled cleave
-    // Gymnasiou Megakantha: Vine Whip - tankbuster
-    // Gymnasiou Megakantha: Sludge Bomb - aoe under random player?
-    // Gymnasiou Megakantha: Odious Air - front cone
-    // Gymnasiou Pithekos: Thundercall - summon adds (Ball of Levin: cast Thunder IV)
-    // Gymnasiou Pithekos:: Ball of Levin: Thunder IV - large PBAoE
-    // Gymnasiou Pithekos: Spark - donut aoe
-    // Gymnasiou Pithekos: Sweeping Gouge - tankbuster
-    // Gymnasiou Pithekos: Lightning Bolt - aoe under random player?
-    // Gymnasiou Pithekos: ??? - headmarker, determines where Ball of Levin will spawn? (bait to edge so Spark and Thunder IV don't overlap?)
+    {
+      id: 'Shifting Gymnasion Agonon Gymnasiou Pithekos Thundercall',
+      type: 'HeadMarker',
+      netRegex: { id: '006F' },
+      condition: Conditions.targetIsYou(),
+      alertText: (_data, _matches, output) => output.text!(),
+      outputStrings: {
+        text: {
+          en: 'Place Marker on Wall',
+          de: 'Markierung an der Wand ablegen',
+          fr: 'Placez le marqueur sur le mur',
+          ja: 'マーカーを壁に',
+          cn: '在场边放置标记',
+          ko: '벽에 징 놓기',
+        },
+      },
+    },
+    {
+      id: 'Shifting Gymnasion Agonon Gymnasiou Pithekos Spark',
+      type: 'StartsUsing',
+      // This happens at the same time as Ball of Levin's Thunder IV (7DD5).
+      // "get in" is probably sufficient is the Thunder IV is far enough away.
+      netRegex: { id: '7DD8', source: 'Gymnasiou Pithekos', capture: false },
+      response: Responses.getIn(),
+    },
+    {
+      id: 'Shifting Gymnasion Agonon Gymnasiou Pithekos Sweeping Gouge',
+      type: 'StartsUsing',
+      netRegex: { id: '7DD3', source: 'Gymnasiou Pithekos' },
+      response: Responses.tankBuster(),
+    },
+    {
+      id: 'Shifting Gymnasion Agonon Gymnasiou Megakantha Vine Whip',
+      type: 'StartsUsing',
+      netRegex: { id: '7DDE', source: 'Gymnasiou Megakantha' },
+      response: Responses.tankBuster(),
+    },
+    {
+      id: 'Shifting Gymnasion Agonon Gymnasiou Megakantha Odious Atmosphere',
+      type: 'StartsUsing',
+      netRegex: { id: '7DF1', source: 'Gymnasiou Megakantha', capture: false },
+      alertText: (_data, _matches, output) => output.text!(),
+      outputStrings: {
+        text: {
+          en: 'Get Behind (Stay Behind)',
+          de: 'Geh hinter den Boss (und bleib hinter ihm stehen)',
+          fr: 'Allez derrière (et restez-y)',
+          ja: '後ろへ (そのまま後ろ)',
+          cn: '去背后 (待在背后)',
+          ko: '뒤로 이동 (뒤에 머물기)',
+        },
+      },
+    },
+    {
+      id: 'Shifting Gymnasion Agonon Gymnasiou Megakantha Sludge Bomb',
+      type: 'StartsUsing',
+      netRegex: { id: '7DED', source: 'Gymnasiou Megakantha', capture: false },
+      response: Responses.getBehind('info'),
+    },
     // ---------------- greater summons ----------------
     {
       id: 'Shifting Gymnasion Agonon Gymnasiou Acheloios Tail Swing',
@@ -202,6 +260,9 @@ const triggerSet: TriggerSet<Data> = {
       id: 'Shifting Gymnasion Agonon Gymnasiou Acheloios Quadruple Hammer',
       // rotates counterclockwise after each cleave
       // TODO: same rotation/pattern every time?
+      // FIXME: the correct way to solve this is to stand on the initial safe side
+      // and then rotate opposite direction of rotation 90 degrees each time.
+      // This should probably say "start back left (rotate CCW)" sorta thing.
       type: 'StartsUsing',
       netRegex: { id: '7E18', source: 'Gymnasiou Acheloios', capture: false },
       alertText: (_data, _matches, output) => {
@@ -270,7 +331,9 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'Get Under Verdant Plume',
           de: 'Geh unter die blaue Feder',
+          fr: 'Allez sous la plume verdoyante',
           ja: '濃緑の羽根の下へ',
+          cn: '去浓绿之羽下方',
           ko: '진녹색 날개 밑으로',
         },
       },
@@ -284,8 +347,9 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'Intercards',
           de: 'Interkardinal',
-          fr: 'Intercardinal',
+          fr: 'Intercardinaux',
           ja: '斜め',
+          cn: '斜角',
           ko: '대각선 쪽으로',
         },
       },
@@ -294,7 +358,7 @@ const triggerSet: TriggerSet<Data> = {
       id: 'Shifting Gymnasion Agonon Gymnasiou Sphinx Frigid Pulse',
       type: 'StartsUsing',
       netRegex: { id: '7E0E', source: 'Gymnasiou Sphinx', capture: false },
-      response: Responses.getUnder(),
+      response: Responses.getIn(),
     },
     {
       id: 'Shifting Gymnasion Agonon Gymnasiou Sphinx Feather Rain',
@@ -310,11 +374,31 @@ const triggerSet: TriggerSet<Data> = {
       netRegex: { id: '7E09', source: 'Gymnasiou Sphinx' },
       response: Responses.tankBuster(),
     },
-    // Gymnasiou Styphnolobion: Earth Quaker - PBAoE followed by donut aoe; later does earthshakers simultaneously
-    // Gymnasiou Styphnolobion: Rake - tankbuster
-    // Gymnasiou Styphnolobion: Stone III - aoe under random players?
-    // Gymnasiou Styphnolobion: Earth Shaker - earth shakers on random players
-    // Gymnasiou Styphnolobion: Tiiimbeeer (yes, it has 3 i's and 3 e's) - raidwide
+    {
+      id: 'Shifting Gymnasion Agonon Gymnasiou Styphnolobion Rake',
+      type: 'StartsUsing',
+      netRegex: { id: '7DF5', source: 'Gymnasiou Styphnolobion' },
+      response: Responses.tankBuster(),
+    },
+    {
+      id: 'Shifting Gymnasion Agonon Gymnasiou Styphnolobion Tiiimbeeer',
+      type: 'StartsUsing',
+      netRegex: { id: '7DF6', source: 'Gymnasiou Styphnolobion', capture: false },
+      response: Responses.aoe(),
+    },
+    {
+      id: 'Shifting Gymnasion Agonon Gymnasiou Styphnolobion Earth Shaker',
+      type: 'StartsUsing',
+      netRegex: { id: '7DFB', source: 'Gymnasiou Styphnolobion' },
+      condition: Conditions.targetIsYou(),
+      response: Responses.earthshaker(),
+    },
+    {
+      id: 'Shifting Gymnasion Agonon Gymnasiou Styphnolobion Earth Quaker',
+      type: 'StartsUsing',
+      netRegex: { id: '7DF9', source: 'Gymnasiou Styphnolobion', capture: false },
+      response: Responses.getOutThenIn(),
+    },
     // ---------------- elder summons ----------------
     {
       id: 'Shifting Gymnasion Agonon Lyssa Chrysine Heavy Smash',
@@ -403,6 +487,7 @@ const triggerSet: TriggerSet<Data> = {
           de: 'Kardinal',
           fr: 'Cardinaux',
           ja: '十字回避',
+          cn: '十字',
           ko: '십자방향으로',
         },
       },
@@ -431,6 +516,7 @@ const triggerSet: TriggerSet<Data> = {
         forward: {
           en: 'March Forward into Safe Spot',
           de: 'marschiere Vorwärts in die sichere Stelle',
+          fr: 'Marche avant dans une zone sûre',
           ja: '強制移動: 前',
           cn: '向前强制移动到安全区',
           ko: '강제 이동 앞',
@@ -438,6 +524,7 @@ const triggerSet: TriggerSet<Data> = {
         backward: {
           en: 'March Backward into Safe Spot',
           de: 'marschiere Rückwärts in die sichere Stelle',
+          fr: 'Marche arrière dans une zone sûre',
           ja: '強制移動: 後ろ',
           cn: '向后强制移动到安全区',
           ko: '강제 이동 뒤',
@@ -445,6 +532,7 @@ const triggerSet: TriggerSet<Data> = {
         left: {
           en: 'March Left into Safe Spot',
           de: 'marschiere Links in die sichere Stelle',
+          fr: 'Marche à gauche dans une zone sûre',
           ja: '強制移動: 左',
           cn: '向左强制移动到安全区',
           ko: '강제 이동 왼쪽',
@@ -452,6 +540,7 @@ const triggerSet: TriggerSet<Data> = {
         right: {
           en: 'March Right into Safe Spot',
           de: 'marschiere Rechts in die sichere Stelle',
+          fr: 'Marche à droite dans une zone sûre',
           ja: '強制移動: 右',
           cn: '向右强制移动到安全区',
           ko: '강제 이동 오른쪽',
@@ -483,9 +572,12 @@ const triggerSet: TriggerSet<Data> = {
         'Gymnasiou Acheloios': 'Gymnasiou-Acheloios',
         'Gymnasiou Leon': 'Gymnasiou-Leon',
         'Gymnasiou Mandragoras': 'Gymnasiou-Mandragora',
+        'Gymnasiou Megakantha': 'Gymnasiou-Megakantha',
         'Gymnasiou Meganereis': 'Gymnasiou-Meganereis',
+        'Gymnasiou Pithekos': 'Gymnasiou-Pithekos',
         'Gymnasiou Satyros': 'Gymnasiou-Satyros',
         'Gymnasiou Sphinx': 'Gymnasiou-Sphinx',
+        'Gymnasiou Styphnolobion': 'Gymnasiou-Styphnolobium',
         'Gymnasiou Tigris': 'Gymnasiou-Tigris',
         'Gymnasiou Triton': 'Gymnasiou-Triton',
         'Lampas Chrysine': 'Lampas Chrysine',
@@ -500,9 +592,12 @@ const triggerSet: TriggerSet<Data> = {
         'Gymnasiou Acheloios': 'gymnasiou achéloios',
         'Gymnasiou Leon': 'gymnasiou léon',
         'Gymnasiou Mandragoras': 'gymnasiou mandragoras',
+        'Gymnasiou Megakantha': 'gymnasiou mégakantha',
         'Gymnasiou Meganereis': 'gymnasiou méganéréis',
+        'Gymnasiou Pithekos': 'gymnasiou pithékos',
         'Gymnasiou Satyros': 'gymnasiou satyros',
         'Gymnasiou Sphinx': 'gymnasiou sphinx',
+        'Gymnasiou Styphnolobion': 'gymnasiou styphnolobion',
         'Gymnasiou Tigris': 'gymnasiou tigris',
         'Gymnasiou Triton': 'gymnasiou triton',
         'Lampas Chrysine': 'lampas chrysine',
@@ -517,15 +612,58 @@ const triggerSet: TriggerSet<Data> = {
         'Gymnasiou Acheloios': 'ギュムナシオー・アケローオス',
         'Gymnasiou Leon': 'ギュムナシオー・レオン',
         'Gymnasiou Mandragoras': 'ギュムナシオー・マンドラゴラ',
+        'Gymnasiou Megakantha': 'ギュムナシオー・メガアカンサ',
         'Gymnasiou Meganereis': 'ギュムナシオー・メガネレイス',
+        'Gymnasiou Pithekos': 'ギュムナシオー・ピテコス',
         'Gymnasiou Satyros': 'ギュムナシオー・サテュロス',
         'Gymnasiou Sphinx': 'ギュムナシオー・スフィンクス',
+        'Gymnasiou Styphnolobion': 'ギュムナシオー・スティファノロビュウム',
         'Gymnasiou Tigris': 'ギュムナシオー・ティグリス',
         'Gymnasiou Triton': 'ギュムナシオー・トリトン',
         'Lampas Chrysine': 'クリュシネ・ランパス',
         'Lyssa Chrysine': 'クリュシネ・リッサ',
         'Narkissos': 'ナルキッソス',
         'Verdant Plume': '濃緑の羽根',
+      },
+    },
+    {
+      'locale': 'cn',
+      'replaceSync': {
+        'Gymnasiou Acheloios': '育体阿刻罗俄斯',
+        'Gymnasiou Leon': '育体雄狮',
+        'Gymnasiou Mandragoras': '育体蔓德拉',
+        'Gymnasiou Megakantha': '育体巨型刺口花',
+        'Gymnasiou Meganereis': '育体巨型涅瑞伊斯',
+        'Gymnasiou Pithekos': '育体猿猴',
+        'Gymnasiou Satyros': '育体萨提洛斯',
+        'Gymnasiou Sphinx': '育体斯芬克斯',
+        'Gymnasiou Styphnolobion': '育体槐龙',
+        'Gymnasiou Tigris': '育体猛虎',
+        'Gymnasiou Triton': '育体特里同',
+        'Lampas Chrysine': '金光拉姆帕斯',
+        'Lyssa Chrysine': '金光吕萨',
+        'Narkissos': '纳西索斯',
+        'Verdant Plume': '浓绿之羽',
+      },
+    },
+    {
+      'locale': 'ko',
+      'replaceSync': {
+        'Gymnasiou Acheloios': '김나시온 아켈로오스',
+        'Gymnasiou Leon': '김나시온 사자',
+        'Gymnasiou Mandragoras': '김나시온 만드라고라',
+        'Gymnasiou Megakantha': '김나시온 큰가시풀',
+        'Gymnasiou Meganereis': '김나시온 거대 네레이스',
+        'Gymnasiou Pithekos': '김나시온 원숭이',
+        'Gymnasiou Satyros': '김나시온 사티로스',
+        'Gymnasiou Sphinx': '김나시온 스핑크스',
+        'Gymnasiou Styphnolobion': '김나시온 회화나무',
+        'Gymnasiou Tigris': '김나시온 호랑이',
+        'Gymnasiou Triton': '김나시온 트리톤',
+        'Lampas Chrysine': '람파스 크뤼시네',
+        'Lyssa Chrysine': '뤼사 크뤼시네',
+        'Narkissos': '나르키소스',
+        'Verdant Plume': '진녹색 깃털',
       },
     },
   ],

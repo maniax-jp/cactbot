@@ -95,7 +95,7 @@ class OopsyConfigurator {
 
       const parts = [info.title, info.type, expansion];
       for (const part of parts) {
-        if (!part)
+        if (part === undefined)
           continue;
         const partDiv = document.createElement('div');
         partDiv.classList.add('trigger-file-header-part');
@@ -115,6 +115,16 @@ class OopsyConfigurator {
         triggerDiv.innerHTML = id;
         triggerDiv.classList.add('trigger');
         triggerOptions.appendChild(triggerDiv);
+
+        // Build the trigger comment
+        const comment = info.triggers[id]?.comment;
+        if (comment) {
+          const trigComment = comment[this.base.lang] ?? comment?.en ?? '';
+          const triggerComment = document.createElement('div');
+          triggerComment.innerHTML = trigComment;
+          triggerComment.classList.add('comment');
+          triggerDiv.appendChild(triggerComment);
+        }
 
         // Container for the right side ui (select boxes, all of the info).
         const triggerDetails = document.createElement('div');
@@ -266,6 +276,56 @@ const templateOptions: OptionsTemplate = {
       default: false,
     },
     {
+      id: 'DefaultPlayerLabel',
+      name: {
+        en: 'Default Player Label',
+        de: 'Standard Spieler Label',
+        fr: 'Label par défaut du joueur',
+        ja: '基本プレイヤーラベル',
+        cn: '默认玩家代称',
+        ko: '플레이어를 언급하는 기본 방법',
+      },
+      type: 'select',
+      options: {
+        en: {
+          'Nickname (Tini)': 'nick',
+          'Role (Tank)': 'role',
+          'Job (WAR)': 'job',
+          'Full Job (Warrior)': 'jobFull',
+          'Full Name (Tini Poutini)': 'name',
+        },
+        fr: {
+          'Pseudo (Tini)': 'nick',
+          'Role (Tank)': 'role',
+          'Job (GUE)': 'job',
+          'Job complet (Guerrier)': 'jobFull',
+          'Nom complet (Tini Poutini)': 'name',
+        },
+        ja: {
+          'あだ名 (Tini)': 'nick',
+          'ロール (ヒーラー)': 'role',
+          '簡略ジョブ (白魔)': 'job',
+          'ジョブ (白魔導士)': 'jobFull',
+          '名前 (Tini Poutini)': 'name',
+        },
+        cn: {
+          '昵称 (弗雷)': 'nick',
+          '职能 (坦克)': 'role',
+          '职业简称 (暗骑)': 'job',
+          '职业全称 (暗黑骑士)': 'jobFull',
+          '全名 (弗雷)': 'name',
+        },
+        ko: {
+          '닉네임 (Tini)': 'nick',
+          '역할 (탱커)': 'role',
+          '직업 (암기)': 'job',
+          '직업 전체 (암흑기사)': 'jobFull',
+          '이름 전체 (Tini Poutini)': 'name',
+        },
+      },
+      default: 'nick',
+    },
+    {
       id: 'NumLiveListItemsInCombat',
       name: {
         en: 'Number of mistakes to show in combat',
@@ -303,7 +363,7 @@ const templateOptions: OptionsTemplate = {
       },
       type: 'float',
       default: 4,
-      setterFunc: (options, value) => {
+      setterFunc: (value, options) => {
         let seconds;
         if (typeof value === 'string')
           seconds = parseFloat(value);
@@ -311,6 +371,8 @@ const templateOptions: OptionsTemplate = {
           seconds = value;
         else
           return;
+
+        // Store in a separate variable with a different unit.
         options['TimeToShowDeathReportMs'] = seconds * 1000;
       },
     },
@@ -358,6 +420,19 @@ const templateOptions: OptionsTemplate = {
         },
       },
       default: 'left',
+    },
+    {
+      id: 'MinimumTimeForOverwrittenMit',
+      name: {
+        en: 'Minimum time to show overwritten mit (seconds)',
+        de: 'Minimum Zeit überschriebene Mitigation anzuzeigen (Sekunden)',
+        fr: 'Temps minimum pour afficher l\'écrasement des mitigation (s)',
+        ja: 'バフの上書き通知を表示する時間 (秒)',
+        cn: '显示被顶减伤最小时间 (秒)',
+        ko: '파티 생존기 덮어씀 경고를 표시할 기준 시간 (초)',
+      },
+      type: 'float',
+      default: 2,
     },
   ],
 };

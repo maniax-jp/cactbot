@@ -1,4 +1,5 @@
 import { Lang, NonEnLang } from '../resources/languages';
+import { NamedConfigEntry } from '../resources/user_config';
 import { TimelineReplacement, TimelineStyle } from '../ui/raidboss/timeline_parser';
 
 import { RaidbossData } from './data';
@@ -34,12 +35,25 @@ export type ZoneIdType = number | null;
 
 export type OutputStrings = { [outputKey: string]: LocaleText | string };
 
+export type OutputStringsParamObject = {
+  // The indexer type requires that `() => string` be a possible value, or else `toString` can't be
+  // defined. Effectively, typescript sees it as `someParamObject['toString']()`, not as a direct
+  // function call of `someParamObject.toString()`.
+  [key: string]: undefined | string | number | (() => string);
+  toString: () => string;
+};
+
+export type OutputStringsParam = string | number | OutputStringsParamObject;
+export type OutputStringsParams = {
+  [param: string]: OutputStringsParam | OutputStringsParam[] | undefined;
+};
+
 // TODO: is it awkward to have Outputs the static class and Output the unrelated type?
 // This type corresponds to TriggerOutputProxy.
 export type Output = {
   responseOutputStrings: OutputStrings;
 } & {
-  [key: string]: (params?: { [param: string]: string | number | undefined }) => string;
+  [key: string]: (params?: OutputStringsParams) => string;
 };
 
 // The output of any non-response raidboss trigger function.
@@ -87,11 +101,22 @@ export type ResponseField<Data extends RaidbossData, MatchType extends NetAnyMat
   | ResponseFunc<Data, MatchType>
   | ResponseOutput<Data, MatchType>;
 
+// Config UI options that apply to an individual trigger (by id).
 export type TriggerAutoConfig = {
   Output?: Output;
   Duration?: number;
   BeforeSeconds?: number;
+  DelayAdjust?: number;
   OutputStrings?: OutputStrings;
+  TextAlertsEnabled?: boolean;
+  SoundAlertsEnabled?: boolean;
+  SpokenAlertsEnabled?: boolean;
+};
+
+// Config UI options that apply to an entire trigger set.
+// TODO: this doesn't apply to literal timeline alerts (not timeline triggers but
+// ancient timeline code that specifies alerts directly).
+export type TriggerSetAutoConfig = {
   TextAlertsEnabled?: boolean;
   SoundAlertsEnabled?: boolean;
   SpokenAlertsEnabled?: boolean;
@@ -113,8 +138,9 @@ export type BaseTrigger<
 
 type BaseNetTrigger<Data extends RaidbossData, Type extends TriggerTypes> = {
   id: string;
+  comment?: Partial<LocaleText>;
   type: Type;
-  netRegex: NetParams[Type] | CactbotBaseRegExp<Type>;
+  netRegex: NetParams[Type];
   disabled?: boolean;
   condition?: TriggerField<Data, NetMatches[Type], boolean | undefined>;
   preRun?: TriggerField<Data, NetMatches[Type], void>;
@@ -171,10 +197,15 @@ type RequiredFieldsAsUnion<Type> = {
 }[keyof Type];
 
 export type BaseTriggerSet<Data extends RaidbossData> = {
+  // Unique string for this trigger set.
+  id: string;
   // ZoneId.MatchAll (aka null) is not supported in array form.
   zoneId: ZoneIdType | number[];
   // useful if the zoneId is an array or zone name is otherwise non-descriptive
   zoneLabel?: LocaleText;
+  // trigger set ids to load configs from (this trigger set is loaded implicitly).
+  loadConfigs?: string[];
+  config?: NamedConfigEntry<Extract<keyof Data['triggerSetConfig'], string>>[];
   // If the timeline exists, but needs significant improvements and a rewrite.
   timelineNeedsFixing?: boolean;
   // If no timeline is possible for this zone, e.g. t3.
@@ -202,7 +233,15 @@ export type TriggerSet<Data extends RaidbossData = RaidbossData> =
 // Less strict type for user triggers + built-in triggers, including deprecated fields.
 export type LooseTimelineTrigger = Partial<TimelineTrigger<RaidbossData>>;
 
-export type LooseTrigger = Partial<BaseNetTrigger<RaidbossData, 'None'> & PartialRegexTrigger>;
+export type LooseTrigger = Partial<
+  & Omit<BaseNetTrigger<RaidbossData, 'None'>, 'netRegex'>
+  & PartialRegexTrigger
+  & {
+    // Built-in cactbot netRegex only supports the `NetParams` variety of specification,
+    // but for backwards compatibility, also handle anybody still using `NetRegexes.foo()`.
+    netRegex: NetParams['None'] | CactbotBaseRegExp<'None'>;
+  }
+>;
 
 export type LooseTriggerSet =
   & Omit<Partial<TriggerSet>, 'triggers' | 'timelineTriggers'>
@@ -213,6 +252,8 @@ export type LooseTriggerSet =
       | { [lang in Lang]?: RegExp };
     triggers?: LooseTrigger[];
     timelineTriggers?: LooseTimelineTrigger[];
+    filename?: string;
+    isUserTriggerSet?: boolean;
   };
 
 export interface RaidbossFileData {

@@ -10,6 +10,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheMinstrelsBalladUltimasBane',
   zoneId: ZoneId.TheMinstrelsBalladUltimasBane,
   timelineFile: 'ultima-ex.txt',
   initData: () => {
@@ -68,7 +69,7 @@ const triggerSet: TriggerSet<Data> = {
       id: 'Ultima EX Viscous Aetheroplasm',
       type: 'GainsEffect',
       netRegex: { effectId: '171', count: '04', capture: false },
-      condition: (data) => data.role === 'tank',
+      condition: (data) => data.role === 'tank' || data.job === 'BLU',
       alertText: (_data, _matches, output) => output.text!(),
       outputStrings: {
         text: Outputs.tankSwap,

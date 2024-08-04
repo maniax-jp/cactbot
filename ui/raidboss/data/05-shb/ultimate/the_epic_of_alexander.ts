@@ -1,12 +1,16 @@
 import Conditions from '../../../../../resources/conditions';
 import Outputs from '../../../../../resources/outputs';
 import { Responses } from '../../../../../resources/responses';
+import { ConfigValue } from '../../../../../resources/user_config';
 import ZoneId from '../../../../../resources/zone_id';
 import { RaidbossData } from '../../../../../types/data';
 import { NetMatches } from '../../../../../types/net_matches';
 import { Output, TriggerSet } from '../../../../../types/trigger';
 
+export type ConfigIds = 'cactbotWormholeStrat';
+
 export interface Data extends RaidbossData {
+  triggerSetConfig: { [key in ConfigIds]: ConfigValue };
   phase?: string;
   decOffset?: number;
   nisiMap?: { [name: string]: number };
@@ -45,26 +49,6 @@ export interface Data extends RaidbossData {
   trineLocations?: (number[] | undefined)[];
 }
 
-// In your cactbot/user/raidboss.js file, add the line:
-//   Options.cactbotWormholeStrat = true;
-// .. if you want cactbot strat for wormhole.
-//
-// This is more or less the TPS wormhole strat, with
-// some modifications to require less brain.
-//
-// Original TPS strat: https://www.youtube.com/watch?v=ScBsC5sZRwU
-//
-// Changes:
-// There's no "CC" side or "BJ" side, only left side and right side.
-// Start middle, face north, away from alexander.
-// Odds go left, evens go right.  1+4 go to robots, 2+3 go back, 5+6+7+8 go side of robot.
-// From there, do the same thing you normally would for your number in the TPS strat.
-// This means that sometimes 2 is baiting BJ and sometimes 3, so both need to leave room.
-// All cleaves go through the middle (easy to know where to face for evens if you don't surecast).
-// East/West cardinals always safe after chakrams.
-//
-// Diagram: https://ff14.toolboxgaming.space/?id=17050133675751&preview=1
-
 // TODO: Future network data mining opportunities.
 // These don't show up in the log (yet??):
 // * inception orb tethers (likely some "new combatant" flag, like suzex birbs?)
@@ -83,7 +67,7 @@ const getHeadmarkerId = (data: Data, matches: NetMatches['HeadMarker']) => {
   // The leading zeroes are stripped when converting back to string, so we re-add them here.
   // Fortunately, we don't have to worry about whether or not this is robust,
   // since we know all the IDs that will be present in the encounter.
-  return '00' + (parseInt(matches.id, 16) - data.decOffset).toString(16).toUpperCase();
+  return `00${(parseInt(matches.id, 16) - data.decOffset).toString(16).toUpperCase()}`;
 };
 
 const kDecreeNisi = ['8AE', '8AF', '859', '85A'];
@@ -305,7 +289,7 @@ const namedNisiPass = (data: Data, output: Output) => {
 
     // The common case.  Hopefully there's only one person in the names list,
     // but you never know.
-    const players = namesWithoutNisi.map((x) => data.ShortName(x)).join(', ');
+    const players = namesWithoutNisi.map((x) => data.party.member(x));
     return output.passNisiTo!({ type: nisiToString(myNisi, output), players: players });
   }
 
@@ -320,7 +304,7 @@ const namedNisiPass = (data: Data, output: Output) => {
 
   return output.getNisiFrom!({
     type: nisiToString(myNisi, output),
-    player: data.ShortName(names[0]),
+    player: data.party.member(names[0]),
   });
 };
 
@@ -349,7 +333,44 @@ const betaInstructions = (idx: number | undefined, output: Output) => {
 };
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheEpicOfAlexanderUltimate',
   zoneId: ZoneId.TheEpicOfAlexanderUltimate,
+  config: [
+    {
+      // This is more or less the TPS wormhole strat, with
+      // some modifications to require less brain.
+      //
+      // Original TPS strat: https://www.youtube.com/watch?v=ScBsC5sZRwU
+      //
+      // Changes:
+      // There's no "CC" side or "BJ" side, only left side and right side.
+      // Start middle, face north, away from alexander.
+      // Odds go left, evens go right.  1+4 go to robots, 2+3 go back, 5+6+7+8 go side of robot.
+      // From there, do the same thing you normally would for your number in the TPS strat.
+      // This means that sometimes 2 is baiting BJ and sometimes 3, so both need to leave room.
+      // All cleaves go through the middle (easy to know where to face for evens if you don't surecast).
+      // East/West cardinals always safe after chakrams.
+      //
+      // Diagram: https://ff14.toolboxgaming.space/?id=17050133675751&preview=1
+      id: 'cactbotWormholeStrat',
+      name: {
+        en:
+          'Enable cactbot Wormhole strat: https://ff14.toolboxgaming.space/?id=17050133675751&preview=1',
+        de:
+          'Aktiviere Cactbot Wormhole Strategie: https://ff14.toolboxgaming.space/?id=17050133675751&preview=1',
+        fr:
+          'Activer cactbot pour la strat Wormhole : https://ff14.toolboxgaming.space/?id=17050133675751&preview=1',
+        ja: '絶アレキサンダー討滅戦：cactbot「次元断絶のマーチ」ギミック', // FIXME
+        cn: '启用 cactbot 灵泉策略: https://ff14.toolboxgaming.space/?id=17050133675751&preview=1',
+        ko: 'cactbot 웜홀 공략방식 사용: https://ff14.toolboxgaming.space/?id=17050133675751&preview=1',
+      },
+      type: 'checkbox',
+      default: (options) => {
+        const oldSetting = options['cactbotWormholeStrat'];
+        return typeof oldSetting === 'boolean' ? oldSetting : false;
+      },
+    },
+  ],
   timelineFile: 'the_epic_of_alexander.txt',
   timelineTriggers: [
     {
@@ -369,8 +390,8 @@ const triggerSet: TriggerSet<Data> = {
           if (multipleSwings)
             return output.tankBusters!();
 
-          if (data.liquidTank)
-            return output.tankBusterOn!({ player: data.ShortName(data.liquidTank) });
+          if (data.liquidTank !== undefined)
+            return output.tankBusterOn!({ player: data.party.member(data.liquidTank) });
 
           return output.tankBuster!();
         }
@@ -489,16 +510,16 @@ const triggerSet: TriggerSet<Data> = {
       alertText: (data, matches, output) => {
         // data.puddle is set by 'TEA Wormhole TPS Strat' (or by some user trigger).
         // If that's disabled, this will still just call out puddle counts.
-        if (matches[1] && parseInt(matches[1]) === data.puddle)
+        if (matches[1] !== undefined && parseInt(matches[1]) === data.puddle)
           return output.soakThisPuddle!({ num: matches[1] });
       },
       infoText: (data, matches, output) => {
-        if (matches[1] && parseInt(matches[1]) === data.puddle)
+        if (matches[1] !== undefined && parseInt(matches[1]) === data.puddle)
           return;
         return output.puddle!({ num: matches[1] });
       },
       tts: (data, matches, output) => {
-        if (matches[1] && parseInt(matches[1]) === data.puddle)
+        if (matches[1] !== undefined && parseInt(matches[1]) === data.puddle)
           return output.soakThisPuddleTTS!();
       },
       outputStrings: {
@@ -943,7 +964,7 @@ const triggerSet: TriggerSet<Data> = {
         if (data.enumerations?.length !== 2)
           return;
         const names = data.enumerations.sort();
-        return output.text!({ players: names.map((x) => data.ShortName(x)).join(', ') });
+        return output.text!({ players: names.map((x) => data.party.member(x)) });
       },
       outputStrings: {
         text: {
@@ -1169,7 +1190,7 @@ const triggerSet: TriggerSet<Data> = {
           return output.sharedTankbusterOnYou!();
 
         if (data.role === 'tank' || data.role === 'healer')
-          return output.sharedTankbusterOn!({ player: data.ShortName(matches.target) });
+          return output.sharedTankbusterOn!({ player: data.party.member(matches.target) });
       },
       infoText: (data, _matches, output) => {
         if (data.role === 'tank' || data.role === 'healer')
@@ -1245,7 +1266,7 @@ const triggerSet: TriggerSet<Data> = {
       durationSeconds: 10,
       suppressSeconds: 1,
       infoText: (data, _matches, output) => {
-        if (data.buffMap?.[data.me])
+        if (data.buffMap?.[data.me] !== undefined)
           return;
         return output.text!();
       },
@@ -1320,7 +1341,8 @@ const triggerSet: TriggerSet<Data> = {
       netRegex: { effectId: '462' },
       condition: (data) => data.phase === 'inception',
       delaySeconds: 3,
-      infoText: (data, matches, output) => output.text!({ player: data.ShortName(matches.target) }),
+      infoText: (data, matches, output) =>
+        output.text!({ player: data.party.member(matches.target) }),
       outputStrings: {
         text: {
           en: 'Shared Sentence on ${player}',
@@ -1359,7 +1381,7 @@ const triggerSet: TriggerSet<Data> = {
           return output.tankBusterOnYou!();
 
         if (data.role === 'healer')
-          return output.busterOn!({ player: data.ShortName(matches.target) });
+          return output.busterOn!({ player: data.party.member(matches.target) });
       },
       // As this seems to usually seems to be invulned,
       // don't make a big deal out of it.
@@ -1369,7 +1391,7 @@ const triggerSet: TriggerSet<Data> = {
         if (data.role !== 'tank')
           return;
 
-        return output.busterOn!({ player: data.ShortName(matches.target) });
+        return output.busterOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         busterOn: Outputs.tankBusterOnPlayer,
@@ -1520,7 +1542,7 @@ const triggerSet: TriggerSet<Data> = {
       type: 'Ability',
       netRegex: { source: 'Alexander Prime', id: '486E', capture: false },
       infoText: (data, _matches, output) => {
-        if (data.options.cactbotWormholeStrat === true)
+        if (data.triggerSetConfig.cactbotWormholeStrat === true)
           return output.baitChakramsWormholeStrat!();
 
         return output.baitChakrams!();
@@ -1549,7 +1571,7 @@ const triggerSet: TriggerSet<Data> = {
       type: 'HeadMarker',
       netRegex: {},
       condition: (data, matches) => {
-        if (data.options.cactbotWormholeStrat !== true)
+        if (data.triggerSetConfig.cactbotWormholeStrat !== true)
           return false;
         if (!(/00(?:4F|5[0-6])/).test(getHeadmarkerId(data, matches)))
           return false;
@@ -1657,7 +1679,7 @@ const triggerSet: TriggerSet<Data> = {
       type: 'Ability',
       netRegex: { source: 'Brute Justice', id: '484A', capture: false },
       condition: (data) => {
-        if (data.options.cactbotWormholeStrat !== true)
+        if (data.triggerSetConfig.cactbotWormholeStrat !== true)
           return false;
         if (data.phase !== 'wormhole')
           return;
@@ -1769,8 +1791,8 @@ const triggerSet: TriggerSet<Data> = {
         data.opticalStack ??= [];
         if (data.opticalStack.length === 1)
           return;
-        const names = data.opticalStack.map((x) => data.ShortName(x)).sort();
-        return output.opticalStackPlayers!({ players: names.join(', ') });
+        const names = data.opticalStack.map((x) => data.party.member(x)).sort();
+        return output.opticalStackPlayers!({ players: names });
       },
       outputStrings: {
         opticalStackPlayers: {
@@ -1978,7 +2000,7 @@ const triggerSet: TriggerSet<Data> = {
           fr: 'Pas de clone : package ?',
           ja: 'クローン無し: 多分シェア?',
           cn: '没有分身: 或许要集合?',
-          ko: '클론 없음: 아마도 오른쪽/함께 맞기?',
+          ko: '분신 없음: 아마도 오른쪽/함께 맞기?',
         },
         unknown: {
           en: 'No clone: ???',
@@ -1986,7 +2008,7 @@ const triggerSet: TriggerSet<Data> = {
           fr: 'Pas de clone : ???',
           ja: 'クローン無し: ???',
           cn: '没有分身: ¿¿¿',
-          ko: '클론 없음: ???',
+          ko: '분신 없음: ???',
         },
         defamation: {
           en: 'Defamation on YOU',
@@ -1994,7 +2016,7 @@ const triggerSet: TriggerSet<Data> = {
           fr: 'Diffamation sur VOUS',
           ja: '名誉罰',
           cn: '大圈点名',
-          ko: '명예형: 보스 밑에서 나 홀로!!!',
+          ko: '명예형: 큰 광역공격',
         },
         solidarity: {
           en: 'Shared Sentence: stack',
@@ -2282,7 +2304,7 @@ const triggerSet: TriggerSet<Data> = {
           fr: 'Pas de Clone : peut-être E->S ???',
           ja: 'クローン無し: 多分東から南???',
           cn: '没有分身: 可能紫色 东->南 ???',
-          ko: '클론 없음: 아마도 동→남 ???',
+          ko: '분신 없음: 아마도 동→남 ???',
         },
         purpleBait: {
           en: 'Purple Bait: bait E',
@@ -2373,7 +2395,7 @@ const triggerSet: TriggerSet<Data> = {
           3: 'west',
         };
         data.radiantOutputStringKey = outputMap[idx];
-        if (data.radiantOutputStringKey)
+        if (data.radiantOutputStringKey !== undefined)
           return output[data.radiantOutputStringKey]!();
       },
       outputStrings: radiantOutputStrings,
@@ -2437,8 +2459,10 @@ const triggerSet: TriggerSet<Data> = {
         if (!data.betaBait || data.betaBait.length === 0)
           return output.opticalStack!();
 
-        const names = data.betaBait.map((x) => x ? data.ShortName(x) : output.unknown!()).sort();
-        return output.opticalStackPlayers!({ players: names.join(', ') });
+        const names = data.betaBait.map((x) =>
+          x !== undefined ? data.party.member(x) : output.unknown!()
+        ).sort();
+        return output.opticalStackPlayers!({ players: names });
       },
       outputStrings: {
         unknown: Outputs.unknown,
@@ -2480,7 +2504,7 @@ const triggerSet: TriggerSet<Data> = {
       id: 'TEA Beta Radiant Final',
       type: 'Ability',
       netRegex: { source: 'Perfect Alexander', id: '4B14', capture: false },
-      condition: (data) => !!data.radiantOutputStringKey,
+      condition: (data) => data.radiantOutputStringKey !== undefined,
       delaySeconds: 16,
       alertText: (data, _matches, output) => output[data.radiantOutputStringKey ?? 'unknown']!(),
       outputStrings: radiantOutputStrings,
@@ -2528,7 +2552,7 @@ const triggerSet: TriggerSet<Data> = {
           108: 'y',
         };
         const thisTrine = trineMap[y];
-        if (!thisTrine)
+        if (thisTrine === undefined)
           return;
         data.trine.push(thisTrine);
 
@@ -2541,7 +2565,7 @@ const triggerSet: TriggerSet<Data> = {
         const threeArr = ['r', 'g', 'y'].filter((x) => !data.trine?.includes(x));
         const [three] = threeArr;
         const [one] = data.trine;
-        if (!one || !three)
+        if (one === undefined || three === undefined)
           return;
 
         // Start on the third trine, then move to the first.

@@ -22,6 +22,7 @@ export interface Data extends RaidbossData {
 // TODO: chakram safe spots lol?
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'AlexanderTheBurdenOfTheSonSavage',
   zoneId: ZoneId.AlexanderTheBurdenOfTheSonSavage,
   timelineFile: 'a8s.txt',
   initData: () => {
@@ -255,7 +256,7 @@ const triggerSet: TriggerSet<Data> = {
       },
       infoText: (data, matches, output) => {
         if (data.me !== matches.target)
-          return output.thunderOn!({ player: data.ShortName(matches.target) });
+          return output.thunderOn!({ player: data.party.member(matches.target) });
       },
       run: (data, matches) => data.lightning = matches.target,
       outputStrings: {
@@ -287,10 +288,10 @@ const triggerSet: TriggerSet<Data> = {
       id: 'A8S Compressed Lightning Soon',
       type: 'GainsEffect',
       netRegex: { effectId: '400' },
-      condition: (data) => !!data.lightning,
+      condition: (data) => data.lightning !== undefined,
       delaySeconds: (_data, matches) => parseFloat(matches.duration) - 5,
       infoText: (data, _matches, output) => {
-        return output.text!({ player: data.ShortName(data.lightning) });
+        return output.text!({ player: data.party.member(data.lightning) });
       },
       outputStrings: {
         text: {
@@ -310,7 +311,7 @@ const triggerSet: TriggerSet<Data> = {
       infoText: (data, matches, output) => {
         // 0040 = 2, 0041 = 3, 0042 = 4
         const count = 2 + parseInt(matches.id, 16) - parseInt('0040', 16);
-        return output.text!({ player: data.ShortName(matches.target), count: count });
+        return output.text!({ player: data.party.member(matches.target), count: count });
       },
       outputStrings: {
         text: {
@@ -332,7 +333,7 @@ const triggerSet: TriggerSet<Data> = {
           return output.sharedTankbusterOnYou!();
 
         if (data.role === 'tank' || data.role === 'healer')
-          return output.sharedTankbusterOn!({ player: data.ShortName(matches.target) });
+          return output.sharedTankbusterOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         sharedTankbusterOnYou: {
@@ -388,7 +389,7 @@ const triggerSet: TriggerSet<Data> = {
         if (target === data.me)
           return output.stackOnYou!();
 
-        return output.stackOn!({ player: data.ShortName(target) });
+        return output.stackOn!({ player: data.party.member(target) });
       },
       run: (data) => {
         delete data.longNeedleStack;
@@ -419,7 +420,7 @@ const triggerSet: TriggerSet<Data> = {
       infoText: (data, matches, output) => {
         if (data.me === matches.target)
           return;
-        return output.superJumpOn!({ player: data.ShortName(matches.target) });
+        return output.superJumpOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         superJumpOn: {
@@ -758,7 +759,7 @@ const triggerSet: TriggerSet<Data> = {
       },
       infoText: (data, matches, output) => {
         if (data.me !== matches.target)
-          return output.waterOn!({ player: data.ShortName(matches.target) });
+          return output.waterOn!({ player: data.party.member(matches.target) });
       },
       run: (data, matches) => data.water = matches.target,
       outputStrings: {
@@ -793,10 +794,10 @@ const triggerSet: TriggerSet<Data> = {
       id: 'A8S Compressed Water Soon',
       type: 'GainsEffect',
       netRegex: { effectId: '3FF' },
-      condition: (data) => !!data.water,
+      condition: (data) => data.water !== undefined,
       delaySeconds: (_data, matches) => parseFloat(matches.duration) - 5,
       infoText: (data, _matches, output) => {
-        return output.text!({ player: data.ShortName(data.water) });
+        return output.text!({ player: data.party.member(data.water) });
       },
       outputStrings: {
         text: {

@@ -7,7 +7,8 @@ module.exports = {
       description: 'suggest the triggerSet property order',
       category: 'Stylistic Issues',
       recommended: true,
-      url: 'https://github.com/quisquous/cactbot/blob/main/docs/RaidbossGuide.md#trigger-elements',
+      url:
+        'https://github.com/OverlayPlugin/cactbot/blob/main/docs/RaidbossGuide.md#trigger-properties',
     },
     fixable: 'code',
     schema: [
@@ -28,7 +29,9 @@ module.exports = {
   },
   create: (context) => {
     const raidbossOrderList = [
+      'id',
       'zoneId',
+      'config',
       'overrideTimelineFile',
       'timelineFile',
       'timeline',

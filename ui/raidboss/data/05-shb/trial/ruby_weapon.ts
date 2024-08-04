@@ -9,6 +9,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'CinderDrift',
   zoneId: ZoneId.CinderDrift,
   timelineFile: 'ruby_weapon.txt',
   timelineTriggers: [
@@ -154,7 +155,7 @@ const triggerSet: TriggerSet<Data> = {
       type: 'StartsUsing',
       netRegex: { source: 'Raven\'s Image', id: '4ABF' },
       condition: (data, matches) => {
-        if (data.role !== 'healer' && data.role !== 'tank')
+        if (data.role === 'dps' && data.job !== 'BLU')
           return false;
         const myColor = data.colors?.[data.me];
         return myColor !== undefined && myColor === data.colors?.[matches.target];

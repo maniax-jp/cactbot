@@ -69,6 +69,7 @@ const purgationMidRotateCCWFlag = '00200010';
 const purgationMidRotateFlags = [purgationMidRotateCWFlag, purgationMidRotateCCWFlag];
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'MountOrdeals',
   zoneId: ZoneId.MountOrdeals,
   timelineFile: 'rubicante.txt',
   initData: () => {
@@ -119,7 +120,9 @@ const triggerSet: TriggerSet<Data> = {
         };
         const dirUnknown = output.unknown!();
 
-        let idx = data.purgationLoc ? purgationLocations.indexOf(data.purgationLoc) : undefined;
+        let idx = data.purgationLoc !== undefined
+          ? purgationLocations.indexOf(data.purgationLoc)
+          : undefined;
         if (idx === undefined || idx === -1)
           return output.avoidCone!({ dir: dirUnknown });
 
@@ -127,7 +130,7 @@ const triggerSet: TriggerSet<Data> = {
         if (data.purgation === 2) {
           // 2nd purgation - CW/CCW line only, no rotation
           const jaggedLineFlags = [purgationCWLineFlag, purgationCCWLineFlag];
-          if (!data.purgationLine || !jaggedLineFlags.includes(data.purgationLine))
+          if (data.purgationLine === undefined || !jaggedLineFlags.includes(data.purgationLine))
             return output.avoidCone!({ dir: dirUnknown });
 
           const modIdx = data.purgationLine === purgationCWLineFlag ? 1 : -1; // +1 if CW line, -1 if CCW line
@@ -136,7 +139,8 @@ const triggerSet: TriggerSet<Data> = {
           // 3rd+ purgation - straight line, CW/CCW rotation.
           // CW rotation results in CCW final path, and vice versa.
           if (
-            !data.purgationMidRotate || !purgationMidRotateFlags.includes(data.purgationMidRotate)
+            data.purgationMidRotate === undefined ||
+            !purgationMidRotateFlags.includes(data.purgationMidRotate)
           )
             return output.avoidCone!({ dir: dirUnknown });
 
@@ -167,6 +171,8 @@ const triggerSet: TriggerSet<Data> = {
           en: 'Avoid cone (from ${dir})',
           de: 'Weiche dem KEgel aus (von ${dir})',
           fr: 'Évitez le cône (depuis ${dir})',
+          ja: '${dir}からの扇回避',
+          cn: '躲避扇形 (从${dir})',
           ko: '${dir}의 삼각형 장판 피하기',
         },
       },
@@ -203,6 +209,9 @@ const triggerSet: TriggerSet<Data> = {
         avoid: {
           en: 'Avoid line cleave, then in',
           de: 'Weiche Linien Cleave aus, dann rein',
+          fr: 'Évitez le cleave en ligne, puis intérieur',
+          ja: '直線AOE回避 => 中へ',
+          cn: '躲避直线攻击, 然后去中间',
           ko: '직선 장판 피하고, 안으로',
         },
       },
@@ -257,7 +266,9 @@ const triggerSet: TriggerSet<Data> = {
         stackBehind: {
           en: 'Stack behind Boss',
           de: 'Hinter dem Boss sammeln',
+          fr: 'Packez-vous derrière le boss',
           ja: 'ボスの後ろで頭割り',
+          cn: 'BOSS背后分摊',
           ko: '보스 뒤에서 쉐어',
         },
       },
@@ -302,7 +313,6 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       'locale': 'fr',
-      'missingTranslations': true,
       'replaceSync': {
         'Circle of Purgatory': 'cercle arcanique du Purgatoire',
         '(?<!Greater )Flamesent': 'flamme démoniaque',
@@ -337,7 +347,6 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       'locale': 'ja',
-      'missingTranslations': true,
       'replaceSync': {
         'Circle of Purgatory': '煉獄魔陣',
         '(?<!Greater )Flamesent': '炎妖',
@@ -368,6 +377,78 @@ const triggerSet: TriggerSet<Data> = {
         'Soulscald': '滅土焼尽',
         'Sweeping Immolation': '赤滅熱波',
         'Total Immolation': '赤滅熱波：重炎',
+      },
+    },
+    {
+      'locale': 'cn',
+      'replaceSync': {
+        'Circle of Purgatory': '炼狱魔阵',
+        '(?<!Greater )Flamesent': '炎妖',
+        'Greater Flamesent': '业炎妖',
+        'Rubicante(?! )': '卢比坎特',
+        'Rubicante Mirage': '卢比坎特的幻影',
+      },
+      'replaceText': {
+        '\\(aoe\\)': '(AOE)',
+        '\\(spread\\)': '(分散)',
+        'Arcane Revelation': '魔法阵展开',
+        'Arch Inferno': '烈风火焰流',
+        'Blazing Rapture': '狂炎',
+        'Conflagration': '劫火流',
+        'Dualfire': '双炎流',
+        'Explosive Pyre': '爆炎击',
+        'Fiery Expiation': '狱炎',
+        'Flamerake': '烈火赤灭爪',
+        'Ghastly Flame': '妖火',
+        'Ghastly Torch': '妖火炎',
+        'Ghastly Wind': '妖火风',
+        'Hope Abandon Ye': '炼狱招来',
+        'Infernal Slaughter': '火焰乱击',
+        '(?<!(Arch |Erz))Inferno(?! Devil)': '火焰流',
+        'Inferno Devil': '火焰旋风',
+        'Ordeal of Purgation': '炼狱朱炎',
+        'Radial Flagration': '放散火流',
+        'Scalding Fleet': '灭土烧尽：迅火',
+        'Shattering Heat': '炎击',
+        'Soulscald': '灭土烧尽',
+        'Sweeping Immolation': '赤灭热波',
+        'Total Immolation': '赤灭热波：重炎',
+      },
+    },
+    {
+      'locale': 'ko',
+      'replaceSync': {
+        'Circle of Purgatory': '연옥 마법진',
+        '(?<!Greater )Flamesent': '불꽃 요마',
+        'Greater Flamesent': '업화의 요마',
+        'Rubicante(?! )': '루비칸테',
+        'Rubicante Mirage': '루비칸테의 환영',
+      },
+      'replaceText': {
+        '\\(aoe\\)': '(광역)',
+        '\\(spread\\)': '(산개)',
+        'Arcane Revelation': '마법진 전개',
+        'Arch Inferno': '열풍화연류',
+        'Blazing Rapture': '광란의 불꽃',
+        'Conflagration': '불보라',
+        'Dualfire': '쌍염류',
+        'Explosive Pyre': '폭염격',
+        'Fiery Expiation': '지옥불',
+        'Flamerake': '열화적멸조',
+        'Ghastly Flame': '요마의 불',
+        'Ghastly Torch': '요마의 화염',
+        'Ghastly Wind': '요마의 불바람',
+        'Hope Abandon Ye': '연옥 출현',
+        'Infernal Slaughter': '화연난격',
+        '(?<!(Arch |Erz))Inferno(?! Devil)': '화연류',
+        'Inferno Devil': '화연선풍',
+        'Ordeal of Purgation': '연옥의 홍염',
+        'Radial Flagration': '갈래불',
+        'Scalding Fleet': '멸토 소진: 돌진',
+        'Shattering Heat': '염격',
+        'Soulscald': '멸토 소진',
+        'Sweeping Immolation': '적멸열파',
+        'Total Immolation': '적멸열파: 집중',
       },
     },
   ],

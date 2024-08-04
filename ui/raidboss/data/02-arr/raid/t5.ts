@@ -11,6 +11,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheBindingCoilOfBahamutTurn5',
   zoneId: ZoneId.TheBindingCoilOfBahamutTurn5,
   timelineFile: 't5.txt',
   initData: () => {
@@ -93,7 +94,7 @@ const triggerSet: TriggerSet<Data> = {
       },
       infoText: (data, matches, output) => {
         if (data.me !== matches.target)
-          return output.fireballOn!({ player: data.ShortName(matches.target) });
+          return output.fireballOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         fireballOn: {
@@ -124,7 +125,7 @@ const triggerSet: TriggerSet<Data> = {
       },
       infoText: (data, matches, output) => {
         if (data.me !== matches.target)
-          return output.conflagOn!({ player: data.ShortName(matches.target) });
+          return output.conflagOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         conflagOn: {
@@ -188,7 +189,7 @@ const triggerSet: TriggerSet<Data> = {
         if (data.me === matches.target)
           return output.knightOnYou!();
 
-        return output.knightOn!({ player: data.ShortName(matches.target) });
+        return output.knightOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         knightOnYou: {
@@ -235,7 +236,7 @@ const triggerSet: TriggerSet<Data> = {
       },
       infoText: (data, matches, output) => {
         if (data.me !== matches.target)
-          return output.hatchOn!({ player: data.ShortName(matches.target) });
+          return output.hatchOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         hatchOn: {

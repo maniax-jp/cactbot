@@ -200,7 +200,7 @@ export const Responses = {
       if (target === data.me)
         return;
 
-      return output.busterOnTarget?.({ player: data.ShortName(target) });
+      return output.busterOnTarget?.({ player: data.party.member(target) });
     };
 
     const combined = combineFuncs(
@@ -217,6 +217,7 @@ export const Responses = {
   },
   tankBusterSwap: (busterSev?: Severity, swapSev?: Severity) => {
     const outputStrings = {
+      noTarget: Outputs.tankBuster,
       tankSwap: Outputs.tankSwap,
       busterOnYou: Outputs.tankBusterOnYou,
       busterOnTarget: Outputs.tankBusterOnPlayer,
@@ -236,7 +237,9 @@ export const Responses = {
 
       if (target === data.me)
         return output.busterOnYou?.();
-      return output.busterOnTarget?.({ player: data.ShortName(target) });
+      if (target === undefined)
+        return output.noTarget?.();
+      return output.busterOnTarget?.({ player: data.party.member(target) });
     };
 
     const combined = combineFuncs(
@@ -292,7 +295,7 @@ export const Responses = {
       if (target === data.me)
         return output.sharedTankbusterOnYou?.();
       if (data.role === 'tank' || data.role === 'healer')
-        return output.sharedTankbusterOnTarget?.({ player: data.ShortName(target) });
+        return output.sharedTankbusterOnTarget?.({ player: data.party.member(target) });
     };
 
     const otherFunc = (data: Data, matches: TargetedMatches, output: Output) => {
@@ -323,6 +326,7 @@ export const Responses = {
   miniBuster: (sev?: Severity) => staticResponse(defaultInfoText(sev), Outputs.miniBuster),
   aoe: (sev?: Severity) => staticResponse(defaultInfoText(sev), Outputs.aoe),
   bigAoe: (sev?: Severity) => staticResponse(defaultInfoText(sev), Outputs.bigAoe),
+  bleedAoe: (sev?: Severity) => staticResponse(defaultInfoText(sev), Outputs.bleedAoe),
   spread: (sev?: Severity) => staticResponse(defaultInfoText(sev), Outputs.spread),
   // for stack marker situations.
   stackMarker: (sev?: Severity) => staticResponse(defaultAlertText(sev), Outputs.stackMarker),
@@ -333,13 +337,16 @@ export const Responses = {
     output.responseOutputStrings = {
       stackOnYou: Outputs.stackOnYou,
       stackOnTarget: Outputs.stackOnPlayer,
+      stackMarker: Outputs.stackMarker,
     };
     return {
       [defaultAlertText(sev)]: (data: Data, matches: TargetedMatches, output: Output) => {
         const target = getTarget(matches);
         if (target === data.me)
           return output.stackOnYou?.();
-        return output.stackOnTarget?.({ player: data.ShortName(target) });
+        if (target === undefined)
+          return output.stackMarker?.();
+        return output.stackOnTarget?.({ player: data.party.member(target) });
       },
     };
   },
@@ -354,6 +361,7 @@ export const Responses = {
   knockback: (sev?: Severity) => staticResponse(defaultAlertText(sev), Outputs.knockback),
   knockbackOn: (targetSev?: Severity, otherSev?: Severity) => {
     const outputStrings = {
+      knockback: Outputs.knockback,
       knockbackOnYou: Outputs.knockbackOnYou,
       knockbackOnTarget: Outputs.knockbackOnPlayer,
     };
@@ -366,8 +374,10 @@ export const Responses = {
 
     const otherFunc = (data: Data, matches: TargetedMatches, output: Output) => {
       const target = getTarget(matches);
+      if (target === undefined)
+        return output.knockback?.();
       if (target !== data.me)
-        return output.knockbackOnTarget?.({ player: data.ShortName(target) });
+        return output.knockbackOnTarget?.({ player: data.party.member(target) });
     };
     const combined = combineFuncs(
       defaultInfoText(targetSev),
@@ -387,6 +397,7 @@ export const Responses = {
   lookAwayFromTarget: (sev?: Severity) => (_data: Data, _matches: unknown, output: Output) => {
     // cactbot-builtin-response
     output.responseOutputStrings = {
+      lookAway: Outputs.lookAway,
       lookAwayFrom: Outputs.lookAwayFromTarget,
     };
     return {
@@ -394,7 +405,9 @@ export const Responses = {
         const target = getTarget(matches);
         if (target === data.me)
           return;
-        const name = isPlayerId(matches?.targetId) ? data.ShortName(target) : target;
+        if (target === undefined)
+          return output.lookAway?.();
+        const name = isPlayerId(matches?.targetId) ? data.party.member(target) : target;
         return output.lookAwayFrom?.({ name: name });
       },
     };
@@ -409,7 +422,7 @@ export const Responses = {
         const source = getSource(matches);
         if (source === data.me)
           return;
-        const name = isPlayerId(matches?.sourceId) ? data.ShortName(source) : source;
+        const name = isPlayerId(matches?.sourceId) ? data.party.member(source) : source;
         return output.lookAwayFrom?.({ name: name });
       },
     };
@@ -537,8 +550,9 @@ export const Responses = {
 
     const otherFunc = (data: Data, matches: TargetedMatches, output: Output) => {
       const target = getTarget(matches);
+      const player = target === undefined ? output.unknown?.() : data.party.member(target);
       if (target !== data.me)
-        return output.preyOnTarget?.({ player: data.ShortName(target) });
+        return output.preyOnTarget?.({ player: player });
     };
 
     const combined = combineFuncs(
@@ -558,13 +572,15 @@ export const Responses = {
     output.responseOutputStrings = {
       awayFromGroup: Outputs.awayFromGroup,
       awayFromTarget: Outputs.awayFromPlayer,
+      unknown: Outputs.unknown,
     };
     return {
       [defaultAlertText(sev)]: (data: Data, matches: TargetedMatches, output: Output) => {
         const target = getTarget(matches);
         if (data.me === target)
           return output.awayFromGroup?.();
-        return output.awayFromTarget?.({ player: data.ShortName(target) });
+        const player = target === undefined ? output.unknown?.() : data.party.member(target);
+        return output.awayFromTarget?.({ player: player });
       },
     };
   },
@@ -593,6 +609,7 @@ export const Responses = {
     };
   },
   wakeUp: (sev?: Severity) => staticResponse(defaultAlarmText(sev), Outputs.wakeUp),
+  getTowers: (sev?: Severity) => staticResponse(defaultInfoText(sev), Outputs.getTowers),
 } as const;
 
 // Don't give `Responses` a type in its declaration so that it can be treated as more strict

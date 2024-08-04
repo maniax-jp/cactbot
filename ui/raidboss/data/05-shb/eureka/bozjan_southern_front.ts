@@ -2,6 +2,7 @@ import Conditions from '../../../../../resources/conditions';
 import Outputs from '../../../../../resources/outputs';
 import Regexes from '../../../../../resources/regexes';
 import { Responses } from '../../../../../resources/responses';
+import Util from '../../../../../resources/util';
 import ZoneId from '../../../../../resources/zone_id';
 import { RaidbossData } from '../../../../../types/data';
 import { NetMatches } from '../../../../../types/net_matches';
@@ -130,7 +131,7 @@ const orbOutputStrings = {
 
 // TODO: promote something like this to Conditions?
 const tankBusterOnParty = (ceName?: string) => (data: Data, matches: NetMatches['StartsUsing']) => {
-  if (ceName && data.ce !== ceName)
+  if (ceName !== undefined && data.ce !== ceName)
     return false;
   if (matches.target === data.me)
     return true;
@@ -140,6 +141,7 @@ const tankBusterOnParty = (ceName?: string) => (data: Data, matches: NetMatches[
 };
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheBozjanSouthernFront',
   zoneId: ZoneId.TheBozjanSouthernFront,
   timelineFile: 'bozjan_southern_front.txt',
   timeline: [
@@ -167,6 +169,9 @@ const triggerSet: TriggerSet<Data> = {
     },
   ],
   triggers: [
+    // https://xivapi.com/LogMessage/916
+    // en: 7 minutes have elapsed since your last activity. [...]
+    // There is no network packet for these log lines; so have to use GameLog.
     {
       id: 'Bozja South Falling Asleep',
       type: 'GameLog',
@@ -180,7 +185,7 @@ const triggerSet: TriggerSet<Data> = {
       run: (data, matches) => {
         // This fires when you win, lose, or teleport out.
         if (matches.data0 === '00') {
-          if (data.ce && data.options.Debug)
+          if (data.ce !== undefined && data.options.Debug)
             console.log(`Stop CE: ${data.ce}`);
           // Stop any active timelines.
           data.StopCombat();
@@ -443,10 +448,9 @@ const triggerSet: TriggerSet<Data> = {
 
         const orbOutput = data.orbOutput = sortedOrbs.map((orbId) => {
           const nameId = orbIdToNameId[orbId];
-          if (!nameId)
+          if (nameId === undefined)
             return 'unknown';
-          const output = orbNpcNameIdToOutputString[nameId];
-          return output ? output : 'unknown';
+          return orbNpcNameIdToOutputString[nameId] ?? 'unknown';
         });
 
         // If there is a pair of orbs, and they are the same type, then this is the mechanic
@@ -484,7 +488,7 @@ const triggerSet: TriggerSet<Data> = {
       alertText: (data, _matches, output) => {
         data.orbOutput ??= [];
         const orb = data.orbOutput.shift();
-        if (!orb)
+        if (orb === undefined)
           return;
         return output[orb]!();
       },
@@ -499,7 +503,7 @@ const triggerSet: TriggerSet<Data> = {
       alertText: (data, _matches, output) => {
         data.orbOutput ??= [];
         const orb = data.orbOutput.shift();
-        if (!orb)
+        if (orb === undefined)
           return;
         return output[orb]!();
       },
@@ -655,13 +659,12 @@ const triggerSet: TriggerSet<Data> = {
         },
       },
     },
+    // https://xivapi.com/LogMessage/9644
+    // en: Lyon the Beast King would do battle at Majesty's Place...
     {
       id: 'Bozja South Castrum Lyon Passage',
-      type: 'GameLog',
-      netRegex: {
-        line: 'Lyon the Beast King would do battle at Majesty\'s Place.*?',
-        capture: false,
-      },
+      type: 'ActorControlSelfExtra',
+      netRegex: { category: Util.actorControlType.logMsg, param1: '25AC', capture: false },
       alertText: (_data, _matches, output) => output.text!(),
       outputStrings: {
         text: {

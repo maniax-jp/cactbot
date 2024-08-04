@@ -10,6 +10,7 @@ export interface Data extends RaidbossData {
 
 // The Vault
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheVault',
   zoneId: ZoneId.TheVault,
   timelineFile: 'the_vault.txt',
   timelineTriggers: [
@@ -46,7 +47,6 @@ const triggerSet: TriggerSet<Data> = {
       id: 'The Vault Altar Candle',
       regex: /Altar Candle/,
       beforeSeconds: 5,
-      condition: (data) => data.role !== 'dps',
       response: Responses.tankBuster(),
     },
   ],
@@ -63,7 +63,7 @@ const triggerSet: TriggerSet<Data> = {
       netRegex: { id: '101F', source: 'Ser Adelphel' },
       condition: (data) => data.role === 'healer',
       alertText: (data, matches, output) => {
-        return output.text!({ player: data.ShortName(matches.target) });
+        return output.text!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         text: {

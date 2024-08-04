@@ -11,6 +11,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'MareLamentorum',
   zoneId: ZoneId.MareLamentorum,
   resetWhenOutOfCombat: false,
   initData: () => {
@@ -227,6 +228,7 @@ const triggerSet: TriggerSet<Data> = {
         joiner: {
           en: ' => ',
           de: ' => ',
+          fr: ' => ',
           ja: ' => ',
           cn: ' => ',
           ko: ' => ',

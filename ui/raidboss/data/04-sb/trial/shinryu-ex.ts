@@ -12,6 +12,7 @@ export interface Data extends RaidbossData {
 
 // Shinryu Extreme
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheMinstrelsBalladShinryusDomain',
   zoneId: ZoneId.TheMinstrelsBalladShinryusDomain,
   timelineFile: 'shinryu-ex.txt',
   triggers: [
@@ -56,7 +57,7 @@ const triggerSet: TriggerSet<Data> = {
         if (matches.target === data.me)
           return output.akhMornOnYou!();
         else if (data.role === 'tank')
-          return output.akhMornOn!({ player: data.ShortName(matches.target) });
+          return output.akhMornOn!({ player: data.party.member(matches.target) });
       },
       infoText: (data, matches, output) => {
         if (matches.target === data.me || data.role === 'tank')
@@ -385,11 +386,11 @@ const triggerSet: TriggerSet<Data> = {
         if (matches.target === data.me)
           return output.deathSentenceOnYou!();
         else if (data.role === 'healer')
-          return output.deathSentenceOn!({ player: data.ShortName(matches.target) });
+          return output.deathSentenceOn!({ player: data.party.member(matches.target) });
       },
       infoText: (data, matches, output) => {
         if (matches.target !== data.me && data.role !== 'healer')
-          return output.deathSentenceOn!({ player: data.ShortName(matches.target) });
+          return output.deathSentenceOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         deathSentenceOn: {
@@ -492,7 +493,7 @@ const triggerSet: TriggerSet<Data> = {
           de: 'Kette zerreissen, dann stack',
           fr: 'Cassez les liens, puis packez-vous',
           ja: '鎖を引き、集合',
-          cn: '拉断锁链然后攻击',
+          cn: '拉断连线然后分摊',
           ko: '선 끊고 모이기',
         },
         breakTethers: {
@@ -500,7 +501,7 @@ const triggerSet: TriggerSet<Data> = {
           de: 'Ketten zerreissen',
           fr: 'Cassez les liens',
           ja: '鎖',
-          cn: '拉断锁链',
+          cn: '拉断连线',
           ko: '선 끊기',
         },
       },

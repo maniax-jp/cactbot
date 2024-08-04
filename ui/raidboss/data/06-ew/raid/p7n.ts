@@ -10,6 +10,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'AbyssosTheSeventhCircle',
   zoneId: ZoneId.AbyssosTheSeventhCircle,
   timelineFile: 'p7n.txt',
   initData: () => {
@@ -133,7 +134,7 @@ const triggerSet: TriggerSet<Data> = {
       id: 'P7N Spark Of Life',
       type: 'StartsUsing',
       netRegex: { id: '780B', source: 'Agdistis', capture: false },
-      response: Responses.aoe(),
+      response: Responses.bleedAoe(),
     },
     {
       id: 'P7N Static Moon',
@@ -252,7 +253,6 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       'locale': 'ja',
-      'missingTranslations': true,
       'replaceSync': {
         'Agdistis': 'アグディスティス',
         'Immature Io': 'イマチュア・イーオー',

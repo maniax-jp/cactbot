@@ -8,6 +8,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'ThePalaceOfTheDeadFloors181_190',
   zoneId: ZoneId.ThePalaceOfTheDeadFloors181_190,
 
   triggers: [
@@ -27,6 +28,8 @@ const triggerSet: TriggerSet<Data> = {
         interruptOrOut: {
           en: 'Out or interrupt ${name}',
           de: 'Raus oder unterbreche ${name}',
+          fr: 'Éloignez-vous de ou interrompez ${name}',
+          ja: '外へ、または${name}に詠唱中断',
           cn: '出去或打断 ${name}',
           ko: '밖으로 또는 ${name} 시전 끊기',
         },
@@ -47,6 +50,8 @@ const triggerSet: TriggerSet<Data> = {
         interruptOrUnder: {
           en: 'Get Under or interrupt ${name}',
           de: 'Unter oder unterbreche ${name}',
+          fr: 'Allez dessous ou interrompez ${name}',
+          ja: '中へ、または${name}に詠唱中断',
           cn: '去脚下或打断 ${name}',
           ko: '밑으로 또는 ${name} 시전 끊기',
         },
@@ -84,6 +89,8 @@ const triggerSet: TriggerSet<Data> = {
         pushToBoss: {
           en: 'Push ${name} into boss',
           de: 'Stoß ${name} in den Boss',
+          fr: 'Poussez ${name} sur le boss',
+          ja: '${name}をボスに飛ばして',
           cn: '将 ${name} 推至BOSS',
           ko: '보스쪽으로 ${name} 밀기',
         },

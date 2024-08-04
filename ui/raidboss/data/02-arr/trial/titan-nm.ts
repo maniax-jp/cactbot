@@ -6,6 +6,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheNavel',
   zoneId: ZoneId.TheNavel,
   timelineFile: 'titan-nm.txt',
   timelineTriggers: [
@@ -32,7 +33,7 @@ const triggerSet: TriggerSet<Data> = {
       netRegex: { effectId: '124' },
       alertText: (data, matches, output) => {
         if (matches.target !== data.me)
-          return output.breakGaolOn!({ player: data.ShortName(matches.target) });
+          return output.breakGaolOn!({ player: data.party.member(matches.target) });
 
         return output.gaolOnYou!();
       },

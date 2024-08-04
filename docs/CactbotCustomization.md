@@ -28,7 +28,8 @@ This has options for things like:
 
 - setting triggers to tts
 - disabling triggers
-- changing the output of triggers
+- changing the output text of triggers
+- changing triggers to say a player's job instead of name
 - changing your cactbot language
 - volume settings
 - getting rid of that cheese icon
@@ -66,6 +67,23 @@ You cannot make `tts` to say something different than the `alarmText` in most ca
 You cannot add additional parameters.
 If you want to do any of these more complicated overrides,
 then you will want to look at the [Overriding Raidboss Triggers](#overriding-raidboss-triggers) section.
+
+Any parameter that refers to a player (usually called `${player}` but not always)
+can also be further modified in each individual output string:
+
+- `${player.job}`: job abbreviation, e.g. WHM
+- `${player.jobFull}`: job full name, e.g. White Mage
+- `${player.role}`: role, e.g. support
+- `${player.name}`: player's full name, e.g. Tini Poutini
+- `${player.nick}`: player's nickname / first name, e.g. Tini
+- `${player.id}`: a player's id (for testing purposes), e.g. 1000485F
+
+If there are bugs or a player is not in your party or you use an invalid suffix,
+it may fall back to a default nickname just so something can be printed.
+
+By default, `${player}` implies `${player.nick}`,
+however you can set this default with the "Default Player Label" option
+in the cactbot config UI under the raidboss section.
 
 ## User Directory Overview
 
@@ -166,9 +184,9 @@ ACT -> Plugins -> OverlayPlugin.dll -> your overlay -> Open DevTools.
 This is because they use custom elements,
 and they don't expose a lot of knobs to tune.
 If you have particular things you want to change about the timeline bars that you can't,
-please feel free to submit a [github issue](https://github.com/quisquous/cactbot/issues/new/choose).
+please feel free to submit a [github issue](https://github.com/OverlayPlugin/cactbot/issues/new/choose).
 
-**Warning**: cactbot makes no guarantees about preserving CSS backwards compatability.
+**Warning**: cactbot makes no guarantees about preserving CSS backwards compatibility.
 Future changes to cactbot may rearrange elements,
 change element names and classes,
 or change styling entirely.
@@ -185,7 +203,7 @@ and how long they stay on screen,
 and anything else.
 
 You can see readable JavaScript versions of all of the cactbot triggers
-in this branch: <https://github.com/quisquous/cactbot/tree/triggers>
+in this branch: <https://github.com/OverlayPlugin/cactbot/tree/triggers>
 This is the preferred reference to use for viewing, copying, and pasting.
 Triggers in the main branch
 or shipped in a cactbot release are often in unreadable bundles
@@ -225,7 +243,7 @@ Modify the `zoneId` line to have the zone id for the zone you care about,
 usually from the top of the cactbot trigger file.
 [This file](../resources/zone_id.ts) has a list of all the zone ids.
 If you specify one incorrectly, you will get a warning in the OverlayPlugin log window.
-Then, [copy the trigger text](https://github.com/quisquous/cactbot/tree/triggers) into this block.
+Then, [copy the trigger text](https://github.com/OverlayPlugin/cactbot/tree/triggers) into this block.
 Edit as needed.
 Repeat for all the triggers you want to modify.
 Reload your raidboss overlay to apply your changes.
@@ -248,7 +266,7 @@ you could do this via [Changing Trigger Text with the cactbot UI](#changing-trig
 
 One way to adjust this is to edit the trigger output for this trigger.
 You can find the original fireball #1 trigger in
-[ui/raidboss/data/04-sb/ultimate/unending_coil_ultimate.js](https://github.com/quisquous/cactbot/blob/triggers/04-sb/ultimate/unending_coil_ultimate.js#:~:text=UCU%20Nael%20Fireball%201).
+[ui/raidboss/data/04-sb/ultimate/unending_coil_ultimate.js](https://github.com/OverlayPlugin/cactbot/blob/triggers/04-sb/ultimate/unending_coil_ultimate.js#:~:text=UCU%20Nael%20Fireball%201).
 
 This chunk of code is what you would paste into the bottom of your user-defined js file.
 
@@ -283,7 +301,7 @@ This edit also removed languages other than English.
 Currently, provoke only works for players in your alliance and not for all jobs.
 This example shows how to make it work for all players.
 The provoke trigger can be found in
-[ui/raidboss/data/00-misc/general.js](https://github.com/quisquous/cactbot/blob/triggers/00-misc/general.js#:~:text=General%20Provoke).
+[ui/raidboss/data/00-misc/general.js](https://github.com/OverlayPlugin/cactbot/blob/triggers/00-misc/general.js#:~:text=General%20Provoke).
 
 Here is a modified version with a different `condition` function.
 Because this shares the same `General Provoke` id with the built-in cactbot trigger,
@@ -303,16 +321,18 @@ Options.Triggers.push({
         // or I am not a tank.
         return true;
       },
-      infoText: function(data, matches) {
-        let name = data.ShortName(matches.source);
-        return {
-          en: 'Provoke: ' + name,
-          de: 'Herausforderung: ' + name,
-          fr: 'Provocation: ' + name,
-          ja: '挑発: ' + name,
-          cn: '挑衅: ' + name,
-          ko: '도발: ' + name,
-        };
+      infoText: (data, matches, output) => {
+        return output.text({ player: data.party.member(matches.source) });
+      },
+      outputStrings: {
+        text: {
+          en: 'Provoke: ${player}',
+          de: 'Herausforderung: ${player}',
+          fr: 'Provocation: ${player}',
+          ja: '挑発: ${player}',
+          cn: '挑衅: ${player}',
+          ko: '도발: ${player}',
+        },
       },
     },
   ],
@@ -368,7 +388,7 @@ The steps to override a timeline are:
     [ui/raidboss/data/05-shb/ultimate/the_epic_of_alexander.txt](../ui/raidboss/data/05-shb/ultimate/the_epic_of_alexander.txt)
     to `user/the_epic_of_alexander.txt`.
 
-1) Add a section to your user/raidboss.js file to override this.
+1) Add a section to your `user/raidboss.js` file to override this.
 
     Like adding a trigger, you add a section with the `zoneId`,
     along with `overrideTimelineFile: true`,
@@ -438,7 +458,7 @@ provide access to.
 
 ## Global Trigger File Imports
 
-User files are `eval`'d in JavaScript,
+User files are [`eval`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval)'d in JavaScript,
 and thus cannot `import` in the same way that built-in trigger files do.
 User javascript files have access to the following globals:
 

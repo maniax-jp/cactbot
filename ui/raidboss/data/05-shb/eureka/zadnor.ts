@@ -91,7 +91,7 @@ const limitCutHeadmarkers = ['004F', '0050', '0051', '0052'];
 
 // TODO: promote something like this to Conditions?
 const tankBusterOnParty = (ceName?: string) => (data: Data, matches: NetMatches['StartsUsing']) => {
-  if (ceName && data.ce !== ceName)
+  if (ceName !== undefined && data.ce !== ceName)
     return false;
   if (matches.target === data.me)
     return true;
@@ -101,10 +101,14 @@ const tankBusterOnParty = (ceName?: string) => (data: Data, matches: NetMatches[
 };
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'Zadnor',
   zoneId: ZoneId.Zadnor,
   timelineFile: 'zadnor.txt',
   resetWhenOutOfCombat: false,
   triggers: [
+    // https://xivapi.com/LogMessage/916
+    // en: 7 minutes have elapsed since your last activity. [...]
+    // There is no network packet for these log lines; so have to use GameLog.
     {
       id: 'Zadnor Falling Asleep',
       type: 'GameLog',
@@ -118,7 +122,7 @@ const triggerSet: TriggerSet<Data> = {
       run: (data, matches) => {
         // This fires when you win, lose, or teleport out.
         if (matches.data0 === '00') {
-          if (data.ce && data.options.Debug)
+          if (data.ce !== undefined && data.options.Debug)
             console.log(`Stop CE: ${data.ce}`);
           // Stop any active timelines.
           data.StopCombat();
@@ -1055,7 +1059,7 @@ const triggerSet: TriggerSet<Data> = {
         if (data.me === matches.target)
           return output.stackOnYou!();
         if (data.sartauvoirPyrocrisis && !data.sartauvoirPyrocrisis.includes(data.me))
-          return output.stackOnTarget!({ player: data.ShortName(matches.target) });
+          return output.stackOnTarget!({ player: data.party.member(matches.target) });
       },
       run: (data) => delete data.sartauvoirPyrocrisis,
       outputStrings: {

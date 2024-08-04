@@ -11,6 +11,7 @@ export interface Data extends RaidbossData {
 
 // O9N - Alphascape 1.0
 const triggerSet: TriggerSet<Data> = {
+  id: 'AlphascapeV10',
   zoneId: ZoneId.AlphascapeV10,
   timelineFile: 'o9n.txt',
   triggers: [
@@ -24,7 +25,7 @@ const triggerSet: TriggerSet<Data> = {
       id: 'O9N Orbs Fiend',
       type: 'StartsUsing',
       netRegex: { id: '315C', source: 'Chaos', capture: false },
-      condition: (data) => data.role === 'tank',
+      condition: (data) => data.role === 'tank' || data.job === 'BLU',
       alarmText: (_data, _matches, output) => output.text!(),
       outputStrings: {
         text: {
@@ -165,6 +166,7 @@ const triggerSet: TriggerSet<Data> = {
       'locale': 'de',
       'replaceSync': {
         'Chaos': 'Chaos',
+        'The crystal...destroyed!?': 'Ihr habt den Kristall zerstört?!',
         'YOU DARE!': 'Wie könnt ihr es wagen?!',
       },
       'replaceText': {
@@ -189,6 +191,7 @@ const triggerSet: TriggerSet<Data> = {
       'locale': 'fr',
       'replaceSync': {
         'Chaos': 'Chaos',
+        'The crystal...destroyed!?': '... Mon cristal!?',
         'YOU DARE!': '... Mon cristal !? Impossible !',
       },
       'replaceText': {
@@ -213,6 +216,7 @@ const triggerSet: TriggerSet<Data> = {
       'locale': 'ja',
       'replaceSync': {
         'Chaos': 'カオス',
+        'The crystal...destroyed!?': 'まさか……黒水晶を……！？',
         'YOU DARE!': 'まさか……黒水晶を……！？',
       },
       'replaceText': {
@@ -237,6 +241,7 @@ const triggerSet: TriggerSet<Data> = {
       'locale': 'cn',
       'replaceSync': {
         'Chaos': '卡奥斯',
+        'The crystal...destroyed!?': '居然……把黑水晶给',
         'YOU DARE!': '居然……把黑水晶给……',
       },
       'replaceText': {
@@ -261,6 +266,7 @@ const triggerSet: TriggerSet<Data> = {
       'locale': 'ko',
       'replaceSync': {
         'Chaos': '카오스',
+        'The crystal...destroyed!?': '설마…… 흑수정을……!?',
         'YOU DARE!': '네 이노오오옴',
       },
       'replaceText': {

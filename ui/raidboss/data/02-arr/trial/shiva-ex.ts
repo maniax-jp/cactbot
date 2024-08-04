@@ -16,6 +16,7 @@ export interface Data extends RaidbossData {
 // TODO: should the post-staff "spread" happen unconditionally prior to marker?
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheAkhAfahAmphitheatreExtreme',
   zoneId: ZoneId.TheAkhAfahAmphitheatreExtreme,
   timelineFile: 'shiva-ex.txt',
   initData: () => {
@@ -88,7 +89,7 @@ const triggerSet: TriggerSet<Data> = {
         };
 
         if (data.role === 'tank') {
-          if (data.currentTank && data.blunt[data.currentTank])
+          if (data.currentTank !== undefined && data.blunt[data.currentTank])
             return { alertText: output.staffTankSwap!() };
         }
 
@@ -121,7 +122,7 @@ const triggerSet: TriggerSet<Data> = {
           },
         };
         if (data.role === 'tank') {
-          if (data.currentTank && data.slashing[data.currentTank])
+          if (data.currentTank !== undefined && data.slashing[data.currentTank])
             return { alertText: output.swordTankSwap!() };
         }
 
@@ -264,7 +265,9 @@ const triggerSet: TriggerSet<Data> = {
       type: 'Ability',
       netRegex: { id: 'C8A' },
       condition: Conditions.targetIsNotYou(),
-      infoText: (data, matches, output) => output.text!({ player: data.ShortName(matches.target) }),
+      infoText: (data, matches, output) => {
+        return output.text!({ player: data.party.member(matches.target) });
+      },
       outputStrings: {
         text: {
           en: 'Free ${player}',

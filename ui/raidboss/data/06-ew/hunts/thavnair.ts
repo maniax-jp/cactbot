@@ -24,6 +24,7 @@ const tankBusterOnParty = (data: Data, matches: NetMatches['StartsUsing']) => {
 };
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'Thavnair',
   zoneId: ZoneId.Thavnair,
   resetWhenOutOfCombat: false,
   initData: () => {
@@ -258,7 +259,12 @@ const triggerSet: TriggerSet<Data> = {
           return;
         if (!data.inCombat)
           return;
-        return output.text!({ dir1: dir1, dir2: dir2, dir3: dir3, dir4: dir4 });
+        return output.text!({
+          dir1: output[dir1]!(),
+          dir2: output[dir2]!(),
+          dir3: output[dir3]!(),
+          dir4: output[dir4]!(),
+        });
       },
       tts: null,
       outputStrings: {
@@ -269,6 +275,7 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: '${dir1} => ${dir2} => ${dir3} => ${dir4}',
           de: '${dir1} => ${dir2} => ${dir3} => ${dir4}',
+          fr: '${dir1} => ${dir2} => ${dir3} => ${dir4}',
           ja: '${dir1} => ${dir2} => ${dir3} => ${dir4}',
           cn: '${dir1} => ${dir2} => ${dir3} => ${dir4}',
           ko: '${dir1} => ${dir2} => ${dir3} => ${dir4}',
@@ -380,6 +387,7 @@ const triggerSet: TriggerSet<Data> = {
         forward: {
           en: 'Forward March',
           de: 'Geistlenkung vorwärts',
+          fr: 'Marche avant',
           ja: '強制移動: 前',
           cn: '强制移动: 前',
           ko: '강제이동: 앞',
@@ -387,6 +395,7 @@ const triggerSet: TriggerSet<Data> = {
         backward: {
           en: 'Backward March',
           de: 'Geistlenkung rückwärts',
+          fr: 'Marche arrière',
           ja: '強制移動: 後ろ',
           cn: '强制移动: 后',
           ko: '강제이동: 뒤',
@@ -394,6 +403,7 @@ const triggerSet: TriggerSet<Data> = {
         left: {
           en: 'Left March',
           de: 'Geistlenkung links',
+          fr: 'Marche à gauche',
           ja: '強制移動: 左',
           cn: '强制移动: 左',
           ko: '강제이동: 왼쪽',
@@ -401,6 +411,7 @@ const triggerSet: TriggerSet<Data> = {
         right: {
           en: 'Right March',
           de: 'Geistlenkung rechts',
+          fr: 'Marche à droite',
           ja: '強制移動: 右',
           cn: '强制移动: 右',
           ko: '강제이동: 오른쪽',
@@ -425,6 +436,7 @@ const triggerSet: TriggerSet<Data> = {
         red: {
           en: 'Blue => Red',
           de: 'Blau => Rot',
+          fr: 'Bleu => Rouge',
           ja: '青 => 赤',
           cn: '蓝 => 红',
           ko: '파랑 => 빨강',
@@ -432,6 +444,7 @@ const triggerSet: TriggerSet<Data> = {
         blue: {
           en: 'Red => Blue',
           de: 'Rot => Blau',
+          fr: 'Rouge => Bleu',
           ja: '赤 => 青',
           cn: '红 => 蓝',
           ko: '빨강 => 파랑',

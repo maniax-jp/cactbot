@@ -10,6 +10,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheRoyalCityOfRabanastre',
   zoneId: ZoneId.TheRoyalCityOfRabanastre,
   timelineFile: 'royal_city_of_rabanastre.txt',
   triggers: [
@@ -218,7 +219,7 @@ const triggerSet: TriggerSet<Data> = {
     {
       id: 'Rab Argath Fire IV',
       type: 'StartsUsing',
-      netRegex: { source: 'Argath Thadalfus', id: '261A', capture: false },
+      netRegex: { source: 'Argath Thadalfus', id: '262E', capture: false },
       response: Responses.aoe(),
     },
     {

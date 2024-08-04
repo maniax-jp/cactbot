@@ -17,6 +17,7 @@ import {
   kMPUI3Rate,
 } from './constants';
 import { JobsEventEmitter } from './event_emitter';
+import { FfxivVersion } from './jobs';
 import './jobs_config';
 import { JobsOptions } from './jobs_options';
 import { Player } from './player';
@@ -217,7 +218,7 @@ export class Bars {
   }
 
   addJobBarContainer(): HTMLElement {
-    const id = this.player.job.toLowerCase() + '-bar';
+    const id = `${this.player.job.toLowerCase()}-bar`;
     let container = document.getElementById(id);
     if (!container) {
       container = document.createElement('div');
@@ -229,7 +230,7 @@ export class Bars {
   }
 
   addJobBoxContainer(): HTMLElement {
-    const id = this.player.job.toLowerCase() + '-boxes';
+    const id = `${this.player.job.toLowerCase()}-boxes`;
     let boxes = document.getElementById(id);
     if (!boxes) {
       boxes = document.createElement('div');
@@ -259,11 +260,10 @@ export class Bars {
     return textDiv as ResourceBox;
   }
 
-  addProcBox({ id, fgColor, threshold, scale, notifyWhenExpired }: {
+  addProcBox({ id, fgColor, threshold, notifyWhenExpired }: {
     id?: string;
     fgColor?: string;
     threshold?: number;
-    scale?: number;
     notifyWhenExpired?: boolean;
   }): TimerBox {
     let container = id !== undefined ? document.getElementById(id) : undefined;
@@ -280,7 +280,6 @@ export class Bars {
       threshold: threshold ? threshold : 0,
       hideafter: null,
       roundupthreshold: false,
-      valuescale: scale ? scale : 1,
     });
     container.innerHTML = ''; // remove any existing timer boxes, if there are.
     container.appendChild(timerBox);
@@ -369,7 +368,7 @@ export class Bars {
     pullCountdownContainer.appendChild(pullCountdown);
     pullCountdown.width = window.getComputedStyle(pullCountdownContainer).width;
     pullCountdown.height = window.getComputedStyle(pullCountdownContainer).height;
-    pullCountdown.classList.add('lang-' + this.options.DisplayLanguage);
+    pullCountdown.classList.add(`lang-${this.options.DisplayLanguage}`);
 
     // reset pull bar when in combat (game)
     this.ee.on('battle/in-combat', (ev) => {
@@ -589,6 +588,7 @@ export class Bars {
     prevMp?: number;
     umbralStacks?: number;
     inCombat: boolean;
+    ffxivVersion: FfxivVersion;
   }): void {
     if (!this.o.mpTicker)
       return;
@@ -608,7 +608,9 @@ export class Bars {
     if (data.umbralStacks === -3)
       umbralTick = kMPUI3Rate;
 
-    const mpTick = Math.floor(data.maxMp * baseTick) + Math.floor(data.maxMp * umbralTick);
+    const mpTick = data.ffxivVersion < 700
+      ? Math.floor(data.maxMp * baseTick) + Math.floor(data.maxMp * umbralTick)
+      : data.maxMp * baseTick;
     if (delta === mpTick && data.umbralStacks <= 0) // MP ticks disabled in AF
       this.o.mpTicker.duration = kMPTickInterval;
 
@@ -719,7 +721,7 @@ export class Bars {
       this.o.pullCountdown.duration = seconds;
       if (inCountdown && this.options.PlayCountdownSound) {
         const audio = new Audio('../../resources/sounds/freesound/sonar.webm');
-        audio.volume = 0.3;
+        audio.volume = this.options.CountdownSoundVolume;
         void audio.play();
       }
     }

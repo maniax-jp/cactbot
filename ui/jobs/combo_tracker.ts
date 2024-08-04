@@ -3,11 +3,12 @@ import { EventEmitter } from 'eventemitter3';
 import {
   kComboActions,
   kComboBreakers,
-  kComboBreakersCn,
-  kComboBreakersKo,
+  kComboBreakers620,
+  kComboBreakers630,
   kComboDelay,
 } from './constants';
-import { FfxivRegion } from './jobs';
+import { PartialFieldMatches } from './event_emitter';
+import { FfxivVersion } from './jobs';
 import { Player } from './player';
 
 type StartMap = {
@@ -56,7 +57,7 @@ export class ComboTracker extends EventEmitter<{ combo: ComboCallback }> {
     this.isFinalSkill = false;
 
     // register events
-    this.player.on('action/you', (id) => this.HandleAbility(id));
+    this.player.on('action/you', (id, matches) => this.HandleAbility(id, matches));
     this.player.on('hp', ({ hp }) => {
       if (hp === 0)
         this.AbortCombo();
@@ -81,8 +82,10 @@ export class ComboTracker extends EventEmitter<{ combo: ComboCallback }> {
     });
   }
 
-  HandleAbility(id: string): void {
-    if (id in this.considerNext) {
+  HandleAbility(id: string, matches: PartialFieldMatches<'Ability'>): void {
+    if (matches.targetIndex !== '0')
+      return;
+    if (id in this.considerNext && matches.targetId !== 'E0000000') {
       this.StateTransition(id, this.considerNext[id]);
       return;
     }
@@ -113,12 +116,12 @@ export class ComboTracker extends EventEmitter<{ combo: ComboCallback }> {
     this.StateTransition(id);
   }
 
-  static setup(ffxivRegion: FfxivRegion, player: Player): ComboTracker {
+  static setup(ffxivVersion: FfxivVersion, player: Player): ComboTracker {
     let breakers;
-    if (ffxivRegion === 'ko')
-      breakers = kComboBreakersKo;
-    else if (ffxivRegion === 'cn')
-      breakers = kComboBreakersCn;
+    if (ffxivVersion < 630)
+      breakers = kComboBreakers620;
+    else if (ffxivVersion < 640)
+      breakers = kComboBreakers630;
     else
       breakers = kComboBreakers;
 
@@ -127,7 +130,32 @@ export class ComboTracker extends EventEmitter<{ combo: ComboCallback }> {
       comboBreakers: breakers,
       comboDelayMs: kComboDelay * 1000,
     });
-    kComboActions.forEach((skillList) => comboTracker.AddCombo(skillList));
+
+    const normalise = (raw: (string | string[])[][]): string[][] => {
+      const queue = [...raw];
+      const result = [];
+      while (queue.length) {
+        const item = queue.shift();
+        if (typeof item === 'undefined')
+          continue;
+        if (item?.every((i) => typeof i === 'string')) {
+          result.push(item as string[]);
+          continue;
+        }
+        const idx = item.findIndex((i) => Array.isArray(i));
+        const arr = item[idx] as string[];
+        for (const i of arr) {
+          const copy = [...item];
+          copy[idx] = i;
+          queue.push(copy);
+        }
+      }
+      return result;
+    };
+    const normalised = normalise(kComboActions);
+    for (const skillList of normalised) {
+      comboTracker.AddCombo(skillList);
+    }
     return comboTracker;
   }
 }

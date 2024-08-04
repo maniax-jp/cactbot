@@ -12,6 +12,7 @@ export interface Data extends RaidbossData {
 
 // Seiryu Extreme
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheWreathOfSnakesExtreme',
   zoneId: ZoneId.TheWreathOfSnakesExtreme,
   timelineFile: 'seiryu-ex.txt',
   timelineTriggers: [
@@ -52,7 +53,7 @@ const triggerSet: TriggerSet<Data> = {
       id: 'SeiryuEx Tether',
       regex: /Kanabo/,
       beforeSeconds: 7,
-      condition: (data) => data.role === 'tank',
+      condition: (data) => data.role === 'tank' || data.job === 'BLU',
       alertText: (_data, _matches, output) => output.text!(),
       outputStrings: {
         text: {

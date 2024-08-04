@@ -1,5 +1,4 @@
 import Conditions from '../../../../../resources/conditions';
-import NetRegexes from '../../../../../resources/netregexes';
 import { Responses } from '../../../../../resources/responses';
 import ZoneId from '../../../../../resources/zone_id';
 import { RaidbossData } from '../../../../../types/data';
@@ -12,6 +11,7 @@ export interface Data extends RaidbossData {
 
 // Byakko Extreme
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheJadeStoaExtreme',
   zoneId: ZoneId.TheJadeStoaExtreme,
   timelineFile: 'byakko-ex.txt',
   triggers: [
@@ -107,7 +107,7 @@ const triggerSet: TriggerSet<Data> = {
         if (data.roarCount !== 2)
           return;
 
-        if (data.role === 'tank')
+        if (data.role === 'tank' || data.job === 'BLU')
           return output.text!();
       },
       outputStrings: {
@@ -189,14 +189,13 @@ const triggerSet: TriggerSet<Data> = {
         },
       },
     },
+    // https://xivapi.com/InstanceContentTextData/18606
+    // en: Twofold is my wrath, twice-cursed my foes!
     {
       id: 'ByaEx Tiger Add',
-      type: 'GameLog',
-      netRegex: NetRegexes.dialog({
-        line: '[^:]*:Twofold is my wrath, twice-cursed my foes!.*?',
-        capture: false,
-      }),
-      condition: (data) => data.role === 'tank',
+      type: 'BattleTalk2',
+      netRegex: { instanceContentTextId: '48AE', capture: false },
+      condition: (data) => data.role === 'tank' || data.job === 'BLU',
       infoText: (_data, _matches, output) => output.text!(),
       outputStrings: {
         text: {

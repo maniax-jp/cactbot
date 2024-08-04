@@ -23,13 +23,7 @@ import {
   RequestTimestampCallback,
 } from './missed_buff_collector';
 import { MistakeCollector } from './mistake_collector';
-import {
-  GetShareMistakeText,
-  GetSoloMistakeText,
-  IsPlayerId,
-  ShortNamify,
-  Translate,
-} from './oopsy_common';
+import { GetShareMistakeText, GetSoloMistakeText, IsPlayerId, Translate } from './oopsy_common';
 import { OopsyOptions } from './oopsy_options';
 
 const emptyId = 'E0000000';
@@ -85,8 +79,6 @@ export type TrackedEventType = TrackedEvent['type'];
 // * Generates some internal mistakes that need extra tracking (missed buffs, deaths)
 // * Tracks events in `trackedEvents` that can be handed to DeathReports for processing.
 export class PlayerStateTracker {
-  public partyTracker: PartyTracker;
-
   private missedBuffCollector;
   private triggerSets: ProcessedOopsyTriggerSet[] = [];
   private partyIds: Set<string> = new Set();
@@ -115,9 +107,9 @@ export class PlayerStateTracker {
   constructor(
     private options: OopsyOptions,
     private collector: MistakeCollector,
+    public partyTracker: PartyTracker,
     requestTimestampCallback: RequestTimestampCallback,
   ) {
-    this.partyTracker = new PartyTracker();
     this.missedBuffCollector = new MissedBuffCollector(
       requestTimestampCallback,
       (timestamp, buff) => this.OnBuffCollected(timestamp, buff),
@@ -185,7 +177,7 @@ export class PlayerStateTracker {
     const arr = [...this.partyTracker.partyIds];
 
     // Include the player in the party for mistakes even if there is no party.
-    if (this.myPlayerId && !arr.includes(this.myPlayerId))
+    if (this.myPlayerId !== undefined && !arr.includes(this.myPlayerId))
       arr.push(this.myPlayerId);
 
     this.partyIds = new Set(arr);
@@ -217,8 +209,8 @@ export class PlayerStateTracker {
       worldIdStr !== undefined && jobStr !== undefined
     ) {
       // Generate the party info we would get from OverlayPlugin via logs.
-      const worldId = parseInt(worldIdStr);
-      const job = parseInt(jobStr);
+      const worldId = parseInt(worldIdStr, 16);
+      const job = parseInt(jobStr, 16);
       // Consider everybody in the party for now and we'll figure it out later.
       const inParty = true;
       this.idToPartyInfo[id] = { id, name, worldId, job, inParty };
@@ -262,7 +254,7 @@ export class PlayerStateTracker {
 
   OnChangedPlayer(_line: string, splitLine: string[]): void {
     const id = splitLine[logDefinitions.ChangedPlayer.fields.id];
-    if (id)
+    if (id !== undefined)
       this.SetPlayerId(id);
   }
 
@@ -328,7 +320,7 @@ export class PlayerStateTracker {
     const targetId = splitLine[logDefinitions.GainsEffect.fields.targetId];
     // Do not consider pets gaining effects here.
     // Summoner pets (e.g. Demi-Phoenix) gain party buffs (e.g. Embolden), with no sourceId/source.
-    if (!targetId || !this.IsPlayerInParty(targetId))
+    if (targetId === undefined || !this.IsPlayerInParty(targetId))
       return;
 
     const effectId = splitLine[logDefinitions.GainsEffect.fields.effectId];
@@ -371,7 +363,7 @@ export class PlayerStateTracker {
 
   OnLosesEffect(_line: string, splitLine: string[]): void {
     const targetId = splitLine[logDefinitions.GainsEffect.fields.targetId];
-    if (!targetId || !this.IsPlayerInParty(targetId))
+    if (targetId === undefined || !this.IsPlayerInParty(targetId))
       return;
 
     const effectId = splitLine[logDefinitions.GainsEffect.fields.effectId];
@@ -388,13 +380,28 @@ export class PlayerStateTracker {
     delete this.trackedEffectMap[targetId]?.[effectId];
   }
 
+  HasEffect(targetId: string | undefined, effectId: string | string[] | undefined): boolean {
+    if (targetId === undefined || effectId === undefined)
+      return false;
+    if (typeof effectId === 'string') {
+      if (this.trackedEffectMap[targetId]?.[effectId])
+        return true;
+    } else {
+      for (const effect of effectId) {
+        if (this.trackedEffectMap[targetId]?.[effect])
+          return true;
+      }
+    }
+    return false;
+  }
+
   OnDeathReason(timestamp: number, reason: OopsyDeathReason): void {
     const targetId = reason.id;
     if (!targetId || !IsPlayerId(targetId))
       return;
 
     const text = Translate(this.options.DisplayLanguage, reason.text);
-    if (!text)
+    if (text === undefined)
       return;
     this.trackedEvents.push({
       timestamp: timestamp,
@@ -408,7 +415,7 @@ export class PlayerStateTracker {
     this.collector.OnMistakeObj(timestamp, mistake);
 
     const targetId = mistake.reportId;
-    if (!targetId || !IsPlayerId(targetId))
+    if (targetId === undefined || !IsPlayerId(targetId))
       return;
 
     this.trackedEvents.push({
@@ -422,7 +429,7 @@ export class PlayerStateTracker {
   // Returns an event for why this person died.
   OnDefeated(_line: string, splitLine: string[]): void {
     const targetId = splitLine[logDefinitions.WasDefeated.fields.targetId];
-    if (!targetId || !IsPlayerId(targetId))
+    if (targetId === undefined || !IsPlayerId(targetId))
       return;
 
     const targetInParty = this.IsInParty(targetId);
@@ -440,7 +447,7 @@ export class PlayerStateTracker {
       if (event.type !== 'Ability')
         continue;
       const id = event.splitLine[logDefinitions.Ability.fields.id];
-      if (!id)
+      if (id === undefined)
         continue;
 
       const type = event.splitLine[logDefinitions.None.fields.type];
@@ -486,7 +493,7 @@ export class PlayerStateTracker {
 
   OnHoTDoT(_line: string, splitLine: string[]): void {
     const targetId = splitLine[logDefinitions.NetworkDoT.fields.id];
-    if (!targetId || !this.IsInParty(targetId))
+    if (targetId === undefined || !this.IsInParty(targetId))
       return;
 
     this.trackedEvents.push({
@@ -549,7 +556,7 @@ export class PlayerStateTracker {
 
     const missedNames = missedIds.map((id) => {
       const name = this.partyTracker.nameFromId(id);
-      if (!name) {
+      if (name === undefined) {
         const line = JSON.stringify(collected.splitLine);
         console.error(`Couldn't find name for ${id}, ${line}`);
       }
@@ -559,7 +566,7 @@ export class PlayerStateTracker {
     // TODO: oopsy could really use mouseover popups for details.
     if (missedNames.length < 4) {
       const nameList = missedNames.map((name) => {
-        return ShortNamify(name, this.options.PlayerNicks);
+        return this.partyTracker.member(name).toString();
       }).join(', ');
 
       // As a TrackedLineEvent has been pushed for each person missed already,

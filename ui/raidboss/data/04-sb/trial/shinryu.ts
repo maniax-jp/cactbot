@@ -10,6 +10,7 @@ export interface Data extends RaidbossData {
 
 // Shinryu Normal
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheRoyalMenagerie',
   zoneId: ZoneId.TheRoyalMenagerie,
   timelineFile: 'shinryu.txt',
   triggers: [
@@ -21,7 +22,7 @@ const triggerSet: TriggerSet<Data> = {
         if (matches.target === data.me)
           return output.akhMornOnYou!();
         else if (data.role === 'tank')
-          return output.akhMornOn!({ player: data.ShortName(matches.target) });
+          return output.akhMornOn!({ player: data.party.member(matches.target) });
       },
       infoText: (data, matches, output) => {
         // Nobody with Akh Morn is a direct target for Akh Rai,

@@ -81,7 +81,7 @@ const tankBusterOnParty = (data: Data, matches: NetMatches['StartsUsing']) => {
 const getHeadmarkerId = (data: Data, matches: NetMatches['HeadMarker']) => {
   if (data.decOffset === undefined) {
     // If we don't know, return garbage to avoid accidentally running other triggers.
-    if (!data.firstUnknownHeadmarker)
+    if (data.firstUnknownHeadmarker === undefined)
       return '0000';
 
     data.decOffset = parseInt(matches.id, 16) - parseInt(data.firstUnknownHeadmarker, 16);
@@ -92,6 +92,7 @@ const getHeadmarkerId = (data: Data, matches: NetMatches['HeadMarker']) => {
 };
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'DelubrumReginaeSavage',
   zoneId: ZoneId.DelubrumReginaeSavage,
   timelineFile: 'delubrum_reginae_savage.txt',
   timelineTriggers: [
@@ -695,7 +696,7 @@ const triggerSet: TriggerSet<Data> = {
           'west',
           'northwest',
         ][safeDir];
-        if (!initialDir)
+        if (initialDir === undefined)
           throw new UnreachableCode();
 
         return output.text!({ dir: output[initialDir]!(), rotate: rotateStr });
@@ -1579,7 +1580,7 @@ const triggerSet: TriggerSet<Data> = {
           '510': output.right!(),
         };
 
-        if (data.forcedMarch) {
+        if (data.forcedMarch !== undefined) {
           const marchStr = marchStrMap[data.forcedMarch];
           return output.marchToArrow!({ arrow: arrowStr, dir: marchStr });
         }
@@ -1712,7 +1713,7 @@ const triggerSet: TriggerSet<Data> = {
           '510': output.right!(),
         };
 
-        if (data.forcedMarch) {
+        if (data.forcedMarch !== undefined) {
           const marchStr = marchStrMap[data.forcedMarch];
           return output.marchToMeteor!({ meteor: meteorStr, dir: marchStr });
         }
@@ -1854,13 +1855,13 @@ const triggerSet: TriggerSet<Data> = {
 
         let combatantDataBoss = null;
         let combatantDataAvatars = null;
-        if (combatantNameBoss) {
+        if (combatantNameBoss !== undefined) {
           combatantDataBoss = await callOverlayHandler({
             call: 'getCombatants',
             names: [combatantNameBoss],
           });
         }
-        if (combatantNameAvatar) {
+        if (combatantNameAvatar !== undefined) {
           combatantDataAvatars = await callOverlayHandler({
             call: 'getCombatants',
             names: [combatantNameAvatar],
@@ -2058,7 +2059,7 @@ const triggerSet: TriggerSet<Data> = {
         const effectiveTemperature = currentTemperature + currentBrand;
 
         // Calculate which adjacent zone to go to, if needed
-        let adjacentZone = null;
+        let adjacentZone: string | null | undefined = null;
         if (effectiveTemperature !== 0) {
           // Find the adjacent zone that gets closest to 0
           const calculatedZones = Object.values(adjacentZones).map((i: number) =>
@@ -2082,7 +2083,7 @@ const triggerSet: TriggerSet<Data> = {
 
         // Callout safe spot and get cleaved spot if both are known
         // Callout safe spot only if no need to be cleaved
-        if (adjacentZone) {
+        if (adjacentZone !== null) {
           data.safeZone = output.getCleaved!({ dir1: safeZone, dir2: adjacentZone });
         } else if (safeZone) {
           data.safeZone = output.safeSpot!({ dir: safeZone });
@@ -2091,7 +2092,7 @@ const triggerSet: TriggerSet<Data> = {
           data.safeZone = output.unknown!();
         }
       },
-      alertText: (data, _matches, output) => !data.safeZone ? output.unknown!() : data.safeZone,
+      alertText: (data, _matches, output) => data.safeZone ?? output.unknown!(),
       outputStrings: {
         getCleaved: {
           en: '${dir1} Safe Spot => ${dir2} for cleave',
@@ -2285,7 +2286,7 @@ const triggerSet: TriggerSet<Data> = {
         if (matches.target === data.me)
           return { alarmText: output.cleaveOnYou!() };
         if (tankBusterOnParty(data, matches))
-          return { alertText: output.cleaveOn!({ player: data.ShortName(matches.target) }) };
+          return { alertText: output.cleaveOn!({ player: data.party.member(matches.target) }) };
         return { infoText: output.avoidCleave!() };
       },
     },
@@ -2448,7 +2449,8 @@ const triggerSet: TriggerSet<Data> = {
       // Each Cleansing Slash applies a cleansable Doom (38E), if damage is taken
       netRegex: { source: 'The Queen', effectId: '38E' },
       condition: (data) => data.CanCleanse(),
-      infoText: (data, matches, output) => output.text!({ player: data.ShortName(matches.target) }),
+      infoText: (data, matches, output) =>
+        output.text!({ player: data.party.member(matches.target) }),
       outputStrings: {
         text: {
           en: 'Esuna ${player}',

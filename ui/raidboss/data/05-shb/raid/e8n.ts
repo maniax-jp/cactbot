@@ -10,6 +10,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'EdensVerseRefulgence',
   zoneId: ZoneId.EdensVerseRefulgence,
   timelineFile: 'e8n.txt',
   timelineTriggers: [
@@ -217,7 +218,7 @@ const triggerSet: TriggerSet<Data> = {
       delaySeconds: 0.5,
       suppressSeconds: 2,
       alertText: (data, _matches, output) => {
-        if (data.rampant?.[data.me])
+        if (data.rampant?.[data.me] !== undefined)
           return output.coneOnYouAvoidTowers!();
 
         return output.standInATower!();

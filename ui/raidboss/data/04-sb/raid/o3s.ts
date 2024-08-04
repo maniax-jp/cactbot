@@ -19,6 +19,7 @@ export interface Data extends RaidbossData {
 
 // O3S - Deltascape 3.0 Savage
 const triggerSet: TriggerSet<Data> = {
+  id: 'DeltascapeV30Savage',
   zoneId: ZoneId.DeltascapeV30Savage,
   timelineFile: 'o3s.txt',
   timelineTriggers: [
@@ -125,9 +126,9 @@ const triggerSet: TriggerSet<Data> = {
         } else {
           if (data.holyTargets.includes(data.me)) {
             ret.alertText = output.spread!();
-            ret.infoText = output.othersStackOnHoly!({ player: data.ShortName(stackTarget) });
+            ret.infoText = output.othersStackOnHoly!({ player: data.party.member(stackTarget) });
           } else {
-            ret.infoText = output.stackOnHoly!({ player: data.ShortName(stackTarget) });
+            ret.infoText = output.stackOnHoly!({ player: data.party.member(stackTarget) });
           }
         }
         return ret;
@@ -407,9 +408,9 @@ const triggerSet: TriggerSet<Data> = {
       netRegex: { id: '0012' },
       infoText: (data, matches, output) => {
         if (data.me === matches.target)
-          return output.breakTether!({ player: data.ShortName(matches.source) });
+          return output.breakTether!({ player: data.party.member(matches.source) });
         else if (data.me === matches.source)
-          return output.breakTether!({ player: data.ShortName(matches.target) });
+          return output.breakTether!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         breakTether: {

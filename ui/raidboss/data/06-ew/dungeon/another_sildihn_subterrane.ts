@@ -6,6 +6,7 @@ import { Responses } from '../../../../../resources/responses';
 import ZoneId from '../../../../../resources/zone_id';
 import { RaidbossData } from '../../../../../types/data';
 import { NetMatches } from '../../../../../types/net_matches';
+import { PartyMemberParamObject } from '../../../../../types/party';
 import { TriggerSet } from '../../../../../types/trigger';
 
 // TODO: Gladiator adjustments to timeline
@@ -66,6 +67,7 @@ export const headingTo4Dir = (heading: number) => {
 const visageMapIdx = (col: number, row: number) => row * 4 + col;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'AnotherSildihnSubterrane',
   zoneId: ZoneId.AnotherSildihnSubterrane,
   timelineFile: 'another_sildihn_subterrane.txt',
   initData: () => {
@@ -336,7 +338,7 @@ const triggerSet: TriggerSet<Data> = {
           // Does not happen on first or third Slippery Soap
           if (matches.target === data.me)
             return output.getBehindPartyKnockback!();
-          return output.getInFrontOfPlayerKnockback!({ player: data.ShortName(matches.target) });
+          return output.getInFrontOfPlayerKnockback!({ player: data.party.member(matches.target) });
         }
         if (matches.target === data.me) {
           if (data.soapCounter === 1)
@@ -345,7 +347,7 @@ const triggerSet: TriggerSet<Data> = {
             return output.getBehindPuffs!();
           return output.getBehindParty!();
         }
-        return output.getInFrontOfPlayer!({ player: data.ShortName(matches.target) });
+        return output.getInFrontOfPlayer!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         getBehindPuff: {
@@ -354,7 +356,7 @@ const triggerSet: TriggerSet<Data> = {
           fr: 'Derrière le pompon et le groupe',
           ja: 'たまの一番後ろへ',
           cn: '站在球和队友后',
-          ko: '구슬 맨 뒤로',
+          ko: '구슬 뒤로',
         },
         getBehindPuffs: {
           en: 'Behind puffs and party (East/West)',
@@ -362,7 +364,7 @@ const triggerSet: TriggerSet<Data> = {
           fr: 'Derrière les pompons et le groupe (Est/Ouest)',
           ja: 'たまの一番後ろへ (東西)',
           cn: '站在球和队友后 (东/西)',
-          ko: '구슬 맨 뒤로 (동/서)',
+          ko: '구슬 뒤로 (동/서)',
         },
         getBehindParty: {
           en: 'Behind party',
@@ -469,7 +471,7 @@ const triggerSet: TriggerSet<Data> = {
         if (data.role !== 'tank' && data.role !== 'healer')
           return;
 
-        return { infoText: output.busterOnTarget!({ player: data.ShortName(matches.target) }) };
+        return { infoText: output.busterOnTarget!({ player: data.party.member(matches.target) }) };
       },
     },
     {
@@ -527,17 +529,7 @@ const triggerSet: TriggerSet<Data> = {
       id: 'ASS Total Wash',
       type: 'StartsUsing',
       netRegex: { id: '7750', source: 'Silkie', capture: false },
-      infoText: (_data, _matches, output) => output.text!(),
-      outputStrings: {
-        text: {
-          en: 'aoe + bleed',
-          de: 'AoE + Blutung',
-          fr: 'AoE + Saignement',
-          ja: '全体攻撃 + 出血',
-          cn: 'AOE + 流血',
-          ko: '전체 공격 + 도트',
-        },
-      },
+      response: Responses.bleedAoe(),
     },
     {
       id: 'ASS Fresh Puff 2 Bait', // 4 puffs on cardinals or intercardinals with tethers
@@ -571,8 +563,8 @@ const triggerSet: TriggerSet<Data> = {
           return output.default!();
 
         const puffLocs = dirCards.includes(puffDir) ? 'Cardinal' : 'Intercard';
-        const baitOutput: string = silkieStatus + puffEffect + puffLocs + 'Puff';
-        const safeOutput: string = silkieStatus + 'Puffs' + puffLocs + 'SafeLater';
+        const baitOutput = `${silkieStatus + puffEffect + puffLocs}Puff`;
+        const safeOutput = `${silkieStatus}Puffs${puffLocs}SafeLater`;
 
         // set the output for the subsequent safe call here and pass the output to the followup trigger
         // this keeps all of the interrelated output strings in this trigger for ease of customization
@@ -862,17 +854,7 @@ const triggerSet: TriggerSet<Data> = {
       id: 'ASS Infernal Pain',
       type: 'StartsUsing',
       netRegex: { id: '7969', source: 'Sil\'dihn Dullahan', capture: false },
-      infoText: (_data, _matches, output) => output.text!(),
-      outputStrings: {
-        text: {
-          en: 'aoe + bleed',
-          de: 'AoE + Blutung',
-          fr: 'AoE + Saignement',
-          ja: '全体攻撃 + 出血',
-          cn: 'AOE + 流血',
-          ko: '전체 공격 + 도트',
-        },
-      },
+      response: Responses.bleedAoe(),
     },
     {
       id: 'ASS Blighted Gloom',
@@ -900,7 +882,7 @@ const triggerSet: TriggerSet<Data> = {
       id: 'ASS Hells\' Nebula',
       type: 'StartsUsing',
       netRegex: { id: '796C', source: 'Sil\'dihn Armor', capture: false },
-      condition: (data) => data.role === 'healer',
+      condition: (data) => data.role === 'healer' || data.job === 'BLU',
       infoText: (_data, _matches, output) => output.text!(),
       outputStrings: {
         text: {
@@ -1063,7 +1045,7 @@ const triggerSet: TriggerSet<Data> = {
       alertText: (data, matches, output) => {
         if (matches.target === data.me)
           return output.chargeOnYou!();
-        return output.chargeOn!({ player: data.ShortName(matches.target) });
+        return output.chargeOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         chargeOn: {
@@ -1129,7 +1111,9 @@ const triggerSet: TriggerSet<Data> = {
             return output.spreadThenStackOnYou!();
           if (data.thunderousEchoPlayer === undefined)
             return output.spreadThenStack!();
-          return output.spreadThenStackOn!({ player: data.ShortName(data.thunderousEchoPlayer) });
+          return output.spreadThenStackOn!({
+            player: data.party.member(data.thunderousEchoPlayer),
+          });
         }
 
         if (data.hasLingering)
@@ -1138,7 +1122,7 @@ const triggerSet: TriggerSet<Data> = {
           return output.stackOnYouThenSpread!();
         if (data.thunderousEchoPlayer === undefined)
           return output.stackThenSpread!();
-        return output.stackOnThenSpread!({ player: data.ShortName(data.thunderousEchoPlayer) });
+        return output.stackOnThenSpread!({ player: data.party.member(data.thunderousEchoPlayer) });
       },
       outputStrings: {
         stackThenSpread: Outputs.stackThenSpread,
@@ -1249,7 +1233,7 @@ const triggerSet: TriggerSet<Data> = {
           return output.baitPuddle!();
         if (matches.target === data.me)
           return output.stackOnYou!();
-        return output.stackOn!({ player: data.ShortName(matches.target) });
+        return output.stackOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         // TODO: should this also say "In", e.g. "In + Spread" or "Spread (In)"?
@@ -1612,12 +1596,12 @@ const triggerSet: TriggerSet<Data> = {
 
         // Figure out partner, so that you know if the person running out
         // with you has the same debuff.
-        let partner = output.unknown!();
+        let partner: string | PartyMemberParamObject = output.unknown!();
         for (const [name, id] of Object.entries(data.screamOfTheFallen)) {
           if (name === data.me)
             continue;
           if (id === myBuff) {
-            partner = data.ShortName(name);
+            partner = data.party.member(name);
             break;
           }
         }
@@ -1632,7 +1616,7 @@ const triggerSet: TriggerSet<Data> = {
           de: 'Steh im ersten Turm (mit ${player})',
           fr: 'Prenez les tours (avec ${player})',
           ja: 'さきに塔を踏み (+${player})',
-          cn: '踩 1 塔 (与 ${player})',
+          cn: '踩 1 塔 (与${player})',
           ko: '첫번째 기둥 밟기 (${player})',
         },
         spreadFirst: {
@@ -1640,7 +1624,7 @@ const triggerSet: TriggerSet<Data> = {
           de: 'Zuerst verteilen (mit ${player})',
           fr: 'Écartez-vous d\'abord (avec ${player})',
           ja: 'さきに散会 (+${player})',
-          cn: '先分散 (与 ${player})',
+          cn: '先分散 (与${player})',
           ko: '산개 먼저 (${player})',
         },
         unknown: Outputs.unknown,
@@ -2524,7 +2508,6 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       'locale': 'fr',
-      'missingTranslations': true,
       'replaceSync': {
         'Aqueduct Belladonna': 'belladone des aqueducs',
         'Aqueduct Dryad': 'dryade des aqueducs',
@@ -2534,7 +2517,7 @@ const triggerSet: TriggerSet<Data> = {
         'Ball of Fire': 'Boule de flammes',
         'Eastern Ewer': 'cruche orientale',
         'Gladiator of Sil\'dih': 'gladiateur sildien',
-        'Hateful Visage': 'Visage de haine',
+        'Hateful Visage': 'Effigie maudite',
         'Infern Brand': 'Étendard sacré',
         'Shadowcaster Zeless Gah': 'Zeless Gah la Flamme ombrée',
         'Sil\'dihn Armor': 'armure maléfique sildien',
@@ -2599,7 +2582,6 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       'locale': 'ja',
-      'missingTranslations': true,
       'replaceSync': {
         'Aqueduct Belladonna': 'アクアダクト・ベラドンナ',
         'Aqueduct Dryad': 'アクアダクト・ドライアド',
@@ -2744,6 +2726,80 @@ const triggerSet: TriggerSet<Data> = {
         'Sundered Remains': '场地隆起',
         'Total Wash': '水洗',
         'Wrath of Ruin': '亡念激起',
+      },
+    },
+    {
+      'locale': 'ko',
+      'replaceSync': {
+        'Aqueduct Belladonna': '지하수도 벨라돈나',
+        'Aqueduct Dryad': '지하수도 드라이어드',
+        'Aqueduct Kaluk': '지하수도 칼루크',
+        'Aqueduct Udumbara': '지하수도 우담바라',
+        'Arcane Font': '입체마법진',
+        'Ball of Fire': '불덩이',
+        'Eastern Ewer': '물동이',
+        'Gladiator of Sil\'dih': '실디하 검투사',
+        'Hateful Visage': '망국의 저주상',
+        'Infern Brand': '아말쟈 주술도구',
+        'Shadowcaster Zeless Gah': '그림자불 젤레즈 가',
+        'Sil\'dihn Armor': '실디하 사악한 갑옷',
+        'Sil\'dihn Dullahan': '실디하 둘라한',
+        'Silken Puff': '실키 폼폼',
+        'Silkie': '실키',
+        'The Trial of Balance': '세 번째 시련',
+        'The Trial of Knowledge': '첫 번째 시련',
+        'The Trial of Might': '두 번째 시련',
+      },
+      'replaceText': {
+        'Accursed Visage': '원한의 저주상',
+        'Banishment': '강제 전송 주술',
+        'Blazing Benifice': '성화포',
+        'Blessed Beacon': '하늘의 성화',
+        'Bracing Duster': '산들산들 닦기',
+        'Bracing Suds': '산들산들 비누거품',
+        'Burn': '연소',
+        'Carpet Beater': '융단 털기',
+        'Cast Shadow': '그림자불 주술식',
+        'Chilling Duster': '오들오들 닦기',
+        'Chilling Suds': '오들오들 비누거품',
+        'Colossal Wreck': '망국의 탑',
+        'Cryptic Flames': '화염 주술인',
+        'Cryptic Portal': '묵직한 문',
+        'Curse of the Fallen': '저주의 포효',
+        'Curse of the Monument': '저주 연격',
+        'Dust Bluster': '먼지 털기',
+        'Eastern Ewers': '물동이',
+        'Echo of the Fallen': '저주의 뒤울림',
+        'Explosion': '폭발',
+        'Firesteel Fracture': '석화호타',
+        'Firesteel Strike': '석화호충',
+        'Fizzling Duster': '파직파직 닦기',
+        'Fizzling Suds': '파직파직 비누거품',
+        'Flash of Steel': '투사의 파동',
+        'Fresh Puff': '폼폼 만들기',
+        'Gold Flame': '황금 섬화',
+        'Hateful Visage': '망국의 저주상',
+        'Infern Brand': '아말쟈 주술도구',
+        'Infern Ward': '주술도구 경비진',
+        'Infern Wave': '주술도구 불길',
+        'Mighty Smite': '투사의 참격',
+        'Nothing beside Remains': '발밑 융기',
+        'Puff and Tumble': '폼폼 먼지떨이',
+        'Pure Fire': '겁화',
+        'Rinse': '헹구기',
+        'Rush of Might': '강력한 돌격',
+        'Scream of the Fallen': '저주의 큰뒤울림',
+        'Sculptor\'s Passion': '투사포',
+        'Show of Strength': '용사의 포효',
+        'Silver Flame': '백은 섬화',
+        'Slippery Soap': '미끄덩 비누 폭탄',
+        'Soap\'s Up': '비누 폭탄',
+        'Soaping Spree': '다 함께 비누 폭탄',
+        'Specter of Might': '망념 환체',
+        'Squeaky Clean': '물걸레질',
+        'Sundered Remains': '검투장 융기',
+        'Total Wash': '물청소',
+        'Wrath of Ruin': '망념 상기',
       },
     },
   ],

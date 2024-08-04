@@ -12,12 +12,14 @@ const lyheGhiahOutputStrings = {
   spawn: {
     en: '${name} spawned!',
     de: '${name} erscheint!',
+    fr: '${name} vient d\'apparaitre !',
     cn: '已生成 ${name}!',
     ko: '${name} 등장!',
   },
   adds: {
     en: 'Adds soon',
     de: 'Bald Adds',
+    fr: 'Adds bientôt',
     cn: '小怪即将出现',
     ko: '곧 쫄 나옴',
   },
@@ -26,6 +28,7 @@ const lyheGhiahOutputStrings = {
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheShiftingOubliettesOfLyheGhiah',
   zoneId: ZoneId.TheShiftingOubliettesOfLyheGhiah,
 
   triggers: [
@@ -67,6 +70,7 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'Dungeon Crew spawned, kill in order!',
           de: 'Verlies-Mandragora erscheinen, in Reihenfolge besiegen!',
+          fr: 'L\'équipe du donjon vient d\'apparaitre, tuez les dans l\'ordre !',
           cn: '已生成 宝库蔓德拉战队, 依次击杀!',
           ko: '만드라즈 등장, 순서대로 잡기!',
         },
@@ -133,13 +137,13 @@ const triggerSet: TriggerSet<Data> = {
       id: 'Shifting Oubliettes of Lyhe Ghiah Secret Basket Pollen Corona',
       type: 'StartsUsing',
       netRegex: { id: '54DA', source: 'Secret Basket', capture: false },
-      response: Responses.getIn(),
+      response: Responses.getOut(),
     },
     {
       id: 'Shifting Oubliettes of Lyhe Ghiah Secret Basket Earth Crusher',
       type: 'StartsUsing',
       netRegex: { id: '54DF', source: 'Secret Basket', capture: false },
-      response: Responses.getOut(),
+      response: Responses.getIn(),
     },
     {
       id: 'Shifting Oubliettes of Lyhe Ghiah Secret Basket Earthquake',
@@ -211,12 +215,48 @@ const triggerSet: TriggerSet<Data> = {
       response: Responses.getOut(),
     },
     // ---------------- final summon: Daen Ose The Avaricious ----------------
-    // Daen Ose The Avaricious: Petrifaction - gaze*
-    // Daen Ose The Avaricious: Abyssal Reaper - large PBAoE
-    // Daen Ose The Avaricious: Petriburst - stack + look away from target?*
-    // Daen Ose The Avaricious: Void Stream - alternating proteans (Hades Shadow Spread)?
-    // Daen Ose The Avaricious: Sickle Strike - tankbuster*
-    // Daen Ose The Avaricious: Petrifaction (variation) - gaze on random target*
+    {
+      id: 'Shifting Oubliettes of Lyhe Ghiah Daen Ose Petrifaction',
+      type: 'StartsUsing',
+      netRegex: { id: '5501', source: 'Daen Ose the Avaricious', capture: false },
+      response: Responses.lookAway(),
+    },
+    {
+      id: 'Shifting Oubliettes of Lyhe Ghiah Daen Ose Abyssal Reaper',
+      type: 'StartsUsing',
+      netRegex: { id: '54FE', source: 'Daen Ose the Avaricious', capture: false },
+      response: Responses.getOut(),
+    },
+    {
+      id: 'Shifting Oubliettes of Lyhe Ghiah Daen Ose Petriburst',
+      type: 'StartsUsing',
+      netRegex: { id: '5500', source: 'Daen Ose the Avaricious' },
+      alertText: (data, matches, output) => {
+        return output.stackOnAndLookAway!({ player: data.party.member(matches.target) });
+      },
+      outputStrings: {
+        stackOnAndLookAway: {
+          en: 'Stack on ${player} and look away',
+          de: 'Sammeln bei ${player} und wewg schauen',
+          fr: 'Packez-vous sur ${player} et regardez ailleurs',
+          ja: '${player}に頭割り、見ない',
+          cn: '靠近并背对${player}分摊',
+          ko: '${player} 쉐어, 바라보지않기',
+        },
+      },
+    },
+    {
+      id: 'Shifting Oubliettes of Lyhe Ghiah Daen Ose Sickle Strike',
+      type: 'StartsUsing',
+      netRegex: { id: '54FD', source: 'Daen Ose the Avaricious' },
+      response: Responses.tankBuster(),
+    },
+    {
+      id: 'Shifting Oubliettes of Lyhe Ghiah Daen Ose Petrifaction Player',
+      type: 'StartsUsing',
+      netRegex: { id: '5502', source: 'Daen Ose the Avaricious' },
+      response: Responses.lookAwayFromTarget(),
+    },
     // ---------------- alternate final summon: Daen Ose The Avaricious (Ultros form) ----------------
     // Daen Ose The Avaricious (Ultros form): Megavolt - PBAoE
     // Daen Ose The Avaricious (Ultros form): Waterspout - AoE on random players

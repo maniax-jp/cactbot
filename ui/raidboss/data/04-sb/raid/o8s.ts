@@ -8,9 +8,9 @@ import { TriggerSet } from '../../../../../types/trigger';
 export interface Data extends RaidbossData {
   truths?: boolean;
   antics?: boolean;
-  lastFire?: string;
-  lastThunder?: string;
-  lastIceDir?: string;
+  lastFire?: 'spread' | 'stack';
+  lastThunder?: 'fakeThunder' | 'trueThunder';
+  lastIceDir?: 'getOut' | 'getIn';
   manaReleaseText?: string;
   fireMarker?: string;
 }
@@ -85,6 +85,7 @@ const strings = {
 
 // O8S - Sigmascape 4.0 Savage
 const triggerSet: TriggerSet<Data> = {
+  id: 'SigmascapeV40Savage',
   zoneId: ZoneId.SigmascapeV40Savage,
   timelineFile: 'o8s.txt',
   triggers: [
@@ -275,7 +276,7 @@ const triggerSet: TriggerSet<Data> = {
         if (matches.target === data.me)
           return;
 
-        return output.embraceOn!({ player: data.ShortName(matches.target) });
+        return output.embraceOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         embraceOn: {

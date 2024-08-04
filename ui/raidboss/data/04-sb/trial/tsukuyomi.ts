@@ -7,6 +7,7 @@ export type Data = RaidbossData;
 
 // Tsukuyomi Normal
 const triggerSet: TriggerSet<Data> = {
+  id: 'CastrumFluminis',
   zoneId: ZoneId.CastrumFluminis,
   timelineFile: 'tsukuyomi.txt',
   triggers: [
@@ -35,7 +36,7 @@ const triggerSet: TriggerSet<Data> = {
       alertText: (data, matches, output) => {
         if (data.me === matches.target)
           return output.lineStackOnYou!();
-        return output.lineStackOn!({ player: data.ShortName(matches.target) });
+        return output.lineStackOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         lineStackOnYou: {

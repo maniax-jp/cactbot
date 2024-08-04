@@ -1,43 +1,159 @@
+import { PluginCombatantState } from '../types/event';
 import { NetFieldsReverse } from '../types/net_fields';
+import { NetParams } from '../types/net_props';
 
-export type LogDefinition = {
-  // The log id, as a decimal string, minimum two characters.
-  type: string;
-  // The informal name of this log (must match the key that the LogDefinition is a value for).
-  name: string;
-  // The plugin that generates this log.
+export type LogDefinition<K extends LogDefinitionName> = {
+  // The log line id, as a decimal string, minimum two characters.
+  type: LogDefinitions[K]['type'];
+  // The informal name of this log line (must match the key that the LogDefinition is a value for).
+  name: K;
+  // The plugin that generates this log line.
   source: 'FFXIV_ACT_Plugin' | 'OverlayPlugin';
   // Parsed ACT log line type.  OverlayPlugin lines use the `type` as a string.
-  messageType: string;
+  messageType: LogDefinitions[K]['messageType'];
   // If true, always include this line when splitting logs (e.g. FFXIV plugin version).
   globalInclude?: boolean;
   // If true, always include the last instance of this line when splitting logs (e.g. ChangeZone).
   lastInclude?: boolean;
   // True if the line can be anonymized (i.e. removing player ids and names).
   canAnonymize?: boolean;
-  // If true, this log has not been seen before and needs more information.
+  // If true, this log line has not been seen before and needs more information.
   isUnknown?: boolean;
   // Fields at this index and beyond are cleared, when anonymizing.
   firstUnknownField?: number;
   // A map of all of the fields, unique field name to field index.
-  fields?: { [fieldName: string]: number };
-  subFields?: {
-    [fieldName: string]: {
-      [fieldValue: string]: {
-        name: string;
-        canAnonymize: boolean;
-      };
+  fields: LogDefinitions[K]['fields'];
+  // Field indices that *may* contain RSV placeholders (for decoding)
+  possibleRsvFields?: LogDefFieldIdx<K> | readonly LogDefFieldIdx<K>[];
+  // Field names and values that can override `canAnonymize`. See `LogDefSubFields` type below.
+  subFields?: LogDefSubFields<K>;
+  // Map of field indices to anonymize, in the format: playerId: (optional) playerName.
+  playerIds?: PlayerIdMap<K>;
+  // A list of field indices that may contains player ids and, if so, will be anonymized.
+  // If an index is listed here and in `playerIds`, it will be treated as a possible id field.
+  possiblePlayerIds?: readonly LogDefFieldIdx<K>[];
+  // A list of field indices that are ok to be blank (or have invalid ids).
+  blankFields?: readonly LogDefFieldIdx<K>[];
+  // This field index (and all after) will be treated as optional when creating capturing regexes.
+  firstOptionalField: number | undefined;
+  // These fields are treated as repeatable fields
+  repeatingFields?: {
+    startingIndex: number;
+    label: string;
+    names: readonly string[];
+    sortKeys?: boolean;
+    primaryKey: string;
+    possibleKeys: readonly string[];
+    // Repeating fields that will be anonymized if present. Same structure as `playerIds`,
+    // but uses repeating field keys (names) in place of field indices. However, the 'id' field
+    // of an id/name pair can be a fixed field index. See `CombatantMemory` example.
+    keysToAnonymize?: K extends RepeatingFieldsTypes ? { [idField: string | number]: string | null }
+      : never;
+  };
+  // See `AnalysisOptions` type. Omitting this property means no log lines will be included;
+  // however, if raidboss triggers are found using this line type, an automated workflow will
+  // create this property and set `include: 'all'`. To suppress this, use `include: 'never``.
+  analysisOptions?: AnalysisOptions<K>;
+};
+
+export type LogDefFieldIdx<
+  K extends LogDefinitionName,
+> = Extract<LogDefinitions[K]['fields'][keyof LogDefinitions[K]['fields']], number>;
+
+type PlayerIdMap<K extends LogDefinitionName> = {
+  [P in LogDefFieldIdx<K> as number]?: LogDefFieldIdx<K> | null;
+};
+
+export type LogDefFieldName<K extends LogDefinitionName> = Extract<
+  keyof LogDefinitions[K]['fields'],
+  string
+>;
+
+// Specifies a fieldName key with one or more possible values and a `canAnonyize` override
+// if that field and value are present on the log line. See 'GameLog' for an example.
+type LogDefSubFields<K extends LogDefinitionName> = {
+  [P in LogDefFieldName<K>]?: {
+    [fieldValue: string]: {
+      name: string;
+      canAnonymize: boolean;
     };
   };
-  // Map of indexes from a player id to the index of that player name.
-  playerIds?: { [fieldIdx: number]: number | null };
-  // A list of fields that are ok to be blank (or have invalid ids).
-  blankFields?: readonly number[];
-  // This field and any field after will be treated as optional when creating capturing regexes.
-  firstOptionalField: number | undefined;
 };
-export type LogDefinitionMap = { [name: string]: LogDefinition };
-type LogDefinitionVersionMap = { [version: string]: LogDefinitionMap };
+
+// Options for including these lines in a filtered log via the log splitter's analysis option.
+// `include:` specifies the level of inclusion:
+//   - 'all' will include all lines with no filtering.
+//   - 'filter' will include only those lines that match at least one of the specified `filters`.
+//   - 'never' is an override; just like if the property were omitted, no log lines will be included
+//      in the filter; however, if 'never' is used, the automated workflow will not attempt to
+//      change it to 'all' upon finding active triggers using this line type.
+// `filters:` contains Netregex-style filter criteria. Lines satisfying at least one filter will be
+//   included. If `include:` = 'filter', `filters` must be present; otherwise, it must be omitted.
+// `combatantIdFields:` are field indices containing combatantIds. If specified, these fields
+//   will be checked for ignored combatants (e.g. pets) during log filtering.
+export type AnalysisOptions<K extends LogDefinitionName> = {
+  include: 'never';
+  filters?: undefined;
+  combatantIdFields?: undefined;
+} | {
+  include: 'filter';
+  filters: NetParams[K] | readonly NetParams[K][];
+  combatantIdFields?: LogDefFieldIdx<K> | readonly LogDefFieldIdx<K>[];
+} | {
+  include: 'all';
+  filters?: undefined;
+  combatantIdFields?: LogDefFieldIdx<K> | readonly LogDefFieldIdx<K>[];
+};
+
+// TODO: Maybe bring in a helper library that can compile-time extract these keys instead?
+const combatantMemoryKeys: readonly (Extract<keyof PluginCombatantState, string>)[] = [
+  'CurrentWorldID',
+  'WorldID',
+  'WorldName',
+  'BNpcID',
+  'BNpcNameID',
+  'PartyType',
+  'ID',
+  'OwnerID',
+  'WeaponId',
+  'Type',
+  'Job',
+  'Level',
+  'Name',
+  'CurrentHP',
+  'MaxHP',
+  'CurrentMP',
+  'MaxMP',
+  'PosX',
+  'PosY',
+  'PosZ',
+  'Heading',
+  'MonsterType',
+  'Status',
+  'ModelStatus',
+  'AggressionStatus',
+  'TargetID',
+  'IsTargetable',
+  'Radius',
+  'Distance',
+  'EffectiveDistance',
+  'NPCTargetID',
+  'CurrentGP',
+  'MaxGP',
+  'CurrentCP',
+  'MaxCP',
+  'PCTargetID',
+  'IsCasting1',
+  'IsCasting2',
+  'CastBuffID',
+  'CastTargetID',
+  'CastGroundTargetX',
+  'CastGroundTargetY',
+  'CastGroundTargetZ',
+  'CastDurationCurrent',
+  'CastDurationMax',
+  'TransformationId',
+] as const;
 
 const latestLogDefinitions = {
   GameLog: {
@@ -73,6 +189,10 @@ const latestLogDefinitions = {
       },
     },
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'filter',
+      filters: { code: ['0044', '0839'] },
+    },
   },
   ChangeZone: {
     type: '01',
@@ -88,6 +208,9 @@ const latestLogDefinitions = {
     lastInclude: true,
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'all',
+    },
   },
   ChangedPlayer: {
     type: '02',
@@ -141,6 +264,11 @@ const latestLogDefinitions = {
     },
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'filter',
+      filters: { id: '4.{7}' }, // NPC combatants only
+      combatantIdFields: 2,
+    },
   },
   RemovedCombatant: {
     type: '04',
@@ -158,7 +286,12 @@ const latestLogDefinitions = {
       world: 8,
       npcNameId: 9,
       npcBaseId: 10,
+      currentHp: 11,
       hp: 12,
+      currentMp: 13,
+      mp: 14,
+      // currentTp: 15,
+      // maxTp: 16,
       x: 17,
       y: 18,
       z: 19,
@@ -170,6 +303,11 @@ const latestLogDefinitions = {
     },
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'filter',
+      filters: { id: '4.{7}' }, // NPC combatants only
+      combatantIdFields: 2,
+    },
   },
   PartyList: {
     type: '11',
@@ -285,6 +423,7 @@ const latestLogDefinitions = {
       z: 11,
       heading: 12,
     },
+    possibleRsvFields: 5,
     blankFields: [6],
     playerIds: {
       2: 3,
@@ -292,6 +431,11 @@ const latestLogDefinitions = {
     },
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'filter',
+      filters: { sourceId: '4.{7}' }, // NPC casts only
+      combatantIdFields: [2, 6],
+    },
   },
   Ability: {
     type: '21',
@@ -333,14 +477,19 @@ const latestLogDefinitions = {
       targetIndex: 45,
       targetCount: 46,
     },
+    possibleRsvFields: 5,
     playerIds: {
       2: 3,
       6: 7,
     },
     blankFields: [6],
-    firstUnknownField: 44,
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'filter',
+      filters: { sourceId: '4.{7}' }, // NPC abilities only
+      combatantIdFields: [2, 6],
+    },
   },
   NetworkAOEAbility: {
     type: '22',
@@ -382,14 +531,19 @@ const latestLogDefinitions = {
       targetIndex: 45,
       targetCount: 46,
     },
+    possibleRsvFields: 5,
     playerIds: {
       2: 3,
       6: 7,
     },
     blankFields: [6],
-    firstUnknownField: 44,
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'filter',
+      filters: { sourceId: '4.{7}' }, // NPC abilities only
+      combatantIdFields: [2, 6],
+    },
   },
   NetworkCancelAbility: {
     type: '23',
@@ -405,11 +559,17 @@ const latestLogDefinitions = {
       name: 5,
       reason: 6,
     },
+    possibleRsvFields: 5,
     playerIds: {
       2: 3,
     },
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'filter',
+      filters: { sourceId: '4.{7}' }, // NPC combatants only
+      combatantIdFields: 2,
+    },
   },
   NetworkDoT: {
     type: '24',
@@ -434,12 +594,36 @@ const latestLogDefinitions = {
       y: 14,
       z: 15,
       heading: 16,
+      sourceId: 17,
+      source: 18,
+      // An id number lookup into the AttackType table
+      damageType: 19,
+      sourceCurrentHp: 20,
+      sourceMaxHp: 21,
+      sourceCurrentMp: 22,
+      sourceMaxMp: 23,
+      // sourceCurrentTp: 24,
+      // sourceMaxTp: 25,
+      sourceX: 26,
+      sourceY: 27,
+      sourceZ: 28,
+      sourceHeading: 29,
     },
     playerIds: {
       2: 3,
+      17: 18,
     },
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'filter',
+      filters: { // DoT on player with valid effectId
+        id: '1.{7}',
+        which: 'DoT',
+        effectId: '0*?[1-9A-F][0-9A-F]*', // non-zero, non-empty, possibly-padded value
+      },
+      combatantIdFields: [2, 17],
+    },
   },
   WasDefeated: {
     type: '25',
@@ -460,6 +644,11 @@ const latestLogDefinitions = {
     },
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'filter',
+      filters: { targetId: '4.{7}' }, // NPC combatants only
+      combatantIdFields: 2, // don't apply to sourceId; an ignored combatant is a valid source
+    },
   },
   GainsEffect: {
     type: '26',
@@ -480,12 +669,26 @@ const latestLogDefinitions = {
       targetMaxHp: 10,
       sourceMaxHp: 11,
     },
+    possibleRsvFields: 3,
     playerIds: {
       5: 6,
       7: 8,
     },
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'filter',
+      filters: [
+        { // effect from environment/NPC applied to player
+          sourceId: '[E4].{7}',
+          targetId: '1.{7}',
+        },
+        { // known effectIds of interest
+          effectId: ['B9A', '808'],
+        },
+      ],
+      combatantIdFields: [5, 7],
+    },
   },
   HeadMarker: {
     type: '27',
@@ -504,6 +707,10 @@ const latestLogDefinitions = {
     },
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'all',
+      combatantIdFields: 2,
+    },
   },
   NetworkRaidMarker: {
     type: '28',
@@ -520,6 +727,9 @@ const latestLogDefinitions = {
       x: 6,
       y: 7,
       z: 8,
+    },
+    playerIds: {
+      4: 5,
     },
     canAnonymize: true,
     firstOptionalField: undefined,
@@ -540,8 +750,8 @@ const latestLogDefinitions = {
       targetName: 7,
     },
     playerIds: {
-      4: null,
-      5: null,
+      4: 5,
+      6: 7,
     },
     firstOptionalField: undefined,
   },
@@ -561,12 +771,26 @@ const latestLogDefinitions = {
       target: 8,
       count: 9,
     },
+    possibleRsvFields: 3,
     playerIds: {
       5: 6,
       7: 8,
     },
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'filter',
+      filters: [
+        { // effect from environment/NPC applied to player
+          sourceId: '[E4].{7}',
+          targetId: '1.{7}',
+        },
+        { // known effectIds of interest
+          effectId: ['B9A', '808'],
+        },
+      ],
+      combatantIdFields: [5, 7],
+    },
   },
   NetworkGauge: {
     type: '31',
@@ -618,8 +842,12 @@ const latestLogDefinitions = {
       data2: 6,
       data3: 7,
     },
+    possiblePlayerIds: [4, 5, 6, 7],
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'never',
+    },
   },
   NameToggle: {
     type: '34',
@@ -641,6 +869,9 @@ const latestLogDefinitions = {
     },
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'never',
+    },
   },
   Tether: {
     type: '35',
@@ -663,6 +894,10 @@ const latestLogDefinitions = {
     canAnonymize: true,
     firstUnknownField: 9,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'all',
+      combatantIdFields: [2, 4],
+    },
   },
   LimitBreak: {
     type: '36',
@@ -693,8 +928,8 @@ const latestLogDefinitions = {
       maxHp: 6,
       currentMp: 7,
       maxMp: 8,
-      // currentTp: 9,
-      // maxTp: 10,
+      currentShield: 9,
+      // Field index 10 is always `0`
       x: 11,
       y: 12,
       z: 13,
@@ -706,6 +941,9 @@ const latestLogDefinitions = {
     firstUnknownField: 22,
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'never',
+    },
   },
   StatusEffect: {
     type: '38',
@@ -722,6 +960,8 @@ const latestLogDefinitions = {
       maxHp: 6,
       mp: 7,
       maxMp: 8,
+      currentShield: 9,
+      // Field index 10 is always `0`
       x: 11,
       y: 12,
       z: 13,
@@ -737,7 +977,7 @@ const latestLogDefinitions = {
     playerIds: {
       2: 3,
     },
-    firstUnknownField: 20,
+    firstUnknownField: 18,
     canAnonymize: true,
     firstOptionalField: 18,
   },
@@ -783,6 +1023,10 @@ const latestLogDefinitions = {
     },
     canAnonymize: true,
     firstOptionalField: undefined,
+    lastInclude: true,
+    analysisOptions: {
+      include: 'all',
+    },
   },
   SystemLogMessage: {
     type: '41',
@@ -800,6 +1044,9 @@ const latestLogDefinitions = {
     },
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'all',
+    },
   },
   StatusList3: {
     type: '42',
@@ -907,6 +1154,9 @@ const latestLogDefinitions = {
     },
     isUnknown: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'never',
+    },
   },
   // OverlayPlugin log lines
   LineRegistration: {
@@ -919,8 +1169,10 @@ const latestLogDefinitions = {
       timestamp: 1,
       id: 2,
       source: 3,
-      version: 4,
+      name: 4,
+      version: 5,
     },
+    globalInclude: true,
     canAnonymize: true,
     firstOptionalField: undefined,
   },
@@ -943,6 +1195,9 @@ const latestLogDefinitions = {
     },
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'all',
+    },
   },
   FateDirector: {
     type: '258',
@@ -1000,9 +1255,378 @@ const latestLogDefinitions = {
       timestamp: 1,
       inACTCombat: 2,
       inGameCombat: 3,
+      isACTChanged: 4,
+      isGameChanged: 5,
     },
     canAnonymize: true,
     firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'all',
+    },
+  },
+  CombatantMemory: {
+    type: '261',
+    name: 'CombatantMemory',
+    source: 'OverlayPlugin',
+    messageType: '261',
+    fields: {
+      type: 0,
+      timestamp: 1,
+      change: 2,
+      id: 3,
+      // from here, pairs of field name/values
+    },
+    canAnonymize: true,
+    firstOptionalField: 5,
+    // doesn't use `playerIds`, as the `id` field must be handled with the 'Name' repeating field
+    repeatingFields: {
+      startingIndex: 4,
+      label: 'pair',
+      names: ['key', 'value'],
+      sortKeys: true,
+      primaryKey: 'key',
+      possibleKeys: combatantMemoryKeys,
+      keysToAnonymize: {
+        // eslint-disable-next-line quote-props
+        3: 'Name', // 'ID' repeating field not used? need to use non-repeating `id` (3) field
+        'OwnerID': null,
+        'TargetID': null,
+        'PCTargetID': null,
+        'NPCTargetID': null,
+        'CastTargetID': null,
+      },
+    },
+    analysisOptions: {
+      include: 'filter',
+      // TODO: This is an initial attempt to capture field changes that are relevant to analysis,
+      // but this will likely need to be refined over time
+      filters: [
+        { // TODO: ModelStatus can be a little spammy. Should try to refine this further.
+          id: '4.{7}',
+          change: 'Change',
+          pair: [{ key: 'ModelStatus', value: '.*' }],
+        },
+        {
+          id: '4.{7}',
+          change: 'Change',
+          pair: [{ key: 'WeaponId', value: '.*' }],
+        },
+        {
+          id: '4.{7}',
+          change: 'Change',
+          pair: [{ key: 'TransformationId', value: '.*' }],
+        },
+      ],
+      combatantIdFields: 3,
+    },
+  },
+  RSVData: {
+    type: '262',
+    name: 'RSVData',
+    source: 'OverlayPlugin',
+    messageType: '262',
+    fields: {
+      type: 0,
+      timestamp: 1,
+      locale: 2,
+      // unknown0: 3,
+      key: 4,
+      value: 5,
+    },
+    canAnonymize: true,
+    firstOptionalField: undefined,
+    analysisOptions: {
+      // RSV substitutions are performed automatically by the filter
+      include: 'never',
+    },
+  },
+  StartsUsingExtra: {
+    type: '263',
+    name: 'StartsUsingExtra',
+    source: 'OverlayPlugin',
+    messageType: '263',
+    fields: {
+      type: 0,
+      timestamp: 1,
+      sourceId: 2,
+      id: 3,
+      x: 4,
+      y: 5,
+      z: 6,
+      heading: 7,
+    },
+    playerIds: {
+      2: null,
+    },
+    canAnonymize: true,
+    firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'filter',
+      filters: { sourceId: '4.{7}' }, // NPC casts only
+      combatantIdFields: 2,
+    },
+  },
+  AbilityExtra: {
+    type: '264',
+    name: 'AbilityExtra',
+    source: 'OverlayPlugin',
+    messageType: '264',
+    fields: {
+      type: 0,
+      timestamp: 1,
+      sourceId: 2,
+      id: 3,
+      globalEffectCounter: 4,
+      dataFlag: 5,
+      x: 6,
+      y: 7,
+      z: 8,
+      heading: 9,
+    },
+    blankFields: [6],
+    playerIds: {
+      2: null,
+    },
+    canAnonymize: true,
+    firstOptionalField: 9,
+  },
+  ContentFinderSettings: {
+    type: '265',
+    name: 'ContentFinderSettings',
+    source: 'OverlayPlugin',
+    messageType: '265',
+    fields: {
+      type: 0,
+      timestamp: 1,
+      zoneId: 2,
+      zoneName: 3,
+      inContentFinderContent: 4,
+      unrestrictedParty: 5,
+      minimalItemLevel: 6,
+      silenceEcho: 7,
+      explorerMode: 8,
+      levelSync: 9,
+    },
+    canAnonymize: true,
+    firstOptionalField: undefined,
+  },
+  NpcYell: {
+    type: '266',
+    name: 'NpcYell',
+    source: 'OverlayPlugin',
+    messageType: '266',
+    fields: {
+      type: 0,
+      timestamp: 1,
+      npcId: 2,
+      npcNameId: 3,
+      npcYellId: 4,
+    },
+    canAnonymize: true,
+    firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'all',
+      combatantIdFields: 2,
+    },
+  },
+  BattleTalk2: {
+    type: '267',
+    name: 'BattleTalk2',
+    source: 'OverlayPlugin',
+    messageType: '267',
+    fields: {
+      type: 0,
+      timestamp: 1,
+      npcId: 2,
+      instance: 3,
+      npcNameId: 4,
+      instanceContentTextId: 5,
+      displayMs: 6,
+      // unknown1: 7,
+      // unknown2: 8,
+      // unknown3: 9,
+      // unknown4: 10,
+    },
+    canAnonymize: true,
+    firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'all',
+      combatantIdFields: 2,
+    },
+  },
+  Countdown: {
+    type: '268',
+    name: 'Countdown',
+    source: 'OverlayPlugin',
+    messageType: '268',
+    fields: {
+      type: 0,
+      timestamp: 1,
+      id: 2,
+      worldId: 3,
+      countdownTime: 4,
+      result: 5,
+      name: 6,
+    },
+    playerIds: {
+      2: 6,
+    },
+    canAnonymize: true,
+    firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'never',
+    },
+  },
+  CountdownCancel: {
+    type: '269',
+    name: 'CountdownCancel',
+    source: 'OverlayPlugin',
+    messageType: '269',
+    fields: {
+      type: 0,
+      timestamp: 1,
+      id: 2,
+      worldId: 3,
+      name: 4,
+    },
+    playerIds: {
+      2: 4,
+    },
+    canAnonymize: true,
+    firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'never',
+    },
+  },
+  ActorMove: {
+    type: '270',
+    name: 'ActorMove',
+    source: 'OverlayPlugin',
+    messageType: '270',
+    fields: {
+      type: 0,
+      timestamp: 1,
+      id: 2,
+      heading: 3, // OP calls this 'rotation', but cactbot consistently uses 'heading'
+      // unknown1: 4,
+      // unknown2: 5,
+      x: 6,
+      y: 7,
+      z: 8,
+    },
+    playerIds: {
+      2: null,
+    },
+    canAnonymize: true,
+    firstOptionalField: undefined,
+    analysisOptions: {
+      // no real way to filter noise, even if (infrequently) used for triggers
+      include: 'never',
+    },
+  },
+  ActorSetPos: {
+    type: '271',
+    name: 'ActorSetPos',
+    source: 'OverlayPlugin',
+    messageType: '271',
+    fields: {
+      type: 0,
+      timestamp: 1,
+      id: 2,
+      heading: 3, // OP calls this 'rotation', but cactbot consistently uses 'heading'
+      // unknown1: 4,
+      // unknown2: 5,
+      x: 6,
+      y: 7,
+      z: 8,
+    },
+    playerIds: {
+      2: null,
+    },
+    canAnonymize: true,
+    firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'filter',
+      filters: { id: '4.{7}' }, // NPCs only
+      combatantIdFields: 2,
+    },
+  },
+  SpawnNpcExtra: {
+    type: '272',
+    name: 'SpawnNpcExtra',
+    source: 'OverlayPlugin',
+    messageType: '272',
+    fields: {
+      type: 0,
+      timestamp: 1,
+      id: 2,
+      parentId: 3,
+      tetherId: 4,
+      animationState: 5,
+    },
+    playerIds: {
+      3: null, // `id` is an npc, but parentId could be a tethered player?
+    },
+    canAnonymize: true,
+    firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'all',
+      combatantIdFields: [2, 3],
+    },
+  },
+  ActorControlExtra: {
+    type: '273',
+    name: 'ActorControlExtra',
+    source: 'OverlayPlugin',
+    messageType: '273',
+    fields: {
+      type: 0,
+      timestamp: 1,
+      id: 2,
+      category: 3,
+      param1: 4,
+      param2: 5,
+      param3: 6,
+      param4: 7,
+    },
+    playerIds: {
+      2: null,
+    },
+    possiblePlayerIds: [4, 5, 6, 7],
+    canAnonymize: true,
+    firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'all',
+      combatantIdFields: 2,
+    },
+  },
+  ActorControlSelfExtra: {
+    type: '274',
+    name: 'ActorControlSelfExtra',
+    source: 'OverlayPlugin',
+    messageType: '274',
+    fields: {
+      type: 0,
+      timestamp: 1,
+      id: 2,
+      category: 3,
+      param1: 4,
+      param2: 5,
+      param3: 6,
+      param4: 7,
+      param5: 8,
+      param6: 9,
+    },
+    playerIds: {
+      2: null,
+    },
+    possiblePlayerIds: [4, 5, 6, 7, 8, 9],
+    canAnonymize: true,
+    firstOptionalField: undefined,
+    analysisOptions: {
+      include: 'all',
+      combatantIdFields: 2,
+    },
   },
 } as const;
 
@@ -1011,24 +1635,46 @@ export const logDefinitionsVersions = {
 } as const;
 
 // Verify that this has the right type, but export `as const`.
-const assertLogDefinitions: LogDefinitionVersionMap = logDefinitionsVersions;
+const assertLogDefinitions: LogDefinitionMap = latestLogDefinitions;
 console.assert(assertLogDefinitions);
 
-export type LogDefinitions = typeof logDefinitionsVersions['latest'];
-export type LogDefinitionTypes = keyof LogDefinitions;
+export type LogDefinitions = typeof latestLogDefinitions;
+export type LogDefinitionName = keyof LogDefinitions;
+export type LogDefinitionType = LogDefinitions[LogDefinitionName]['type'];
+export type LogDefinitionMap = { [K in LogDefinitionName]: LogDefinition<K> };
 export type LogDefinitionVersions = keyof typeof logDefinitionsVersions;
 
+type RepeatingFieldsNarrowingType = { readonly repeatingFields: unknown };
+
+export type RepeatingFieldsTypes = keyof {
+  [
+    type in LogDefinitionName as LogDefinitions[type] extends RepeatingFieldsNarrowingType ? type
+      : never
+  ]: null;
+};
+
+export type RepeatingFieldsDefinitions = {
+  [type in RepeatingFieldsTypes]: LogDefinitions[type] & {
+    readonly repeatingFields: Exclude<LogDefinitions[type]['repeatingFields'], undefined>;
+  };
+};
+
 export type ParseHelperField<
-  Type extends LogDefinitionTypes,
+  Type extends LogDefinitionName,
   Fields extends NetFieldsReverse[Type],
   Field extends keyof Fields,
 > = {
   field: Fields[Field] extends string ? Fields[Field] : never;
   value?: string;
   optional?: boolean;
+  repeating?: boolean;
+  repeatingKeys?: string[];
+  sortKeys?: boolean;
+  primaryKey?: string;
+  possibleKeys?: string[];
 };
 
-export type ParseHelperFields<T extends LogDefinitionTypes> = {
+export type ParseHelperFields<T extends LogDefinitionName> = {
   [field in keyof NetFieldsReverse[T]]: ParseHelperField<T, NetFieldsReverse[T], field>;
 };
 

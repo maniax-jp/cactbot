@@ -13,19 +13,36 @@ import './splitter.css';
 const pageText = {
   titleText: {
     en: 'Log Splitter and Anonymizer',
+    de: 'Log Aufteiler und Anonymisierer',
+    fr: 'Log Splitter et Anonymiseur',
     cn: '日志分割与匿名器',
   },
   fileDropText: {
     en: 'Drop Network log file here',
+    de: 'Network log Datei hier ablegen',
+    fr: 'Déposer votre fichier log ici',
     cn: '将网络日志文件拖放到此处',
   },
   anonInput: {
     en: 'Anonymize Log',
+    de: 'Log Anonymisieren',
+    fr: 'Anonymiser le log',
     cn: '对日志进行匿名化处理',
   },
-  exportInput: {
-    en: 'Export',
-    cn: '导出',
+  analysisFilterInput: {
+    en: 'Apply Analysis Filter (Dev Only)',
+    fr: 'Appliquer le filtre d\'analyse (Dev seulement)',
+    cn: '应用分析过滤器（开发中选项）',
+  },
+  exportSelectedInput: {
+    en: 'Export Selected',
+    fr: 'Exporter la sélection',
+    cn: '导出已选择日志',
+  },
+  exportAllInput: {
+    en: 'Export Entire Log',
+    fr: 'Exporter tout le log',
+    cn: '导出全部日志',
   },
 } as const;
 
@@ -63,30 +80,44 @@ const buildTable = (state: PageState): void => {
   const headers = {
     include: {
       en: 'Include',
+      de: 'Einschließen',
+      fr: 'Inclure',
       cn: '包括',
     },
     startDate: {
       en: 'Date',
+      de: 'Datum',
+      fr: 'Date',
       cn: '日期',
     },
     startTime: {
       en: 'Time',
+      de: 'Zeit',
+      fr: 'Heure',
       cn: '时间',
     },
     duration: {
       en: 'Duration',
+      de: 'Dauer',
+      fr: 'Durée',
       cn: '持续时间',
     },
     zone: {
       en: 'Zone',
+      de: 'Zone',
+      fr: 'Zone',
       cn: '区域',
     },
     encounter: {
       en: 'Encounter',
+      de: 'Begegnung',
+      fr: 'Adversaire',
       cn: '战斗',
     },
     end: {
       en: 'End',
+      de: 'Ende',
+      fr: 'Fin',
       cn: '结束方式',
     },
   } as const;
@@ -118,14 +149,14 @@ const buildTable = (state: PageState): void => {
     const fightDuration = TLFuncs.durationFromDates(fight.startTime, fight.endTime) ??
       '???';
     let fightName = '???';
-    if (fight.sealName)
+    if (fight.sealName !== undefined)
       fightName = fight.sealName;
-    else if (fight.fightName)
+    else if (fight.fightName !== undefined)
       fightName = fight.fightName;
 
-    if (!seenSeal && fight.sealName)
+    if (!seenSeal && fight.sealName !== undefined)
       seenSeal = true;
-    else if (seenSeal && !fight.sealName)
+    else if (seenSeal && fight.sealName === undefined)
       seenSeal = false;
 
     const row: Record<keyof Omit<typeof headers, 'include'>, string> = {
@@ -146,7 +177,9 @@ const buildTable = (state: PageState): void => {
         includeCheck.addEventListener('click', () => {
           state.selectedFights[idx] = includeCheck.checked;
           const anyClicked = Object.values(state.selectedFights).reduce((prev, cur) => prev || cur);
-          state.exportButton.disabled = !anyClicked;
+          const globalsChecked = state.anonInput.checked || state.analysisFilterInput.checked;
+          state.exportSelectedButton.disabled = !anyClicked;
+          state.exportAllButton.disabled = anyClicked || !globalsChecked;
         });
         state.table.appendChild(includeCheck);
         continue;
@@ -168,17 +201,41 @@ class PageState {
   constructor(
     public lang: Lang,
     public table: HTMLElement,
-    public exportButton: HTMLButtonElement,
+    public exportSelectedButton: HTMLButtonElement,
+    public exportAllButton: HTMLButtonElement,
     public anonInput: HTMLInputElement,
+    public analysisFilterInput: HTMLInputElement,
+    public errorDiv: HTMLElement,
   ) {}
 }
 
 class WebNotifier implements Notifier {
-  public warn(_reason: string, _splitLine?: string[]): void {/* noop */}
-  public error(_reason: string, _splitLine?: string[]): void {/* noop */}
+  constructor(private errorDiv: HTMLElement) {}
+
+  private errorFunc(severity: 'info' | 'warn' | 'error', reason: string, splitLine?: string[]) {
+    const splitStr = splitLine === undefined ? '' : `:${splitLine.join('|')}`;
+    const outputStr = `${severity}: ${reason}${splitStr}`;
+
+    const div = document.createElement('div');
+    div.innerHTML = outputStr;
+    div.classList.add(severity);
+    this.errorDiv.appendChild(div);
+  }
+
+  public info(reason: string, splitLine?: string[]): void {
+    this.errorFunc('info', reason, splitLine);
+  }
+
+  public warn(reason: string, splitLine?: string[]): void {
+    this.errorFunc('warn', reason, splitLine);
+  }
+
+  public error(reason: string, splitLine?: string[]): void {
+    this.errorFunc('error', reason, splitLine);
+  }
 }
 
-const doExport = (state: PageState): void => {
+const doExportSelected = (state: PageState): void => {
   const selected: number[] = [];
   for (const keyStr in state.selectedFights) {
     const key = parseInt(keyStr);
@@ -192,22 +249,29 @@ const doExport = (state: PageState): void => {
 
   let firstTime = true;
   const output: string[] = [];
-  const notifier = new WebNotifier();
+  const notifier = new WebNotifier(state.errorDiv);
   const anonymizer = new Anonymizer();
 
   const anonymizeLogs = state.anonInput.checked;
+  const analysisFilter = state.analysisFilterInput.checked;
 
   for (const idx of selected) {
     const fight = idxToFight[idx];
     if (fight === undefined || fight.startLine === undefined || fight.endLine === undefined)
       continue;
 
-    const splitter = new Splitter(fight.startLine, fight.endLine, notifier, firstTime);
+    const splitter = new Splitter(
+      fight.startLine,
+      fight.endLine,
+      notifier,
+      firstTime,
+      analysisFilter,
+    );
     firstTime = false;
 
     // TODO: we could be smarter here and not loop every time through all lines
     for (const line of state.lines) {
-      splitter.processWithCallback(line, (line) => {
+      splitter.processWithCallback(line, false, (line) => {
         if (anonymizeLogs) {
           const anonLine = anonymizer.process(line, notifier);
           if (anonLine === undefined)
@@ -222,6 +286,12 @@ const doExport = (state: PageState): void => {
     }
   }
 
+  if (anonymizeLogs) {
+    anonymizer.validateIds(notifier);
+    for (const line of output)
+      anonymizer.validateLine(line, notifier);
+  }
+
   // TODO: could be smarter here if they all had the same zone or something.
   let filename = 'split.log';
   if (selected.length === 1) {
@@ -233,6 +303,40 @@ const doExport = (state: PageState): void => {
     }
   }
 
+  downloadFile(output, filename);
+};
+
+const doExportAll = (state: PageState): void => {
+  const anonymizeLogs = state.anonInput.checked;
+  const analysisFilter = state.analysisFilterInput.checked;
+  const output: string[] = [];
+  const notifier = new WebNotifier(state.errorDiv);
+  const anonymizer = new Anonymizer();
+  const splitter = new Splitter('', '', notifier, true, analysisFilter);
+
+  for (const line of state.lines) {
+    splitter.processWithCallback(line, true, (line) => {
+      if (anonymizeLogs) {
+        const anonLine = anonymizer.process(line, notifier);
+        if (anonLine === undefined)
+          return;
+        output.push(anonLine);
+      } else {
+        output.push(line);
+      }
+    });
+  }
+
+  if (anonymizeLogs) {
+    anonymizer.validateIds(notifier);
+    for (const line of output)
+      anonymizer.validateLine(line, notifier);
+  }
+
+  downloadFile(output, 'processed.log');
+};
+
+const downloadFile = (output: string[], filename: string): void => {
   const blob = new Blob([output.join('\n')], { type: 'text/plain' });
   const a = document.createElement('a');
   a.setAttribute('download', filename);
@@ -247,8 +351,12 @@ const onLoaded = () => {
   const table = getElement('fight-table');
   const fileDrop = getElement('filedrop');
   const exportOptions = getElement('export-options');
-  const exportButton = getElement('export') as HTMLButtonElement;
+  const exportButtons = getElement('export-buttons');
+  const exportSelectedButton = getElement('exportSelected') as HTMLButtonElement;
+  const exportAllButton = getElement('exportAll') as HTMLButtonElement;
   const anonCheckbox = getElement('anon') as HTMLInputElement;
+  const analysisFilterCheckbox = getElement('analysisFilter') as HTMLInputElement;
+  const errorDiv = getElement('errors');
 
   const fileDropText: LocaleText = pageText.fileDropText;
   fileDrop.innerText = fileDropText[lang] ?? fileDropText['en'];
@@ -260,19 +368,43 @@ const onLoaded = () => {
   const pageState = new PageState(
     lang,
     table,
-    exportButton,
+    exportSelectedButton,
+    exportAllButton,
     anonCheckbox,
+    analysisFilterCheckbox,
+    errorDiv,
   );
   fileDrop.addEventListener('drop', (e) => {
     exportOptions.classList.remove('hide');
+    exportButtons.classList.remove('hide');
     void dropHandler(e, pageState);
   });
 
-  setLabelText('anon-label', 'anonInput', lang);
-  setLabelText('export', 'exportInput', lang);
+  anonCheckbox.addEventListener('click', () => {
+    const globalsChecked = anonCheckbox.checked || analysisFilterCheckbox.checked;
+    const anyClicked = Object.values(pageState.selectedFights).length > 0 &&
+      Object.values(pageState.selectedFights).reduce((prev, cur) => prev || cur);
+    pageState.exportAllButton.disabled = !globalsChecked || anyClicked;
+  });
 
-  exportButton.addEventListener('click', () => {
-    doExport(pageState);
+  analysisFilterCheckbox.addEventListener('click', () => {
+    const globalsChecked = anonCheckbox.checked || analysisFilterCheckbox.checked;
+    const anyClicked = Object.values(pageState.selectedFights).length > 0 &&
+      Object.values(pageState.selectedFights).reduce((prev, cur) => prev || cur);
+    pageState.exportAllButton.disabled = !globalsChecked || anyClicked;
+  });
+
+  setLabelText('anon-label', 'anonInput', lang);
+  setLabelText('analysisFilter-label', 'analysisFilterInput', lang);
+  setLabelText('exportSelected', 'exportSelectedInput', lang);
+  setLabelText('exportAll', 'exportAllInput', lang);
+
+  exportSelectedButton.addEventListener('click', () => {
+    doExportSelected(pageState);
+  });
+
+  exportAllButton.addEventListener('click', () => {
+    doExportAll(pageState);
   });
 };
 

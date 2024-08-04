@@ -17,6 +17,7 @@ export interface Data extends RaidbossData {
 
 // O10S - Alphascape 2.0 Savage
 const triggerSet: TriggerSet<Data> = {
+  id: 'AlphascapeV20Savage',
   zoneId: ZoneId.AlphascapeV20Savage,
   timelineFile: 'o10s.txt',
   triggers: [
@@ -36,7 +37,7 @@ const triggerSet: TriggerSet<Data> = {
       },
       infoText: (data, matches, output) => {
         if (data.me !== matches.target)
-          return output.fireOn!({ player: data.ShortName(matches.target) });
+          return output.fireOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         fireOnYou: {

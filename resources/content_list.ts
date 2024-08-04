@@ -113,22 +113,18 @@ const contentList: (ZoneIdType)[] = [
   ZoneId.AlzadaalsLegacy,
   ZoneId.TheFellCourtOfTroia,
   ZoneId.LapisManalis,
+  ZoneId.TheAetherfont,
+  ZoneId.TheLunarSubterrane,
 
-  // Guildhests
-  ZoneId.BasicTrainingEnemyParties,
-  ZoneId.UnderTheArmor,
-  ZoneId.BasicTrainingEnemyStrongholds,
-  ZoneId.HeroOnTheHalfShell,
-  ZoneId.PullingPoisonPosies,
-  ZoneId.StingingBack,
-  ZoneId.AllsWellThatEndsInTheWell,
-  ZoneId.FlickingSticksAndTakingNames,
-  ZoneId.MoreThanAFeeler,
-  ZoneId.AnnoyTheVoid,
-  ZoneId.ShadowAndClaw,
-  ZoneId.LongLiveTheQueen,
-  ZoneId.WardUp,
-  ZoneId.SolemnTrinity,
+  // Dungeons (Dawntrail)
+  ZoneId.Ihuykatumu,
+  ZoneId.WorqorZormor,
+  ZoneId.TheSkydeepCenote,
+  ZoneId.Vanguard,
+  ZoneId.Origenics,
+  ZoneId.Alexandria,
+  ZoneId.TenderValley,
+  ZoneId.TheStrayboroughDeadwalk,
 
   // Trials (A Realm Reborn)
   ZoneId.TheBowlOfEmbers,
@@ -229,6 +225,9 @@ const contentList: (ZoneIdType)[] = [
   ZoneId.TheFinalDay,
   ZoneId.StormsCrown,
   ZoneId.MountOrdeals,
+  ZoneId.TheVoidcastDais,
+  ZoneId.TheAbyssalFracture,
+  ZoneId.TheGildedAraya,
 
   // High-end Trials (Endwalker)
   ZoneId.TheMinstrelsBalladZodiarksFall,
@@ -236,9 +235,22 @@ const contentList: (ZoneIdType)[] = [
   ZoneId.TheMinstrelsBalladEndsingersAria,
   ZoneId.StormsCrownExtreme,
   ZoneId.MountOrdealsExtreme,
+  ZoneId.TheVoidcastDaisExtreme,
+  ZoneId.TheAbyssalFractureExtreme,
   ZoneId.UltimasBaneUnreal,
   ZoneId.ContainmentBayS1T7Unreal,
   ZoneId.ContainmentBayP1T6Unreal,
+  ZoneId.ContainmentBayZ1T9Unreal,
+  ZoneId.TheSingularityReactorUnreal,
+
+  // Trials (Dawntrail)
+  ZoneId.WorqorLarDor,
+  ZoneId.Everkeep,
+  ZoneId.TheInterphos,
+
+  // High-end Trials (Dawntrail)
+  ZoneId.WorqorLarDorExtreme,
+  ZoneId.EverkeepExtreme,
 
   // Alliance Raids (A Realm Reborn)
   ZoneId.TheLabyrinthOfTheAncients,
@@ -368,6 +380,7 @@ const contentList: (ZoneIdType)[] = [
   // Alliance Raids (Endwalker)
   ZoneId.Aglaia,
   ZoneId.Euphrosyne,
+  ZoneId.Thaleia,
 
   // Normal Raids (Endwalker)
   ZoneId.AsphodelosTheFirstCircle,
@@ -378,6 +391,10 @@ const contentList: (ZoneIdType)[] = [
   ZoneId.AbyssosTheSixthCircle,
   ZoneId.AbyssosTheSeventhCircle,
   ZoneId.AbyssosTheEighthCircle,
+  ZoneId.AnabaseiosTheNinthCircle,
+  ZoneId.AnabaseiosTheTenthCircle,
+  ZoneId.AnabaseiosTheEleventhCircle,
+  ZoneId.AnabaseiosTheTwelfthCircle,
 
   // Savage Raids (Endwalker)
   ZoneId.AsphodelosTheFirstCircleSavage,
@@ -388,11 +405,31 @@ const contentList: (ZoneIdType)[] = [
   ZoneId.AbyssosTheSixthCircleSavage,
   ZoneId.AbyssosTheSeventhCircleSavage,
   ZoneId.AbyssosTheEighthCircleSavage,
+  ZoneId.AnabaseiosTheNinthCircleSavage,
+  ZoneId.AnabaseiosTheTenthCircleSavage,
+  ZoneId.AnabaseiosTheEleventhCircleSavage,
+  ZoneId.AnabaseiosTheTwelfthCircleSavage,
+
+  // Alliance Raids (Dawntrail)
+
+  // Normal Raids (Dawntrail)
+  ZoneId.AacLightHeavyweightM1,
+  ZoneId.AacLightHeavyweightM2,
+  ZoneId.AacLightHeavyweightM3,
+  ZoneId.AacLightHeavyweightM4,
+
+  // Savage Raids (Dawntrail)
 
   // Variant & Criterion Dungeons
   ZoneId.TheSildihnSubterrane,
   ZoneId.AnotherSildihnSubterrane,
   ZoneId.AnotherSildihnSubterraneSavage,
+  ZoneId.MountRokkon,
+  ZoneId.AnotherMountRokkon,
+  ZoneId.AnotherMountRokkonSavage,
+  ZoneId.AloaloIsland,
+  ZoneId.AnotherAloaloIsland,
+  ZoneId.AnotherAloaloIslandSavage,
 
   // Ultimate Raids
   ZoneId.TheUnendingCoilOfBahamutUltimate,

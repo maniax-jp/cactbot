@@ -13,6 +13,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'AbyssosTheSixthCircle',
   zoneId: ZoneId.AbyssosTheSixthCircle,
   timelineFile: 'p6n.txt',
   initData: () => {
@@ -192,7 +193,6 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       'locale': 'fr',
-      'missingTranslations': true,
       'replaceSync': {
         'Hegemone': 'Hégémone',
         'Parasitos': 'créature parasite',
@@ -213,7 +213,6 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       'locale': 'ja',
-      'missingTranslations': true,
       'replaceSync': {
         'Hegemone': 'ヘーゲモネー',
         'Parasitos': '寄生生物',

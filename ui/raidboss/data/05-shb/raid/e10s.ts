@@ -29,6 +29,7 @@ const directions = {
 };
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'EdensPromiseLitanySavage',
   zoneId: ZoneId.EdensPromiseLitanySavage,
   timelineFile: 'e10s.txt',
   triggers: [
@@ -643,7 +644,7 @@ const triggerSet: TriggerSet<Data> = {
       condition: (data, matches) => matches.source === data.me || matches.target === data.me,
       alertText: (data, matches, output) => {
         const partner = matches.source === data.me ? matches.target : matches.source;
-        return output.text!({ player: data.ShortName(partner) });
+        return output.text!({ player: data.party.member(partner) });
       },
       outputStrings: {
         text: Outputs.farTethersWithPlayer,
@@ -656,7 +657,7 @@ const triggerSet: TriggerSet<Data> = {
       condition: (data, matches) => matches.source === data.me || matches.target === data.me,
       alertText: (data, matches, output) => {
         const partner = matches.source === data.me ? matches.target : matches.source;
-        return output.text!({ player: data.ShortName(partner) });
+        return output.text!({ player: data.party.member(partner) });
       },
       outputStrings: {
         text: Outputs.closeTethersWithPlayer,

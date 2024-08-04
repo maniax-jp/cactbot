@@ -19,6 +19,7 @@ const limitCutNumberMap: { [id: string]: number } = {
 };
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheStigmaDreamscape',
   zoneId: ZoneId.TheStigmaDreamscape,
   timelineFile: 'stigma_dreamscape.txt',
   initData: () => {
@@ -307,6 +308,12 @@ const triggerSet: TriggerSet<Data> = {
           ko: '강제이동: 오른쪽',
         },
       },
+    },
+    {
+      id: 'Dreamscape Atomic Ray',
+      type: 'StartsUsing',
+      netRegex: { id: '6436', source: 'Stigma-4', capture: false },
+      response: Responses.bleedAoe(),
     },
   ],
   timelineReplace: [

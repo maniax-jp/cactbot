@@ -7,6 +7,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'ContainmentBayS1T7',
   zoneId: ZoneId.ContainmentBayS1T7,
   triggers: [
     {
@@ -53,6 +54,7 @@ const triggerSet: TriggerSet<Data> = {
           en: 'Kill Storm of Words or die',
           de: 'Wörtersturm besiegen',
           fr: 'Tuez Tempête de mots ou mourrez',
+          ja: 'ストーム・オブ・ワードを倒す',
           cn: '击杀言语风暴!',
           ko: '신언의 폭풍 제거',
         },

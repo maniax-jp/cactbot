@@ -16,6 +16,7 @@ export interface Data extends RaidbossData {
 
 // O9S - Alphascape 1.0 Savage
 const triggerSet: TriggerSet<Data> = {
+  id: 'AlphascapeV10Savage',
   zoneId: ZoneId.AlphascapeV10Savage,
   timelineFile: 'o9s.txt',
   triggers: [
@@ -103,7 +104,7 @@ const triggerSet: TriggerSet<Data> = {
           return output.orbTethers!();
       },
       infoText: (data, _matches, output) => {
-        if (data.role === 'healer')
+        if (data.role === 'healer' || data.job === 'BLU')
           return output.orbTethers!();
       },
       outputStrings: {
@@ -389,7 +390,7 @@ const triggerSet: TriggerSet<Data> = {
       id: 'O9S Accretion',
       type: 'GainsEffect',
       netRegex: { effectId: '644', capture: false },
-      condition: (data) => data.role === 'healer',
+      condition: (data) => data.role === 'healer' || data.job === 'BLU',
       suppressSeconds: 10,
       infoText: (data, _matches, output) => {
         if (data.phaseType !== 'earth')

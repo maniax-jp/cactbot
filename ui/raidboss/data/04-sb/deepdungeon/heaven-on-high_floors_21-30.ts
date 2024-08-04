@@ -8,6 +8,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'HeavenOnHighFloors21_30',
   zoneId: ZoneId.HeavenOnHighFloors21_30,
 
   triggers: [
@@ -37,6 +38,8 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'Stand under a cloud',
           de: 'Steh unter einer Wolke',
+          fr: 'Restez sous un nuage',
+          ja: '雲の下に立つ',
           cn: '站在一朵云下',
           ko: '구름 아래에 서기',
         },

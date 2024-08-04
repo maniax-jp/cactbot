@@ -34,6 +34,7 @@ export interface Data extends RaidbossData {
 //   Her Inflorescence Pillar Impact
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheTowerAtParadigmsBreach',
   zoneId: ZoneId.TheTowerAtParadigmsBreach,
   timelineFile: 'the_tower_at_paradigms_breach.txt',
   triggers: [
@@ -316,7 +317,7 @@ const triggerSet: TriggerSet<Data> = {
         if (matches.target === data.me)
           return output.stackOnYou!();
 
-        return output.stackOn!({ player: data.ShortName(matches.target) });
+        return output.stackOn!({ player: data.party.member(matches.target) });
       },
       run: (data) => delete data.seedTargets,
       outputStrings: {

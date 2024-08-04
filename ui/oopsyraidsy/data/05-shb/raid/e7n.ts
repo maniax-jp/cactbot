@@ -11,23 +11,23 @@ export interface Data extends OopsyData {
 
 const wrongBuff = (str: string) => {
   return {
-    en: str + ' (wrong buff)',
-    de: str + ' (falscher Buff)',
-    fr: str + ' (mauvais buff)',
-    ja: str + ' (不適切なバフ)',
-    cn: str + ' (Buff错了)',
-    ko: str + ' (버프 틀림)',
+    en: `${str} (wrong buff)`,
+    de: `${str} (falscher Buff)`,
+    fr: `${str} (mauvais buff)`,
+    ja: `${str} (不適切なバフ)`,
+    cn: `${str} (Buff错了)`,
+    ko: `${str} (버프 틀림)`,
   };
 };
 
 const noBuff = (str: string) => {
   return {
-    en: str + ' (no buff)',
-    de: str + ' (kein Buff)',
-    fr: str + ' (pas de buff)',
-    ja: str + ' (バフ無し)',
-    cn: str + ' (没有Buff)',
-    ko: str + '(버프 없음)',
+    en: `${str} (no buff)`,
+    de: `${str} (kein Buff)`,
+    fr: `${str} (pas de buff)`,
+    ja: `${str} (バフ無し)`,
+    cn: `${str} (没有Buff)`,
+    ko: `${str}(버프 없음)`,
   };
 };
 
@@ -40,7 +40,7 @@ const triggerSet: OopsyTriggerSet<Data> = {
   },
   shareWarn: {
     'E7N Stygian Stake': '4C33', // Laser tank buster, outside intermission phase
-    'E5N Silver Shot': '4E7D', // Spread markers, intermission
+    'E7N Silver Shot': '4E7D', // Spread markers, intermission
   },
   triggers: [
     {
@@ -82,7 +82,7 @@ const triggerSet: OopsyTriggerSet<Data> = {
     {
       id: 'E7N Light\'s Course',
       type: 'Ability',
-      netRegex: NetRegexes.abilityFull({
+      netRegex: NetRegexes.ability({
         id: ['4C3E', '4C40', '4C22', '4C3C', '4E63'],
         ...playerDamageFields,
       }),
@@ -108,7 +108,7 @@ const triggerSet: OopsyTriggerSet<Data> = {
     {
       id: 'E7N Darks\'s Course',
       type: 'Ability',
-      netRegex: NetRegexes.abilityFull({
+      netRegex: NetRegexes.ability({
         id: ['4C3D', '4C23', '4C41', '4C43'],
         ...playerDamageFields,
       }),

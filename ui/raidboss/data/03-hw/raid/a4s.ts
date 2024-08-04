@@ -7,6 +7,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'AlexanderTheBurdenOfTheFatherSavage',
   zoneId: ZoneId.AlexanderTheBurdenOfTheFatherSavage,
   timelineFile: 'a4s.txt',
   timelineTriggers: [
@@ -29,7 +30,7 @@ const triggerSet: TriggerSet<Data> = {
       },
       infoText: (data, matches, output) => {
         if (data.me === matches.target)
-          return output.orbsOn!({ player: data.ShortName(matches.target) });
+          return output.orbsOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         orbsOn: {

@@ -1,14 +1,28 @@
-import logDefinitions, { LogDefinition } from '../../resources/netlog_defs';
+import { isEqual } from 'lodash';
+
+import logDefinitions, {
+  LogDefFieldIdx,
+  LogDefFieldName,
+  LogDefinition,
+  LogDefinitionName,
+  LogDefinitionType,
+} from '../../resources/netlog_defs';
 import { UnreachableCode } from '../../resources/not_reached';
 
 import FakeNameGenerator from './fake_name_generator';
 import { Notifier } from './notifier';
+import { ReindexedLogDefs } from './splitter';
+
+// TODO: Anonymizer currently finds/replaces player ids (potentially paired with a player name).
+// There are a few edge cases (Countdown/CountdownCancel) where a player name may apepar
+// with no corresponding id (e.g. a blank id). We don't currently handle that scenario given the
+// non-likelihood of occurence, but this could be handled in the future.
 
 // TODO: is the first byte of ids always flags, such that "..000000" is always empty?
 const emptyIds = ['E0000000', '80000000'];
 
 export default class Anonymizer {
-  private logTypes: { [type: string]: LogDefinition } = {};
+  private logTypes: ReindexedLogDefs;
 
   private nameGenerator = new FakeNameGenerator();
 
@@ -23,9 +37,7 @@ export default class Anonymizer {
   private lastPlayerIdx = 0x10FF0000;
 
   constructor() {
-    // Remap logDefinitions from log type (instead of name) to definition.
-    for (const def of Object.values(logDefinitions))
-      this.logTypes[def.type] = def;
+    this.logTypes = this.processLogDefs();
 
     for (const id of emptyIds) {
       // Empty ids have already been anonymized (to themselves).
@@ -35,52 +47,86 @@ export default class Anonymizer {
     }
   }
 
+  isLogDefinitionFieldIdx<K extends LogDefinitionName>(
+    fieldId: number | null | undefined,
+    name: K,
+  ): fieldId is LogDefFieldIdx<K> {
+    return (fieldId === null || fieldId === undefined)
+      ? false
+      : (Object.values(logDefinitions[name].fields) as number[]).includes(fieldId);
+  }
+
+  isLogDefinitionField<K extends LogDefinitionName>(
+    field: string,
+    name: K,
+  ): field is LogDefFieldName<K> {
+    return Object.keys(logDefinitions[name].fields).includes(field);
+  }
+
+  isLogDefinitionType(type: string | undefined): type is LogDefinitionType {
+    return Object.values(logDefinitions).some((d) => d.type === type);
+  }
+
+  isLogDefinition<K extends LogDefinitionName>(def: { name: K }): def is LogDefinition<K> {
+    return isEqual(def, logDefinitions[def.name]);
+  }
+
+  isReindexedLogDefs(remap: Partial<ReindexedLogDefs>): remap is ReindexedLogDefs {
+    return Object.values(logDefinitions).every((d) => isEqual(remap[d.type], d));
+  }
+
+  processLogDefs(): ReindexedLogDefs {
+    const remap: { [type: string]: LogDefinition<LogDefinitionName> } = {};
+    for (const def of Object.values(logDefinitions)) {
+      if (!this.isLogDefinition(def))
+        throw new UnreachableCode();
+      remap[def.type] = def;
+    }
+    if (!this.isReindexedLogDefs(remap))
+      throw new UnreachableCode();
+    return remap;
+  }
+
   public process(line: string, notifier: Notifier): string | undefined {
-    const splitLine = line.split('|');
+    let splitLine = line.split('|');
 
     // Improperly closed files can leave a blank line.
-    const typeField = splitLine[0];
-    if (typeField === undefined || splitLine.length <= 1)
-      return line;
+    const type = splitLine[0];
+
+    if (!this.isLogDefinitionType(type) || splitLine.length <= 1)
+      return;
 
     // Always replace the hash.
-    if (splitLine[splitLine.length - 1]?.length === 16)
+    if (splitLine[splitLine.length - 1]?.trimEnd().length === 16)
       splitLine[splitLine.length - 1] = this.fakeHash;
     else
       notifier.warn(`missing hash ${splitLine.length}`, splitLine);
 
-    const type = this.logTypes[typeField];
-    if (type === undefined || type.isUnknown) {
+    const typeDef = this.logTypes[type];
+    if (typeDef.isUnknown) {
       notifier.warn('unknown type', splitLine);
       return;
     }
 
     // Check subfields first before canAnonymize.
     // Subfields override the main type, if present.
+    // TODO: Maybe add support for anonymizing based on subfields that are repeating fields?
+    // But no current use case for this.
     let canAnonymizeSubField = false;
-    if (type.subFields) {
-      for (const subFieldName in type.subFields) {
-        // Find field idx.
-        let fieldIdx = -1;
-        for (const fieldName in type.fields) {
-          if (fieldName === subFieldName) {
-            const idx = type.fields[fieldName];
-            if (idx === undefined)
-              throw new UnreachableCode();
-            fieldIdx = idx;
-            break;
-          }
-        }
-        if (fieldIdx === -1) {
-          notifier.warn('internal error: invalid subfield: ' + subFieldName, splitLine);
+    if (typeDef.subFields) {
+      for (const subFieldName in typeDef.subFields) {
+        if (!this.isLogDefinitionField(subFieldName, typeDef.name)) {
+          notifier.warn(`internal error: invalid subfield: ${subFieldName}`, splitLine);
           return;
         }
+
+        const fieldIdx = typeDef.fields[subFieldName];
         const value = splitLine[fieldIdx];
         if (value === undefined) {
-          notifier.warn('internal error: missing subfield: ' + subFieldName, splitLine);
+          notifier.warn(`internal error: missing subfield: ${subFieldName}`, splitLine);
           return;
         }
-        const subValues = type.subFields[subFieldName];
+        const subValues = typeDef.subFields[subFieldName];
 
         // Unhandled values inherit the field's value.
         const subType = subValues?.[value];
@@ -93,19 +139,35 @@ export default class Anonymizer {
     }
 
     // Drop any lines that can't be handled.
-    if (!canAnonymizeSubField && !type.canAnonymize)
+    if (!canAnonymizeSubField && !typeDef.canAnonymize)
       return;
 
+    const playerIds = typeDef.playerIds ?? {};
+    const possibleIds = typeDef.possiblePlayerIds ?? [];
+    possibleIds.forEach((id) => {
+      if (!(id in playerIds))
+        playerIds[id] = null;
+    });
+
+    const rfToAnonymize = typeDef.repeatingFields?.keysToAnonymize;
+    const hasRFToAnonymize = rfToAnonymize !== undefined;
+
     // If nothing to anonymize, we're done.
-    const playerIds = type.playerIds;
-    if (playerIds === undefined)
+    if (Object.keys(playerIds).length === 0 && !hasRFToAnonymize)
       return splitLine.join('|');
 
     // Anonymize fields.
     for (const [idIdxStr, nameIdx] of Object.entries(playerIds)) {
       const idIdx = parseInt(idIdxStr);
+      if (!this.isLogDefinitionFieldIdx(idIdx, typeDef.name)) {
+        notifier.warn(`internal error: invalid field index: ${idIdx}`, splitLine);
+        return;
+      }
 
-      const isOptional = type.firstOptionalField !== undefined && idIdx >= type.firstOptionalField;
+      const isOptional = typeDef.firstOptionalField !== undefined &&
+        idIdx >= typeDef.firstOptionalField;
+
+      const isPossible = possibleIds.includes(idIdx);
 
       // Check for ids that are out of range, possibly optional.
       // The last field is always the hash, so don't include that either.
@@ -120,15 +182,17 @@ export default class Anonymizer {
 
       // TODO: keep track of uppercase/lowercase??
       const field = splitLine[idIdx];
-      if (field === undefined)
-        throw new UnreachableCode();
+      if (field === undefined) {
+        notifier.warn(`line is missing data at index ${idIdx}`, splitLine);
+        return;
+      }
       const playerId = field.toUpperCase();
 
       // Cutscenes get added combatant messages with ids such as 'FF000006' and no name.
       const isCutsceneId = playerId.startsWith('FF');
 
-      // Handle weirdly shaped ids.
-      if (playerId.length !== 8 || isCutsceneId) {
+      // Handle weirdly shaped ids (if not a 'possible' id field).
+      if (!isPossible && (playerId.length !== 8 || isCutsceneId)) {
         // Also, sometimes ids are '0000' or '0'.  Treat these the same as implicitly optional.
         const isZero = parseInt(playerId) === 0;
         if (isOptional || isZero || isCutsceneId) {
@@ -148,35 +212,116 @@ export default class Anonymizer {
       if (playerId.startsWith('4'))
         continue;
 
-      // Replace the id at this index with a fake player id.
-      if (this.anonMap[playerId] === undefined)
-        this.anonMap[playerId] = this.addNewPlayer();
-      const fakePlayerId = this.anonMap[playerId];
-      if (fakePlayerId === undefined) {
-        notifier.warn('internal error: missing player id', splitLine);
-        continue;
+      // If it's a 'possible' field but not a playerId-like value, no need to anonymize.
+      // If a playerId-like value:
+      //   - If it's a known playerId, do nothing here (it will be silently anonymized later)
+      //   - If it's a new id, it could be a false positive, so give an awareness info msg.
+      if (isPossible) {
+        if (playerId.match(/^1.{7}$/) === null)
+          continue;
+        else if (!(playerId in this.anonMap))
+          notifier.info(`found & anonymized possible playerid ${playerId}`, splitLine);
       }
+
+      // Replace the id at this index with a fake player id.
+      const fakePlayerId = this.anonMap[playerId] ??= this.addNewPlayer();
 
       splitLine[idIdx] = fakePlayerId;
 
       // Replace the corresponding name, if there's a name mapping.
-      if (typeof nameIdx === 'number') {
+      if (this.isLogDefinitionFieldIdx(nameIdx, typeDef.name)) {
         const fakePlayerName = this.playerMap[fakePlayerId];
         if (fakePlayerName === undefined) {
-          notifier.warn(`internal error: missing player name ${fakePlayerId}`, splitLine);
+          notifier.warn(`internal error: missing fake player name for ${fakePlayerId}`, splitLine);
           continue;
         }
         splitLine[nameIdx] = fakePlayerName;
       }
     }
 
+    // Anonymize repeating fields.
+    if (hasRFToAnonymize) {
+      const startIdx = typeDef.repeatingFields?.startingIndex;
+      if (startIdx === undefined) {
+        notifier.warn('internal error: missing starting index for repeating fields', splitLine);
+        return;
+      }
+
+      splitLine = this.anonymizeRepeatingFields(
+        rfToAnonymize,
+        splitLine,
+        startIdx,
+        notifier,
+      );
+    }
+
     // For unknown fields, just clear them, as they may have ids.
-    if (typeof type.firstUnknownField !== 'undefined') {
-      for (let idx = type.firstUnknownField; idx < splitLine.length - 1; ++idx)
+    if (typeDef.firstUnknownField !== undefined) {
+      for (let idx = typeDef.firstUnknownField; idx < splitLine.length - 1; ++idx)
         splitLine[idx] = '';
     }
 
     return splitLine.join('|');
+  }
+
+  // This method assumes that repeating fields use the current `CombatantMemory` structure
+  // of key/value pairs, e.g. Key1|Value1|...|KeyN|ValueN|.
+  // If other structures are used, this method will need to be updated.
+  private anonymizeRepeatingFields(
+    rfToAnonymize: { [key: string | number]: string | number | null },
+    splitLine: string[],
+    startIdx: number,
+    notifier: Notifier,
+  ): string[] {
+    for (const [idFieldKey, nameFieldKey] of Object.entries(rfToAnonymize)) {
+      let idFieldKeyIdx: number;
+      let idIsRepeatingField = true; // default assumption
+
+      if (typeof idFieldKey === 'number' || !isNaN(parseInt(idFieldKey))) {
+        idIsRepeatingField = false;
+        idFieldKeyIdx = parseInt(idFieldKey);
+      } else
+        idFieldKeyIdx = splitLine.findIndex((field, idx) =>
+          idx >= startIdx && field === idFieldKey
+        );
+
+      // ID field is not present; not an error condition for repeating fields.
+      if (idFieldKeyIdx === -1)
+        continue;
+
+      const idFieldValueIdx = idIsRepeatingField ? idFieldKeyIdx + 1 : idFieldKeyIdx;
+      const idFieldValue = (splitLine[idFieldValueIdx] ?? '').toUpperCase();
+
+      // If not a playerId value, ignore.
+      // TODO: Could add warnings here for malformed values, but due to the nature of
+      // `CombatantMemory` data from OverlayPlugin, any `GameObject` could be returned
+      // in a line with malformed data if it's not a full combatant.
+      if (idFieldValue.length !== 8 || !idFieldValue.startsWith('1'))
+        continue;
+
+      const fakePlayerId = this.anonMap[idFieldValue] ??= this.addNewPlayer();
+      splitLine[idFieldValueIdx] = fakePlayerId;
+
+      // If no name field is paired with this id field, we're done.
+      if (nameFieldKey === null)
+        continue;
+
+      const nameFieldKeyIdx = splitLine.findIndex((field, idx) =>
+        idx >= startIdx && field === nameFieldKey
+      );
+      if (nameFieldKeyIdx === -1)
+        continue;
+
+      const nameFieldValueIdx = nameFieldKeyIdx + 1;
+      const playerName = splitLine[nameFieldValueIdx];
+      if (playerName === undefined || playerName === '') {
+        notifier.warn(`expected player name after '${nameFieldKey}'`, splitLine);
+        continue;
+      }
+      splitLine[nameFieldValueIdx] = this.playerMap[fakePlayerId] ?? '';
+    }
+
+    return splitLine;
   }
 
   private addNewPlayer(): string {
@@ -220,7 +365,7 @@ export default class Anonymizer {
       if (emptyIds.includes(field))
         return;
       if (playerIds.includes(field)) {
-        notifier.warn(`uncaught player id ${field}, idx: ${idx}`, splitLine);
+        notifier.error(`uncaught player id ${field}, idx: ${idx}`, splitLine);
         success = false;
       }
     });

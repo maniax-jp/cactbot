@@ -9,6 +9,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'ThePalaceOfTheDeadFloors81_90',
   zoneId: ZoneId.ThePalaceOfTheDeadFloors81_90,
 
   triggers: [
@@ -46,6 +47,8 @@ const triggerSet: TriggerSet<Data> = {
         pushToBoss: {
           en: 'Push ${name} into boss',
           de: 'Stoß ${name} in den Boss',
+          fr: 'Poussez ${name} sur le boss',
+          ja: '${name}をボスに飛ばして',
           cn: '将 ${name} 推至BOSS',
           ko: '보스쪽으로 ${name} 밀기',
         },

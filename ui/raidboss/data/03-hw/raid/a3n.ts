@@ -13,6 +13,7 @@ export interface Data extends RaidbossData {
 // A3N
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'AlexanderTheArmOfTheFather',
   zoneId: ZoneId.AlexanderTheArmOfTheFather,
   timelineFile: 'a3n.txt',
   timelineTriggers: [
@@ -81,6 +82,7 @@ const triggerSet: TriggerSet<Data> = {
           en: '3x Tank Cleave',
           de: '3x Tank Cleave',
           fr: 'Tank Cleave x3',
+          ja: 'タンク強攻撃x3',
           cn: '3x 顺劈',
           ko: '광역 탱버 3번',
         },
@@ -97,6 +99,7 @@ const triggerSet: TriggerSet<Data> = {
           en: 'Repeated tank cleaves',
           de: 'Wiederholte Tank Cleaves',
           fr: 'Répétition de Tank cleaves',
+          ja: '連続タンク強攻撃',
           cn: '多重顺劈',
           ko: '광역 탱버 반복',
         },
@@ -167,12 +170,12 @@ const triggerSet: TriggerSet<Data> = {
         const marker1 = data.ferroMarker[data.me];
         const marker2 = data.ferroMarker[partner ?? ''];
 
-        if (!partner || !marker1 || !marker2)
-          return matches.ability + ' (???)';
+        if (partner === undefined || marker1 === undefined || marker2 === undefined)
+          return `${matches.ability} (???)`;
 
         if (marker1 === marker2)
-          return output.repel!({ player: data.ShortName(partner) });
-        return output.attract!({ player: data.ShortName(partner) });
+          return output.repel!({ player: data.party.member(partner) });
+        return output.attract!({ player: data.party.member(partner) });
       },
       outputStrings: {
         repel: {
@@ -231,7 +234,6 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       'locale': 'fr',
-      'missingTranslations': true,
       'replaceSync': {
         'Condensate Demineralizer .9': 'Grand condensateur GC-9',
         'Hydrate Core': 'noyau d\'hydrate',
@@ -239,6 +241,7 @@ const triggerSet: TriggerSet<Data> = {
         'Living Liquid': 'liquide vivant',
       },
       'replaceText': {
+        '--Liquid Limb spawns--': '--Apparition du membre liquide--',
         'Cascade': 'Cascade',
         'Drainage': 'Drainage',
         'Fluid Strike': 'Frappe fluide',
@@ -303,7 +306,6 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       'locale': 'ko',
-      'missingTranslations': true,
       'replaceSync': {
         'Condensate Demineralizer .9': '제9대형복수기',
         'Hydrate Core': '액화 핵',

@@ -7,6 +7,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'PharosSirius',
   zoneId: ZoneId.PharosSirius,
   triggers: [
     {
@@ -31,6 +32,8 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'Spread: Stacks Explode Soon',
           de: 'Verteilen: Kristallstacks explodieren bald',
+          fr: 'Écartez-vous : les cristaux vont exploser',
+          ja: '散開: クリスタルがすぐ爆発する',
           cn: '散开: 即将爆炸',
           ko: '산개: 곧 크리스탈 폭발',
         },
@@ -41,12 +44,14 @@ const triggerSet: TriggerSet<Data> = {
       id: 'Pharos Sirius Doom',
       type: 'GainsEffect',
       netRegex: { effectId: '172' },
-      infoText: (data, matches, output) => output.text!({ player: data.ShortName(matches.target) }),
+      infoText: (data, matches, output) =>
+        output.text!({ player: data.party.member(matches.target) }),
       outputStrings: {
         text: {
           en: 'Heal ${player} to full',
           de: 'Heile ${player} voll',
           fr: 'Soin complet sur ${player}',
+          ja: '${player} を全回復して',
           cn: '奶满${player}',
           ko: '완전 회복: ${player}',
         },

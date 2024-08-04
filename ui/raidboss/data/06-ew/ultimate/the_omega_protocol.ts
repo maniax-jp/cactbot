@@ -6,9 +6,17 @@ import ZoneId from '../../../../../resources/zone_id';
 import { RaidbossData } from '../../../../../types/data';
 import { PluginCombatantState } from '../../../../../types/event';
 import { NetMatches } from '../../../../../types/net_matches';
-import { TriggerSet } from '../../../../../types/trigger';
+import { LocaleText, Output, TriggerSet } from '../../../../../types/trigger';
 
-type Phase =
+// TODO: Delta green tether break calls
+// TODO: Sigma say if you are unmarked / marked with unmarked / double mark pair
+// TODO: Sigma can we find towers and tell people where north tower is?
+// TODO: Sigma staff/feet call
+// TODO: Omega tell people they must be a monitor (alarm) if they are Second in Line + two Quickening Dynamis
+// TODO: Adjust Omega dodge locations
+// TODO: p6 magic number tank lb / healer lb triggers
+
+export type Phase =
   | 'p1'
   | 'p2'
   | 'p3'
@@ -25,8 +33,11 @@ export type Glitch = 'mid' | 'remote';
 export type Cannon = 'spread' | 'stack';
 export type RotColor = 'blue' | 'red';
 export type Regression = 'local' | 'remote';
+export type TetherColor = 'blue' | 'green';
+export type TrioDebuff = 'near' | 'distant';
 
 export interface Data extends RaidbossData {
+  readonly triggerSetConfig: { staffSwordDodge: 'mid' | 'far' };
   combatantData: PluginCombatantState[];
   phase: Phase;
   decOffset?: number;
@@ -48,7 +59,20 @@ export interface Data extends RaidbossData {
   patchVulnCount: number;
   waveCannonStacks: NetMatches['Ability'][];
   monitorPlayers: NetMatches['GainsEffect'][];
+  deltaTethers: { [name: string]: TetherColor };
+  trioDebuff: { [name: string]: TrioDebuff };
+  omegaDodgeRotation?: 'right' | 'left';
+  seenOmegaTethers?: boolean;
+  cosmoArrowCount: number;
+  cosmoArrowIn?: boolean;
+  cosmoArrowExaCount: number;
+  waveCannonFlares: number[];
 }
+
+const phaseReset = (data: Data) => {
+  data.monitorPlayers = [];
+  data.trioDebuff = {};
+};
 
 // Due to changes introduced in patch 5.2, overhead markers now have a random offset
 // added to their ID. This offset currently appears to be set per instance, so
@@ -97,8 +121,112 @@ export const getHeadmarkerId = (
   return (parseInt(matches.id, 16) - data.decOffset).toString(16).toUpperCase().padStart(4, '0');
 };
 
+const nearDistantOutputStrings: { [label: string]: LocaleText } = {
+  near: {
+    en: 'Near World',
+    de: 'Hallo Welt: Nah',
+    fr: 'Bonjour le monde : Proche',
+    ja: 'ニア',
+    cn: '近处世界',
+    ko: '헬로 월드: 근거리',
+  },
+  distant: {
+    en: 'Distant World',
+    de: 'Hallo Welt: Fern',
+    fr: 'Bonjour le monde : Distant',
+    ja: 'ファー',
+    cn: '远处世界',
+    ko: '헬로 월드: 원거리',
+  },
+} as const;
+
+const staffSwordMidHelper = (isEastWest: boolean, posX: number, posY: number, output: Output) => {
+  if (isEastWest) {
+    // East/West Safe
+    if (posX < 100 && posY < 100) {
+      // NW
+      return output.dirWSW!();
+    } else if (posX < 100 && posY > 100) {
+      // SW
+      return output.dirWNW!();
+    } else if (posX > 100 && posY < 100) {
+      // NE
+      return output.dirESE!();
+    }
+    // SE
+    return output.dirENE!();
+  }
+
+  // North/South Safe
+  if (posX < 100 && posY < 100) {
+    // NW
+    return output.dirNNE!();
+  } else if (posX < 100 && posY > 100) {
+    // SW
+    return output.dirSSE!();
+  } else if (posX > 100 && posY < 100) {
+    // NE
+    return output.dirNNW!();
+  }
+
+  // SE
+  return output.dirSSW!();
+};
+
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheOmegaProtocolUltimate',
   zoneId: ZoneId.TheOmegaProtocolUltimate,
+  config: [
+    {
+      id: 'staffSwordDodge',
+      comment: {
+        en:
+          '<a href="https://github.com/quisquous/cactbot/releases/tag/v0.28.19" target="_blank">Read Notes</a>',
+        de:
+          '<a href="https://github.com/quisquous/cactbot/releases/tag/v0.28.19" target="_blank">Notizen lesen</a>',
+        fr:
+          '<a href="https://github.com/quisquous/cactbot/releases/tag/v0.28.19" target="_blank">Notes</a>',
+        ja:
+          '<a href="https://github.com/quisquous/cactbot/releases/tag/v0.28.19" target="_blank">ノート参考</a>',
+        cn:
+          '<a href="https://github.com/quisquous/cactbot/releases/tag/v0.28.19" target="_blank">阅读笔记</a>',
+        ko:
+          '<a href="https://github.com/quisquous/cactbot/releases/tag/v0.28.19" target="_blank">참고</a>',
+      },
+      name: {
+        en: 'Run: Omega Staff Sword Dodge Direction',
+        de: 'Renn: Omega Stab Schwert Ausweich-Richtung',
+        fr: 'Sprint : Direction d\'esquive de l\'épée Oméga',
+        ja: 'オメガの杖の回避方向',
+        cn: '欧米茄运动会杖剑躲避方向',
+        ko: '코드: 오메가 지팡이 칼 회피 방향',
+      },
+      type: 'select',
+      options: {
+        en: {
+          'Dodge Far (by Omega-M)': 'far',
+          'Dodge Mid (by Omega-F)': 'mid',
+        },
+        de: {
+          'Ausweichen Fern (von Omega-M)': 'far',
+          'Ausweichen Mitte (von Omega-F)': 'mid',
+        },
+        fr: {
+          'Esquive au loin (par Oméga-M)': 'far',
+          'Esquive au milieu (par Oméga-F)': 'mid',
+        },
+        cn: {
+          '躲远 (by Omega-M)': 'far',
+          '躲中 (by Omega-F)': 'mid',
+        },
+        ko: {
+          '멀리 (Omega-M)': 'far',
+          '중간 (Omega-F)': 'mid',
+        },
+      },
+      default: 'far',
+    },
+  ],
   timelineFile: 'the_omega_protocol.txt',
   initData: () => {
     return {
@@ -120,8 +248,48 @@ const triggerSet: TriggerSet<Data> = {
       patchVulnCount: 0,
       waveCannonStacks: [],
       monitorPlayers: [],
+      deltaTethers: {},
+      trioDebuff: {},
+      cosmoArrowCount: 0,
+      cosmoArrowExaCount: 0,
+      waveCannonFlares: [],
     };
   },
+  timelineTriggers: [
+    {
+      id: 'TOP Flash Gale Tank Auto',
+      regex: /Flash Gale 1/,
+      beforeSeconds: 5.5,
+      infoText: (_data, _matches, output) => output.text!(),
+      outputStrings: {
+        text: {
+          en: 'Tank Autos',
+          de: 'Tank Autos',
+          fr: 'Autos sur le tank',
+          ja: 'タンクへのオートアタック',
+          cn: '坦克平A',
+          ko: '탱커 평타',
+        },
+      },
+    },
+    {
+      id: 'TOP Wave Cannon Protean',
+      regex: /Wave Cannon 1/,
+      beforeSeconds: 6,
+      durationSeconds: 5,
+      alertText: (_data, _matches, output) => output.text!(),
+      outputStrings: {
+        text: {
+          en: 'Protean',
+          de: 'Himmelsrichtungen',
+          fr: 'Positions',
+          ja: '基本散会',
+          cn: '八方分散',
+          ko: '기본 산개',
+        },
+      },
+    },
+  ],
   triggers: [
     {
       id: 'TOP Phase Tracker',
@@ -131,6 +299,7 @@ const triggerSet: TriggerSet<Data> = {
       // 8015 = Run ****mi* (Omega Version)
       netRegex: { id: ['7B40', '8014', '8015'], capture: true },
       run: (data, matches) => {
+        phaseReset(data);
         switch (matches.id) {
           case '7B40':
             data.phase = 'p2';
@@ -155,6 +324,7 @@ const triggerSet: TriggerSet<Data> = {
       netRegex: { id: ['7BFD', '7B13', '7B47', '7B7C', '7F72'], capture: true },
       suppressSeconds: 20, // Ignore multiple delta/omega captures
       run: (data, matches) => {
+        phaseReset(data);
         switch (matches.id) {
           case '7BFD':
             data.phase = 'p1';
@@ -212,6 +382,7 @@ const triggerSet: TriggerSet<Data> = {
       id: 'TOP In Line Debuff',
       type: 'GainsEffect',
       netRegex: { effectId: ['BBC', 'BBD', 'BBE', 'D7B'], capture: false },
+      condition: (data) => data.phase === 'p1',
       delaySeconds: 0.5,
       durationSeconds: 5,
       suppressSeconds: 1,
@@ -226,12 +397,15 @@ const triggerSet: TriggerSet<Data> = {
             break;
           }
         }
-        return output.text!({ num: myNum, player: data.ShortName(partner) });
+        return output.text!({ num: myNum, player: data.party.member(partner) });
       },
       outputStrings: {
         text: {
           en: '${num} (with ${player})',
           de: '${num} (mit ${player})',
+          fr: '${num} (avec ${player})',
+          ja: '${num} (${player})',
+          cn: '${num} (与${player})',
           ko: '${num} (+ ${player})',
         },
         unknown: Outputs.unknown,
@@ -253,16 +427,25 @@ const triggerSet: TriggerSet<Data> = {
           tower: {
             en: 'Tower 1',
             de: 'Turm 1',
+            fr: 'Tour 1',
+            ja: '塔1',
+            cn: '塔 1',
             ko: '기둥 1',
           },
           tether: {
             en: 'Tether 1',
             de: 'Verbindung 1',
+            fr: 'Lien 1',
+            ja: '線1',
+            cn: '线 1',
             ko: '선 1',
           },
           numNoMechanic: {
             en: '1',
             de: '1',
+            fr: '1',
+            ja: '1',
+            cn: '1',
             ko: '1',
           },
         };
@@ -296,16 +479,25 @@ const triggerSet: TriggerSet<Data> = {
           tower: {
             en: 'Tower ${num}',
             de: 'Turm ${num}',
+            fr: 'Tour ${num}',
+            ja: '塔 ${num}',
+            cn: '塔 ${num}',
             ko: '기둥 ${num}',
           },
           tether: {
             en: 'Tether ${num}',
             de: 'Verbindung ${num}',
+            fr: 'Lien ${num}',
+            ja: '線 ${num}',
+            cn: '线 ${num}',
             ko: '선 ${num}',
           },
           numNoMechanic: {
             en: '${num}',
             de: '${num}',
+            fr: '${num}',
+            ja: '${num}',
+            cn: '${num}',
             ko: '${num}',
           },
         };
@@ -336,11 +528,17 @@ const triggerSet: TriggerSet<Data> = {
           lineStack: {
             en: '1',
             de: '1',
+            fr: '1',
+            ja: '1',
+            cn: '1',
             ko: '1',
           },
           spread: {
             en: '1 Out (on YOU)',
             de: '1 Raus (auf Dir)',
+            fr: '1 Extérieur (sur VOUS)',
+            ja: '1 外へ',
+            cn: '1 出 (点名)',
             ko: '밖으로 1',
           },
         };
@@ -364,11 +562,17 @@ const triggerSet: TriggerSet<Data> = {
           lineStack: {
             en: '${num}',
             de: '${num}',
+            fr: '${num}',
+            ja: '${num}',
+            cn: '${num}',
             ko: '${num}',
           },
           spread: {
             en: '${num} Out (on YOU)',
             de: '${num} Raus (auf Dir)',
+            fr: '${num} Extérieur (sur VOUS)',
+            ja: '${num} 外へ',
+            cn: '${num} 出 (点名)',
             ko: '밖으로 ${num}',
           },
         };
@@ -398,6 +602,9 @@ const triggerSet: TriggerSet<Data> = {
         tankCleaves: {
           en: 'Tank Cleaves',
           de: 'Tank Cleaves',
+          fr: 'Tank Cleaves',
+          ja: 'タンク前方攻撃',
+          cn: '坦克顺劈',
           ko: '광역 탱버',
         },
       },
@@ -416,6 +623,9 @@ const triggerSet: TriggerSet<Data> = {
         laserOnYou: {
           en: 'Laser on YOU',
           de: 'Laser auf DIR',
+          fr: 'Laser sur VOUS',
+          ja: '自分のレーザー',
+          cn: '激光点名',
           ko: '레이저 대상자',
         },
       },
@@ -510,22 +720,34 @@ const triggerSet: TriggerSet<Data> = {
         blizzardBladework: {
           en: 'Out Out',
           de: 'Raus Raus',
+          fr: 'Extérieur Extérieur',
+          ja: '外 外',
+          cn: '远离男女',
           ko: '밖 밖',
         },
         superliminalStrength: {
           en: 'In In on M',
           de: 'Rein Rein auf M',
-          ko: '안 안 남자',
+          fr: 'Intérieur Intérieur sur M',
+          ja: '内 内(男)',
+          cn: '靠近男人',
+          ko: '안 안 M',
         },
         superliminalBladework: {
           en: 'Under F',
           de: 'Unter W',
-          ko: '여자 밑',
+          fr: 'Sous F',
+          ja: '女の下',
+          cn: '靠近女人',
+          ko: 'F 밑',
         },
         blizzardStrength: {
           en: 'M Sides',
           de: 'Seitlich von M',
-          ko: '남자 양옆',
+          fr: 'Côtés de M',
+          ja: '男の横',
+          cn: '男人两侧',
+          ko: 'M 양옆',
         },
       },
     },
@@ -559,44 +781,103 @@ const triggerSet: TriggerSet<Data> = {
         }
 
         return {
-          circle: output.circle!({ glitch: glitch, player: data.ShortName(partner) }),
-          triangle: output.triangle!({ glitch: glitch, player: data.ShortName(partner) }),
-          square: output.square!({ glitch: glitch, player: data.ShortName(partner) }),
-          cross: output.cross!({ glitch: glitch, player: data.ShortName(partner) }),
+          circle: output.circle!({ glitch: glitch, player: data.party.member(partner) }),
+          triangle: output.triangle!({ glitch: glitch, player: data.party.member(partner) }),
+          square: output.square!({ glitch: glitch, player: data.party.member(partner) }),
+          cross: output.cross!({ glitch: glitch, player: data.party.member(partner) }),
         }[myMarker];
       },
       outputStrings: {
         midGlitch: {
           en: 'Mid',
           de: 'Mittel',
+          fr: 'Milieu',
+          ja: 'ミドル',
+          cn: '中',
           ko: '가까이',
         },
         remoteGlitch: {
           en: 'Far',
           de: 'Fern',
+          fr: 'Loin',
+          ja: 'ファー',
+          cn: '远',
           ko: '멀리',
         },
         circle: {
           en: '${glitch} Circle (with ${player})',
           de: '${glitch} Kreis (mit ${player})',
+          fr: 'Cercle ${glitch} (avec ${player})',
+          ja: '${glitch} 円 (${player})',
+          cn: '${glitch} 圆圈 (与${player})',
           ko: '${glitch} 동그라미 (+ ${player})',
         },
         triangle: {
           en: '${glitch} Triangle (with ${player})',
           de: '${glitch} Dreieck (mit ${player})',
+          fr: 'Triangle ${glitch} (avec ${player})',
+          ja: '${glitch} 三角 (${player})',
+          cn: '${glitch} 三角 (与${player})',
           ko: '${glitch} 삼각 (+ ${player})',
         },
         square: {
           en: '${glitch} Square (with ${player})',
           de: '${glitch} Viereck (mit ${player})',
+          fr: 'Carré ${glitch} (avec ${player})',
+          ja: '${glitch} 四角 (${player})',
+          cn: '${glitch} 四角 (与${player})',
           ko: '${glitch} 사각 (+ ${player})',
         },
         cross: {
           en: '${glitch} Cross (with ${player})',
           de: '${glitch} Kreuz (mit ${player})',
+          fr: 'X ${glitch} (avec ${player})',
+          ja: '${glitch} バツ (${player})',
+          cn: '${glitch} X (与${player})',
           ko: '${glitch} X (+ ${player})',
         },
         unknown: Outputs.unknown,
+      },
+    },
+    {
+      id: 'TOP Optical Unit Location',
+      type: 'MapEffect',
+      netRegex: { location: '0[1-8]', flags: '00020001' },
+      // This comes out right with playstation debuffs.
+      // Let players resolve Superliminal Steel/etc first.
+      delaySeconds: 5,
+      durationSeconds: 4,
+      suppressSeconds: 99999,
+      infoText: (_data, matches, output) => {
+        const dir = {
+          '01': output.dirN!(),
+          '02': output.dirNE!(),
+          '03': output.dirE!(),
+          '04': output.dirSE!(),
+          '05': output.dirS!(),
+          '06': output.dirSW!(),
+          '07': output.dirW!(),
+          '08': output.dirNW!(),
+        }[matches.location];
+        return output.text!({ dir: dir });
+      },
+      outputStrings: {
+        text: {
+          en: 'Eye ${dir}',
+          de: 'Auge ${dir}',
+          fr: 'Œil ${dir}',
+          ja: '目 ${dir}',
+          cn: '眼 ${dir}',
+          ko: '눈 ${dir}',
+        },
+        dirN: Outputs.dirN,
+        dirNE: Outputs.dirNE,
+        dirE: Outputs.dirE,
+        dirSE: Outputs.dirSE,
+        dirS: Outputs.dirS,
+        dirSW: Outputs.dirSW,
+        dirW: Outputs.dirW,
+        dirNW: Outputs.dirNW,
       },
     },
     {
@@ -610,16 +891,25 @@ const triggerSet: TriggerSet<Data> = {
           midGlitch: {
             en: 'Mid',
             de: 'Mittel',
+            fr: 'Milieu',
+            ja: 'ミドル',
+            cn: '中',
             ko: '가까이',
           },
           remoteGlitch: {
             en: 'Far',
             de: 'Fern',
+            fr: 'Loin',
+            ja: 'ファー',
+            cn: '远',
             ko: '멀리',
           },
           stacksOn: {
             en: '${glitch} Stacks (${player1}, ${player2})',
             de: '${glitch} Sammeln (${player1}, ${player2})',
+            fr: 'Package ${glitch} (${player1}, ${player2})',
+            ja: '${glitch} 頭割り (${player1}, ${player2})',
+            cn: '${glitch} 分摊 (${player1}, ${player2})',
             ko: '${glitch} 쉐어 (${player1}, ${player2})',
           },
           // TODO: say who your tether partner is to swap??
@@ -642,8 +932,8 @@ const triggerSet: TriggerSet<Data> = {
 
         const stacksOn = output.stacksOn!({
           glitch: glitch,
-          player1: data.ShortName(p1),
-          player2: data.ShortName(p2),
+          player1: data.party.member(p1),
+          player2: data.party.member(p2),
         });
         if (!data.spotlightStacks.includes(data.me))
           return { infoText: stacksOn };
@@ -689,11 +979,13 @@ const triggerSet: TriggerSet<Data> = {
           return { alarmText: output.dontStack!() };
         // Note: if you are doing uptime meteors then everybody stacks.
         // If you are not, then you'll need to ignore this as needed.
-        return { infoText: output.stack!() };
+        // Note2: For P5 Delta, all remaining blues will stack for pile pitch
+        if (data.deltaTethers[data.me] !== 'green')
+          return { infoText: output.stack!() };
       },
     },
     {
-      id: 'TOP Cosmo Memory',
+      id: 'TOP P2 Cosmo Memory',
       type: 'StartsUsing',
       netRegex: { id: '7B22', source: 'Omega-M', capture: false },
       response: Responses.aoe(),
@@ -725,36 +1017,61 @@ const triggerSet: TriggerSet<Data> = {
       delaySeconds: 0.5,
       durationSeconds: 15,
       suppressSeconds: 1,
-      alertText: (data, _matches, output) => {
+      response: (data, _matches, output) => {
+        // cactbot-builtin-response
+        output.responseOutputStrings = {
+          stack: {
+            en: 'Stack (w/ ${player1} or ${player2})',
+            de: 'Sammeln (mit ${player1} oder ${player2})',
+            fr: 'Package (avec ${player1} ou ${player2})',
+            ja: 'あたまわり (${player1}, ${player2})',
+            cn: '分摊 (与${player1} 或 ${player2})',
+            ko: '쉐어 (+ ${player1}, ${player2})',
+          },
+          unmarkedStack: {
+            en: 'Unmarked Stack (w/ ${player1} or ${player2})',
+            de: 'Nicht markiertes Sammeln (mit ${player1} oder ${player2})',
+            fr: 'Package non-marqué (avec ${player1} ou ${player2})',
+            ja: '無職のあたまわり (${player1}, ${player2})',
+            cn: '无点名分摊 (与${player1} 或 ${player2})',
+            ko: '무징 쉐어 (+ ${player1}, ${player2})',
+          },
+          sameDebuffPartner: {
+            en: '(same debuff as ${player})',
+            de: '(selber Debuff wie ${player})',
+            fr: '(même debuff que ${player})',
+            ja: '(${player}と同じデバフ)',
+            cn: '(与${player} 相同 debuff)',
+            ko: '(${player}와 같은 디버프)',
+          },
+          unknown: Outputs.unknown,
+        };
+
         const myBuff = data.cannonFodder[data.me];
         if (myBuff === 'spread')
           return;
 
-        const partnerBuff: Cannon | undefined = myBuff === 'stack' ? undefined : 'stack';
-        const partners = [];
-        for (const name of data.party.partyNames) {
+        const oppositeBuff: Cannon | undefined = myBuff === 'stack' ? undefined : 'stack';
+        const opposites = [];
+        let partner: string = output.unknown!();
+        for (const name of data.party?.partyNames ?? []) {
           if (name === data.me)
             continue;
-          if (data.cannonFodder[name] === partnerBuff)
-            partners.push(name);
+          if (data.cannonFodder[name] === myBuff)
+            partner = name;
+          if (data.cannonFodder[name] === oppositeBuff)
+            opposites.push(name);
         }
 
-        const [p1, p2] = partners.sort().map((x) => data.ShortName(x));
+        const partnerText = output.sameDebuffPartner!({ player: data.party.member(partner) });
+
+        const [p1, p2] = opposites.sort().map((x) => data.party.member(x));
         if (myBuff === 'stack')
-          return output.stack!({ player1: p1, player2: p2 });
-        return output.unmarkedStack!({ player1: p1, player2: p2 });
-      },
-      outputStrings: {
-        stack: {
-          en: 'Stack (w/ ${player1} or ${player2})',
-          de: 'Sammeln (mit ${player1} oder ${player2})',
-          ko: '쉐어 (+ ${player1}, ${player2})',
-        },
-        unmarkedStack: {
-          en: 'Unmarked Stack (w/ ${player1} or ${player2})',
-          de: 'Nicht markiertes Sammeln (mit ${player1} oder ${player2})',
-          ko: '무징 쉐어 (+ ${player1}, ${player2})',
-        },
+          return { alertText: output.stack!({ player1: p1, player2: p2 }), infoText: partnerText };
+        return {
+          alertText: output.unmarkedStack!({ player1: p1, player2: p2 }),
+          infoText: partnerText,
+        };
       },
     },
     {
@@ -839,16 +1156,25 @@ const triggerSet: TriggerSet<Data> = {
         red: {
           en: 'Red is Defamation',
           de: 'Rot hat Ehrenstrafe',
+          fr: 'Rouge a Diffamation',
+          ja: '赤',
+          cn: '红毒大圈',
           ko: '빨강 광역',
         },
         blue: {
           en: 'Blue is Defamation',
           de: 'Blau hat Ehrenstrafe',
+          fr: 'Bleu a Diffamation',
+          ja: '青',
+          cn: '蓝毒大圈',
           ko: '파랑 광역',
         },
         unknown: {
           en: '??? is Defamation',
           de: '??? Ehrenstrafe',
+          fr: '??? a Diffamation',
+          ja: '???',
+          cn: '???大圈',
           ko: '??? 광역',
         },
       },
@@ -870,21 +1196,33 @@ const triggerSet: TriggerSet<Data> = {
         colorTower: {
           en: '${color} Tower Stack',
           de: '${color} Turm versammeln',
+          fr: 'Package tour ${color}',
+          ja: '${color}塔',
+          cn: '${color} 塔分摊',
           ko: '${color} 장판 쉐어',
         },
         colorTowerDefamation: {
           en: '${color} Tower Defamation',
           de: '${color} Turm Ehrenstrafe',
+          fr: 'Diffamation tour ${color}',
+          ja: '${color}塔',
+          cn: '${color} 塔大圈',
           ko: '${color} 장판 광역',
         },
         red: {
           en: 'Red',
           de: 'Rot',
+          fr: 'Rouge',
+          ja: '赤',
+          cn: '红',
           ko: '빨강',
         },
         blue: {
           en: 'Blue',
           de: 'Blau',
+          fr: 'Bleue',
+          ja: '青',
+          cn: '蓝',
           ko: '파랑',
         },
       },
@@ -916,11 +1254,17 @@ const triggerSet: TriggerSet<Data> = {
           passRot: {
             en: 'Pass Rot',
             de: 'Bug weitergeben',
+            fr: 'Donnez le debuff',
+            ja: '受け渡し',
+            cn: '不接毒',
             ko: '디버프 건네기',
           },
           getRot: {
             en: 'Get Rot',
             de: 'Bug nehmen',
+            fr: 'Prenez le debuff',
+            ja: 'デバフもらう',
+            cn: '接毒',
             ko: '디버프 받기',
           },
         };
@@ -964,26 +1308,41 @@ const triggerSet: TriggerSet<Data> = {
         farTether: {
           en: 'Stack by ${color} Tower',
           de: 'Beim ${color}en Turm versammeln',
+          fr: 'Package sur tour ${color}',
+          ja: '${color}の間でペア',
+          cn: '在 ${color} 塔分摊',
           ko: '${color} 장판 사이에서 쉐어',
         },
         nearTether: {
           en: 'Outside ${color} Towers',
           de: 'Auserhalb vom ${color}en Turm',
+          fr: 'À l\'extérieur de la tour ${color}',
+          ja: '${color}の外へ',
+          cn: '站 ${color} 塔外',
           ko: '${color} 장판 바깥쪽으로',
         },
         finalTowerNear: {
           en: 'Between ${color} Towers',
           de: 'Zwischen den ${color}en Türmen',
+          fr: 'Entre les tours ${color}',
+          ja: '${color}の間へ',
+          cn: '站 ${color} 塔之间',
           ko: '${color} 장판 사이로',
         },
         red: {
           en: 'Red',
           de: 'Rot',
+          fr: 'Rouge(s)',
+          ja: '赤',
+          cn: '红',
           ko: '빨강',
         },
         blue: {
           en: 'Blue',
           de: 'Blau',
+          fr: 'Bleue(s)',
+          ja: '青',
+          cn: '蓝',
           ko: '파랑',
         },
       },
@@ -1021,6 +1380,9 @@ const triggerSet: TriggerSet<Data> = {
         breakTether: {
           en: 'Break Tether',
           de: 'Verbindung brechen',
+          fr: 'Cassez le lien',
+          ja: '線切る',
+          cn: '扯断连线',
           ko: '선 끊기',
         },
       },
@@ -1074,6 +1436,9 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'East Monitors',
           de: 'Östliche Bildschirme',
+          fr: 'Moniteurs Est',
+          ja: '検知左',
+          cn: '左 (西) 小电视',
           ko: '오른쪽 모니터',
         },
       },
@@ -1087,6 +1452,9 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'West Monitors',
           de: 'Westliche Bildschirme',
+          fr: 'Moniteurs Ouest',
+          ja: '検知右',
+          cn: '右 (东) 小电视',
           ko: '왼쪽 모니터',
         },
       },
@@ -1106,11 +1474,17 @@ const triggerSet: TriggerSet<Data> = {
           monitorOnYou: {
             en: 'Monitor (w/${player1}, ${player2})',
             de: 'Bildschirm (w/${player1}, ${player2})',
+            fr: 'Moniteur (avec ${player1}, ${player2})',
+            ja: '検知 (${player1}, ${player2})',
+            cn: '小电视点名 (与${player1}, ${player2})',
             ko: '모니터 (+ ${player1}, ${player2})',
           },
           unmarked: {
             en: 'Unmarked',
             de: 'Unmarkiert',
+            fr: 'Sans marque',
+            ja: '無職',
+            cn: '无点名',
             ko: '무징',
           },
         };
@@ -1122,7 +1496,7 @@ const triggerSet: TriggerSet<Data> = {
         data.monitorPlayers = [];
 
         if (players.includes(data.me)) {
-          const [p1, p2] = players.filter((x) => x !== data.me).map((x) => data.ShortName(x));
+          const [p1, p2] = players.filter((x) => x !== data.me).map((x) => data.party.member(x));
           return { alertText: output.monitorOnYou!({ player1: p1, player2: p2 }) };
         }
         return { infoText: output.unmarked!() };
@@ -1148,11 +1522,17 @@ const triggerSet: TriggerSet<Data> = {
           stacks: {
             en: 'Stacks (${player1}, ${player2})',
             de: 'Sammeln (${player1}, ${player2})',
+            fr: 'Package (${player1}, ${player2})',
+            ja: 'あたまわり (${player1}, ${player2})',
+            cn: '分摊 (${player1}, ${player2})',
             ko: '쉐어징 (${player1}, ${player2})',
           },
           stackOnYou: {
             en: 'Stack on You (w/${player})',
             de: 'Auf DIR sammeln (w/${player})',
+            fr: 'Package sur VOUS (avec ${player})',
+            ja: '自分にマーカー (${player})',
+            cn: '分摊点名 (与${player})',
             ko: '쉐어징 대상자 (+ ${player})',
           },
         };
@@ -1164,20 +1544,1188 @@ const triggerSet: TriggerSet<Data> = {
         const onYou = p1 === data.me || p2 === data.me;
         if (onYou) {
           const otherPerson = p1 === data.me ? p2 : p1;
-          return { alertText: output.stackOnYou!({ player: data.ShortName(otherPerson) }) };
+          return { alertText: output.stackOnYou!({ player: data.party.member(otherPerson) }) };
         }
 
         return {
-          infoText: output.stacks!({ player1: data.ShortName(p1), player2: data.ShortName(p2) }),
+          infoText: output.stacks!({
+            player1: data.party.member(p1),
+            player2: data.party.member(p2),
+          }),
         };
       },
       run: (data, _matches) => data.waveCannonStacks = [],
+    },
+    {
+      id: 'TOP Delta Tethers',
+      type: 'GainsEffect',
+      // D70 Local Code Smell (red/green)
+      // DB0 Remote Code Smell (blue)
+      netRegex: { effectId: ['D70', 'DB0'] },
+      preRun: (data, matches) => {
+        data.deltaTethers[matches.target] = matches.effectId === 'D70' ? 'green' : 'blue';
+      },
+      infoText: (data, matches, output) => {
+        if (matches.target !== data.me)
+          return;
+        if (matches.effectId === 'D70')
+          return output.nearTether!();
+        return output.farTether!();
+      },
+      outputStrings: {
+        farTether: {
+          en: 'Blue Tether',
+          de: 'Blaue Verbindung',
+          fr: 'Lien Bleu',
+          ja: '青線',
+          cn: '蓝线',
+          ko: '파란색 선',
+        },
+        nearTether: {
+          en: 'Green Tether',
+          de: 'Grüne Verbindung',
+          fr: 'Lien Vert',
+          ja: '緑線',
+          cn: '绿线',
+          ko: '초록색 선',
+        },
+      },
+    },
+    {
+      id: 'TOP Swivel Cannon',
+      // 7B95 Swivel Cannon Left-ish
+      // 7B94 Swivel Cannon Right-ish
+      // 9.7s cast
+      type: 'StartsUsing',
+      netRegex: { id: ['7B94', '7B95'], source: 'Omega' },
+      durationSeconds: (_data, matches) => parseFloat(matches.castTime),
+      infoText: (_data, matches, output) => {
+        const isLeft = matches.id === '7B95';
+        // The eye is always clockwise to the beetle
+        return isLeft ? output.awayFromEye!() : output.towardsEye!();
+      },
+      outputStrings: {
+        awayFromEye: {
+          en: 'Away from Eye',
+          de: 'Weg vom Auge',
+          fr: 'Éloignez-vous de l\'Œil',
+          ja: '目から離れる',
+          cn: '远离眼睛',
+          ko: '눈에서 멀리 떨어지기',
+        },
+        towardsEye: {
+          en: 'Towards Eye',
+          de: 'Geh zu dem Auge',
+          fr: 'Allez vers l\'Œil',
+          ja: '目に近づく',
+          cn: '靠近眼睛',
+          ko: '눈 쪽으로',
+        },
+      },
+    },
+    {
+      id: 'TOP P5 Trio Debuff Collector',
+      type: 'GainsEffect',
+      netRegex: { effectId: ['D72', 'D73'] },
+      run: (data, matches) => {
+        // This is cleaned up on phase change.
+        if (matches.effectId === 'D72')
+          data.trioDebuff[matches.target] = 'near';
+        if (matches.effectId === 'D73')
+          data.trioDebuff[matches.target] = 'distant';
+      },
+    },
+    {
+      id: 'TOP P5 Delta Debuffs',
+      type: 'Ability',
+      // This is on the Oversampled Wave Cannon ability when there is roughly ~13s left on debuffs.
+      netRegex: { id: '7B6D', capture: false },
+      condition: (data) => data.phase === 'delta',
+      durationSeconds: 8,
+      suppressSeconds: 5,
+      response: (data, _matches, output) => {
+        // cactbot-builtin-response
+        output.responseOutputStrings = {
+          ...nearDistantOutputStrings,
+          unmarkedBlue: {
+            // Probably near baits, but you never know.
+            en: 'Unmarked Blue',
+            de: 'Blau ohne Debuff',
+            fr: 'Bleu sans debuff',
+            ja: 'デバフなしの青線',
+            cn: '无点名蓝',
+            ko: '디버프 없는 파란색 선',
+          },
+        };
+
+        const myDebuff = data.trioDebuff[data.me];
+        if (myDebuff === 'near')
+          return { alertText: output.near!() };
+        if (myDebuff === 'distant')
+          return { alertText: output.distant!() };
+
+        const myColor = data.deltaTethers[data.me];
+        if (myColor === undefined)
+          return;
+
+        // TODO: should we call anything out for greens here??
+        if (myColor === 'blue')
+          return { infoText: output.unmarkedBlue!() };
+      },
+    },
+    {
+      id: 'TOP Sigma Omega-M Location',
+      // Same NPC that casts Sigma Version teleports to card/intercard
+      type: 'Ability',
+      netRegex: { id: '8014', source: 'Omega-M' },
+      delaySeconds: 5.4,
+      durationSeconds: 26, // Display until Discharger
+      suppressSeconds: 1,
+      promise: async (data, matches) => {
+        data.combatantData = [];
+        data.combatantData = (await callOverlayHandler({
+          call: 'getCombatants',
+          ids: [parseInt(matches.sourceId, 16)],
+        })).combatants;
+      },
+      alertText: (data, _matches, output) => {
+        const m = data.combatantData.pop();
+        if (m === undefined) {
+          console.error(
+            `Sigma Omega-M Location: missing m: ${JSON.stringify(data.combatantData)}`,
+          );
+          return;
+        }
+        // Calculate combatant position in an all 8 cards/intercards
+        const matchedPositionTo8Dir = (combatant: PluginCombatantState) => {
+          // Positions are moved up 100 and right 100
+          const y = combatant.PosY - 100;
+          const x = combatant.PosX - 100;
+
+          // During Sigma, Omega-M teleports to one of the 8 cardinals + numerical
+          // slop on a radius=20 circle.
+          // N = (100, 80), E = (120, 100), S = (100, 120), W = (80, 100)
+          // NE = (114.14, 85.86), SE = (114.14, 114.14), SW = (85.86, 114.14), NW = (85.86, 85.86)
+          //
+          // Map NW = 0, N = 1, ..., W = 7
+
+          return Math.round(5 - 4 * Math.atan2(x, y) / Math.PI) % 8;
+        };
+
+        const dir = matchedPositionTo8Dir(m);
+        const dirs: { [dir: number]: string } = {
+          0: output.northwest!(),
+          1: output.north!(),
+          2: output.northeast!(),
+          3: output.east!(),
+          4: output.southeast!(),
+          5: output.south!(),
+          6: output.southwest!(),
+          7: output.west!(),
+        };
+        return output.mLocation!({
+          dir: dirs[dir] ?? output.unknown!(),
+        });
+      },
+      outputStrings: {
+        north: Outputs.north,
+        northeast: Outputs.northeast,
+        east: Outputs.east,
+        southeast: Outputs.southeast,
+        south: Outputs.south,
+        southwest: Outputs.southwest,
+        west: Outputs.west,
+        northwest: Outputs.northwest,
+        unknown: Outputs.unknown,
+        mLocation: {
+          en: '${dir} M',
+          de: '${dir} M',
+          fr: '${dir} M',
+          ja: '${dir} 男',
+          cn: '${dir} 男人',
+          ko: '${dir} M',
+        },
+      },
+    },
+    {
+      id: 'TOP P5 Sigma Debuffs',
+      type: 'Ability',
+      // This is on the Storage Violation damage, with roughly ~24s on debuffs.
+      netRegex: { id: '7B04', capture: false },
+      condition: (data) => data.phase === 'sigma',
+      durationSeconds: (data) => data.trioDebuff[data.me] === undefined ? 5 : 16,
+      suppressSeconds: 5,
+      response: (data, _matches, output) => {
+        // cactbot-builtin-response
+        output.responseOutputStrings = {
+          ...nearDistantOutputStrings,
+          noDebuff: {
+            en: '(no debuff)',
+            de: '(kein Debuff)',
+            fr: '(sans debuff)',
+            ja: '(デバフなし)',
+            cn: '(无 Debuff)',
+            ko: '(디버프 없음)',
+          },
+        };
+
+        const myDebuff = data.trioDebuff[data.me];
+        if (myDebuff === 'near')
+          return { alertText: output.near!() };
+        if (myDebuff === 'distant')
+          return { alertText: output.distant!() };
+        return { infoText: output.noDebuff!() };
+      },
+    },
+    {
+      id: 'TOP Sigma Superliminal/Blizzard',
+      // Omega-M casts Superliminal/Blizzard
+      // Track from Discharger (7B2E)
+      type: 'Ability',
+      netRegex: { id: '7B2E', source: 'Omega-M' },
+      // TODO: temporarily disabled as it is returning inconsistent results even with longer delay.
+      // See: https://github.com/quisquous/cactbot/issues/5335
+      condition: (data) => data.phase === 'sigma',
+      delaySeconds: 8,
+      suppressSeconds: 1,
+      promise: async (data, matches) => {
+        data.combatantData = [];
+        data.combatantData = (await callOverlayHandler({
+          call: 'getCombatants',
+          ids: [parseInt(matches.sourceId, 16)],
+        })).combatants;
+      },
+      alertText: (data, _matches, output) => {
+        const f = data.combatantData.pop();
+        if (f === undefined) {
+          console.error(
+            `Sigma Superliminal/Blizzard: missing f: ${JSON.stringify(data.combatantData)}`,
+          );
+          return;
+        }
+        if (f.WeaponId === 4)
+          return output.superliminalSteel!();
+        return output.optimizedBlizzard!();
+      },
+      outputStrings: {
+        superliminalSteel: {
+          en: 'Follow Laser, Move In',
+          de: 'Laser folgen, rein gehen',
+          fr: 'Suivez le laser, aller dedans',
+          ja: 'レーザー方面の中へ',
+          cn: '跟随激光，穿进辣翅',
+          ko: '레이저 따라서 안으로',
+        },
+        optimizedBlizzard: {
+          en: 'Wait First',
+          de: 'Zuerst warten',
+          fr: 'Attendez d\'abord',
+          ja: 'まってから移動',
+          cn: '先等十字',
+          ko: '기다렸다가 이동',
+        },
+      },
+    },
+    {
+      id: 'TOP P5 Omega Debuffs',
+      // First In Line: ~32s duration, ~12s left after 2nd dodge
+      // Second In Line: ~50s duration, ~15s left after final bounce
+      type: 'GainsEffect',
+      netRegex: { effectId: ['D72', 'D73'] },
+      condition: (data, matches) => data.phase === 'omega' && matches.target === data.me,
+      delaySeconds: (_data, matches) => parseFloat(matches.duration) > 40 ? 35 : 20,
+      durationSeconds: 8,
+      alertText: (_data, matches, output) => {
+        if (matches.effectId === 'D72')
+          return output.near!();
+        if (matches.effectId === 'D73')
+          return output.distant!();
+      },
+      outputStrings: nearDistantOutputStrings,
+    },
+    {
+      id: 'TOP P5 Omega Tether Detector',
+      type: 'Tether',
+      netRegex: { id: '0059', capture: false },
+      condition: (data) => data.phase === 'omega',
+      suppressSeconds: 30,
+      run: (data) => data.seenOmegaTethers = true,
+    },
+    {
+      id: 'TOP P5 Omega Tether Bait',
+      type: 'GainsEffect',
+      // Quickening Dynamis
+      netRegex: { effectId: 'D74', count: '03' },
+      condition: (data, matches) => {
+        if (data.phase !== 'omega' || data.seenOmegaTethers)
+          return false;
+        return matches.target === data.me;
+      },
+      durationSeconds: 8,
+      alarmText: (_data, _matches, output) => output.baitTethers!(),
+      outputStrings: {
+        baitTethers: {
+          en: 'Bait Tethers',
+          de: 'Verbindung ködern',
+          fr: 'Attirez les liens',
+          ja: '線取り',
+          cn: '接线',
+          ko: '선 가져가기',
+        },
+      },
+    },
+    {
+      id: 'TOP Omega Pre-Safe Spot',
+      // The combatants appear around the start of this cast, but the WeaponIds
+      // don't switch until ~2.7s after the ability goes off.
+      type: 'Ability',
+      netRegex: { id: '8015', source: 'Omega-M', capture: false },
+      delaySeconds: 4,
+      durationSeconds: 5.5,
+      suppressSeconds: 1,
+      promise: async (data) => {
+        data.combatantData = [];
+        data.combatantData = (await callOverlayHandler({
+          call: 'getCombatants',
+        })).combatants;
+        // Sort highest ID to lowest ID
+        const sortCombatants = (a: PluginCombatantState, b: PluginCombatantState) =>
+          (b.ID ?? 0) - (a.ID ?? 0);
+        data.combatantData = data.combatantData.sort(sortCombatants);
+      },
+      infoText: (data, _matches, output) => {
+        // The higher id is first set
+        const omegaMNPCId = 15721;
+        const omegaFNPCId = 15722;
+        const findOmegaF = (combatant: PluginCombatantState) => combatant.BNpcID === omegaFNPCId;
+        const findOmegaM = (combatant: PluginCombatantState) => combatant.BNpcID === omegaMNPCId;
+
+        const f = data.combatantData.filter(findOmegaF).shift();
+        const m = data.combatantData.filter(findOmegaM).shift();
+
+        if (f === undefined || m === undefined) {
+          console.error(`Omega Safe Spots: missing m/f: ${JSON.stringify(data.combatantData)}`);
+          return;
+        }
+
+        const isFIn = f.WeaponId === 4;
+        const isMIn = m.WeaponId === 4;
+
+        if (!isFIn && !isMIn && data.triggerSetConfig.staffSwordDodge === 'mid') {
+          const eastWestSwordStaffDir = staffSwordMidHelper(true, f.PosX, f.PosY, output);
+          const northSouthSwordStaffDir = staffSwordMidHelper(false, f.PosX, f.PosY, output);
+          return output.staffSwordMid!({
+            northSouth: northSouthSwordStaffDir,
+            eastWest: eastWestSwordStaffDir,
+          });
+        }
+
+        // The combatants only spawn in these intercards:
+        // 92.93, 92.93 (NW)      107.07, 92.93 (NE)
+        // 92.93, 107.07 (SW)     107.07, 107.07 (SE)
+        // They will either spawn NW/SE first or NE/SW
+        // Boss cleave is unknown at this time, so call both sides
+        const pos1 = (!isMIn && isFIn) ? f.PosY : m.PosY;
+        const pos2 = (!isMIn && isFIn) ? f.PosX : m.PosX;
+        const northSouthDir = pos1 < 100 ? output.dirN!() : output.dirS!();
+        const eastWestDir = pos2 < 100 ? output.dirW!() : output.dirE!();
+
+        if (isFIn) {
+          if (isMIn)
+            return output.legsShield!({ northSouth: northSouthDir, eastWest: eastWestDir });
+          return output.legsSword!({ northSouth: northSouthDir, eastWest: eastWestDir });
+        }
+        if (isMIn)
+          return output.staffShield!({ northSouth: northSouthDir, eastWest: eastWestDir });
+
+        return output.staffSwordFar!({
+          northSouth: northSouthDir,
+          eastWest: eastWestDir,
+        });
+      },
+      outputStrings: {
+        legsSword: {
+          en: 'Close ${northSouth} or ${eastWest}',
+          de: 'Nahe ${northSouth} oder ${eastWest}',
+          fr: 'Proche ${northSouth} ou ${eastWest}',
+          ja: '内 ${northSouth}/${eastWest}',
+          cn: '靠近 ${northSouth} 或 ${eastWest}',
+          ko: '${northSouth}/${eastWest} 가까이',
+        },
+        legsShield: {
+          en: 'Close ${northSouth} or ${eastWest}',
+          de: 'Nahe ${northSouth} oder ${eastWest}',
+          fr: 'Proche ${northSouth} ou ${eastWest}',
+          ja: '内 ${northSouth}/${eastWest}',
+          cn: '靠近 ${northSouth} 或 ${eastWest}',
+          ko: '${northSouth}/${eastWest} 가까이',
+        },
+        staffShield: {
+          en: 'In ${northSouth} or ${eastWest}',
+          de: 'Rein ${northSouth} oder ${eastWest}',
+          fr: 'Intérieur ${northSouth} ou ${eastWest}',
+          ja: '外 ${northSouth}/${eastWest}',
+          cn: '进 ${northSouth} 或 ${eastWest}',
+          ko: '${northSouth}/${eastWest} 중간',
+        },
+        staffSwordFar: {
+          en: 'Far ${northSouth} or ${eastWest}',
+          de: 'Entfernt von ${northSouth} oder ${eastWest}',
+          fr: 'Loin ${northSouth} ou ${eastWest}',
+          ja: '遠 ${northSouth}/${eastWest}',
+          cn: '远 ${northSouth} 或 ${eastWest}',
+          ko: '${northSouth}/${eastWest} 멀리',
+        },
+        staffSwordMid: {
+          en: 'Mid ${northSouth} or ${eastWest}',
+          de: 'Mittig ${northSouth} oder ${eastWest}',
+          fr: 'Milieu ${northSouth} ou ${eastWest}',
+          ja: '外 ${northSouth}/${eastWest}',
+          cn: '中 ${northSouth} 或 ${eastWest}',
+          ko: '${northSouth}/${eastWest} 중간',
+        },
+        dirN: Outputs.dirN,
+        dirE: Outputs.dirE,
+        dirS: Outputs.dirS,
+        dirW: Outputs.dirW,
+        dirNNW: Outputs.dirNNW,
+        dirNNE: Outputs.dirNNE,
+        dirENE: Outputs.dirENE,
+        dirESE: Outputs.dirESE,
+        dirSSE: Outputs.dirSSE,
+        dirSSW: Outputs.dirSSW,
+        dirWSW: Outputs.dirWSW,
+        dirWNW: Outputs.dirWNW,
+      },
+    },
+    {
+      id: 'TOP Omega Safe Spots',
+      // 7B9B Diffuse Wave Cannon (North/South), is followed up with 7B78
+      // 7B9C Diffuse Wave Cannon (East/West), is followed up with 7B77
+      type: 'StartsUsing',
+      netRegex: { id: ['7B9B', '7B9C'], source: 'Omega' },
+      durationSeconds: (_data, matches) => parseFloat(matches.castTime),
+      alertText: (data, matches, output) => {
+        // The higher id is first set
+        const omegaMNPCId = 15721;
+        const omegaFNPCId = 15722;
+        const findOmegaF = (combatant: PluginCombatantState) => combatant.BNpcID === omegaFNPCId;
+        const findOmegaM = (combatant: PluginCombatantState) => combatant.BNpcID === omegaMNPCId;
+
+        const [f1, f2] = data.combatantData.filter(findOmegaF);
+        const [m1, m2] = data.combatantData.filter(findOmegaM);
+
+        if (f1 === undefined || f2 === undefined || m1 === undefined || m2 === undefined) {
+          console.error(`Omega Safe Spots: missing m/f: ${JSON.stringify(data.combatantData)}`);
+          return;
+        }
+
+        const isF1In = f1.WeaponId === 4;
+        const isF2In = f2.WeaponId === 4;
+        const isM1In = m1.WeaponId === 4;
+        const isM2In = m2.WeaponId === 4;
+        const isFirstEastWest = matches.id === '7B9B';
+        const isSecondEastWest = !isFirstEastWest;
+
+        let pos1: number;
+        let pos2: number;
+        if (data.triggerSetConfig.staffSwordDodge === 'far') {
+          if (isFirstEastWest) {
+            // Dodge by Omega-M for everything except sword + legs.
+            pos1 = (!isM1In && isF1In) ? f1.PosX : m1.PosX;
+            pos2 = (!isM2In && isF2In) ? f2.PosY : m2.PosY;
+          } else {
+            pos1 = (!isM1In && isF1In) ? f1.PosY : m1.PosY;
+            pos2 = (!isM2In && isF2In) ? f2.PosX : m2.PosX;
+          }
+        } else {
+          if (isFirstEastWest) {
+            // Dodge by Omega-F for sword and Omega-M for shield.
+            pos1 = !isM1In ? f1.PosX : m1.PosX;
+            pos2 = !isM2In ? f2.PosY : m2.PosY;
+          } else {
+            pos1 = !isM1In ? f1.PosY : m1.PosY;
+            pos2 = !isM2In ? f2.PosX : m2.PosX;
+          }
+        }
+
+        // The combatants only spawn in these intercards:
+        // 92.93, 92.93 (NW)      107.07, 92.93 (NE)
+        // 92.93, 107.07 (SW)     107.07, 107.07 (SE)
+        // They will either spawn NW/SE first or NE/SW
+        // Boss cleave tells if it is actually east/west or north/south
+        let dir1: string;
+        let dir2: string;
+        let rotate: NonNullable<typeof data.omegaDodgeRotation>;
+
+        if (isFirstEastWest) {
+          dir1 = pos1 < 100 ? output.dirW!() : output.dirE!();
+          dir2 = pos2 < 100 ? output.dirN!() : output.dirS!();
+          const isLeftRotation = pos1 < 100 && pos2 < 100 || pos1 > 100 && pos2 > 100;
+          rotate = isLeftRotation ? 'left' : 'right';
+        } else {
+          dir1 = pos1 < 100 ? output.dirN!() : output.dirS!();
+          dir2 = pos2 < 100 ? output.dirW!() : output.dirE!();
+          const isRightRotation = pos1 < 100 && pos2 < 100 || pos1 > 100 && pos2 > 100;
+          rotate = isRightRotation ? 'right' : 'left';
+        }
+        data.omegaDodgeRotation = rotate;
+
+        let firstSpot;
+        if (isF1In) {
+          if (isM1In)
+            firstSpot = output.legsShield!({ dir: dir1 });
+          else
+            firstSpot = output.legsSword!({ dir: dir1 });
+        } else {
+          if (isM1In) {
+            firstSpot = output.staffShield!({ dir: dir1 });
+          } else if (data.triggerSetConfig.staffSwordDodge === 'far') {
+            firstSpot = output.staffSwordFar!({ dir: dir1 });
+          } else {
+            const staffMidDir1 = staffSwordMidHelper(isFirstEastWest, f1.PosX, f1.PosY, output);
+            firstSpot = output.staffSwordMid!({ dir: staffMidDir1 });
+          }
+        }
+
+        let secondSpot;
+        if (isF2In) {
+          if (isM2In)
+            secondSpot = output.legsShield!({ dir: dir2 });
+          else
+            secondSpot = output.legsSword!({ dir: dir2 });
+        } else {
+          if (isM2In) {
+            secondSpot = output.staffShield!({ dir: dir2 });
+          } else if (data.triggerSetConfig.staffSwordDodge === 'far') {
+            secondSpot = output.staffSwordFar!({ dir: dir2 });
+          } else {
+            const staffMidDir2 = staffSwordMidHelper(isSecondEastWest, f2.PosX, f2.PosY, output);
+            secondSpot = output.staffSwordMid!({ dir: staffMidDir2 });
+          }
+        }
+
+        const rotateStr = rotate === 'right' ? output.rotateRight!() : output.rotateLeft!();
+        return output.safeSpots!({ first: firstSpot, rotate: rotateStr, second: secondSpot });
+      },
+      outputStrings: {
+        safeSpots: {
+          en: '${first} => ${rotate} => ${second}',
+          de: '${first} => ${rotate} => ${second}',
+          fr: '${first} => ${rotate} => ${second}',
+          ja: '${first} => ${rotate} => ${second}',
+          cn: '${first} => ${rotate} => ${second}',
+          ko: '${first} => ${rotate} => ${second}',
+        },
+        rotateRight: {
+          en: 'Right',
+          de: 'Rechts',
+          fr: 'Droite',
+          ja: '右',
+          cn: '右',
+          ko: '오른쪽',
+        },
+        rotateLeft: {
+          en: 'Left',
+          de: 'Links',
+          fr: 'Gauche',
+          ja: '左',
+          cn: '左',
+          ko: '왼쪽',
+        },
+        // The two legs are split in case somebody wants a "go to M" or "go to F" style call.
+        legsSword: {
+          en: 'Close ${dir}',
+          de: 'Nahe ${dir}',
+          fr: 'Proche ${dir}',
+          ja: '内 ${dir}',
+          cn: '靠近 ${dir}',
+          ko: '${dir} 가까이',
+        },
+        legsShield: {
+          en: 'Close ${dir}',
+          de: 'Nahe ${dir}',
+          fr: 'Proche ${dir}',
+          ja: '内 ${dir}',
+          cn: '靠近 ${dir}',
+          ko: '${dir} 가까이',
+        },
+        staffShield: {
+          en: 'Mid ${dir}',
+          de: 'Mittig ${dir}',
+          fr: 'Milieu ${dir}',
+          ja: '外 ${dir}',
+          cn: '中 ${dir}',
+          ko: '${dir} 중간',
+        },
+        staffSwordFar: {
+          en: 'Far ${dir}',
+          de: 'Entfernt von ${dir}',
+          fr: 'Loin ${dir}',
+          ja: '遠 ${dir}',
+          cn: '远 ${dir}',
+          ko: '${dir} 멀리',
+        },
+        staffSwordMid: {
+          en: 'Mid ${dir}',
+          de: 'Mittig ${dir}',
+          fr: 'Milieu ${dir}',
+          ja: '外 ${dir}',
+          cn: '中 ${dir}',
+          ko: '${dir} 중간',
+        },
+        dirN: Outputs.dirN,
+        dirE: Outputs.dirE,
+        dirS: Outputs.dirS,
+        dirW: Outputs.dirW,
+        dirNNW: Outputs.dirNNW,
+        dirNNE: Outputs.dirNNE,
+        dirENE: Outputs.dirENE,
+        dirESE: Outputs.dirESE,
+        dirSSE: Outputs.dirSSE,
+        dirSSW: Outputs.dirSSW,
+        dirWSW: Outputs.dirWSW,
+        dirWNW: Outputs.dirWNW,
+      },
+    },
+    {
+      id: 'TOP Omega Safe Spot 2 Reminder',
+      // 7B9B Diffuse Wave Cannon (North/South), is followed up with 7B78
+      // 7B9C Diffuse Wave Cannon (East/West), is followed up with 7B77
+      type: 'StartsUsing',
+      netRegex: { id: ['7B9B', '7B9C'], source: 'Omega' },
+      delaySeconds: (_data, matches) => parseFloat(matches.castTime),
+      alertText: (data, matches, output) => {
+        // The lower id is second set
+        const omegaMNPCId = 15721;
+        const omegaFNPCId = 15722;
+        const findOmegaF = (combatant: PluginCombatantState) => combatant.BNpcID === omegaFNPCId;
+        const findOmegaM = (combatant: PluginCombatantState) => combatant.BNpcID === omegaMNPCId;
+
+        const f = data.combatantData.filter(findOmegaF).pop();
+        const m = data.combatantData.filter(findOmegaM).pop();
+
+        if (f === undefined || m === undefined) {
+          console.error(
+            `Omega Safe Spot 2 Reminder: missing m/f: ${JSON.stringify(data.combatantData)}`,
+          );
+          return;
+        }
+
+        const isFIn = f.WeaponId === 4;
+        const isMIn = m.WeaponId === 4;
+        const isFirstEastWest = matches.id === '7B9B';
+        const isSecondEastWest = !isFirstEastWest;
+        const rotateStr = data.omegaDodgeRotation === 'right'
+          ? output.rotateRight!()
+          : output.rotateLeft!();
+
+        if (!isFIn && !isMIn && data.triggerSetConfig.staffSwordDodge === 'mid') {
+          const staffMidDir1 = staffSwordMidHelper(isSecondEastWest, f.PosX, f.PosY, output);
+          return output.staffSwordMid!({ rotate: rotateStr, dir: staffMidDir1 });
+        }
+
+        // The combatants only spawn in these intercards:
+        // 92.93, 92.93 (NW)      107.07, 92.93 (NE)
+        // 92.93, 107.07 (SW)     107.07, 107.07 (SE)
+        // They will either spawn NW/SE first or NE/SW
+        // Boss cleave tells if it is actually east/west or north/south
+        let dir1;
+        if (isSecondEastWest) {
+          // East or West Safe, look for male side
+          // Check for Sword/Shield to know if to go to Male or Female
+          const pos = (!isMIn && isFIn) ? f.PosX : m.PosX;
+          dir1 = pos < 100 ? output.dirW!() : output.dirE!();
+        } else {
+          // North or South Safe
+          const pos = (!isMIn && isFIn) ? f.PosY : m.PosY;
+          dir1 = pos < 100 ? output.dirN!() : output.dirS!();
+        }
+
+        if (isFIn) {
+          if (isMIn)
+            return output.legsShield!({ rotate: rotateStr, dir: dir1 });
+          return output.legsSword!({ rotate: rotateStr, dir: dir1 });
+        }
+        if (isMIn)
+          return output.staffShield!({ rotate: rotateStr, dir: dir1 });
+
+        return output.staffSwordFar!({ rotate: rotateStr, dir: dir1 });
+      },
+      outputStrings: {
+        rotateRight: {
+          en: 'Right',
+          de: 'Rechts',
+          fr: 'Droite',
+          ja: '右',
+          cn: '右',
+          ko: '오른쪽',
+        },
+        rotateLeft: {
+          en: 'Left',
+          de: 'Links',
+          fr: 'Gauche',
+          ja: '左',
+          cn: '左',
+          ko: '왼쪽',
+        },
+        legsSword: {
+          en: '${rotate} => Close ${dir}',
+          de: '${rotate} => Nahe ${dir}',
+          fr: '${rotate} => Proche ${dir}',
+          ja: '${rotate} => 内 ${dir}',
+          cn: '${rotate} => 靠近 ${dir}',
+          ko: '${rotate} => ${dir} 가까이',
+        },
+        legsShield: {
+          en: '${rotate} => Close ${dir}',
+          de: '${rotate} => Nahe ${dir}',
+          fr: '${rotate} => Proche ${dir}',
+          ja: '${rotate} => 内 ${dir}',
+          cn: '${rotate} => 靠近 ${dir}',
+          ko: '${rotate} => ${dir} 가까이',
+        },
+        staffShield: {
+          en: '${rotate} => Mid ${dir}',
+          de: '${rotate} => Mittig ${dir}',
+          fr: '${rotate} => Milieu ${dir}',
+          ja: '${rotate} => 外 ${dir}',
+          cn: '${rotate} => 中 ${dir}',
+          ko: '${rotate} => ${dir} 중간',
+        },
+        staffSwordFar: {
+          en: '${rotate} => Far ${dir}',
+          de: '${rotate} => Entfernt ${dir}',
+          fr: '${rotate} => Loin ${dir}',
+          ja: '${rotate} => 遠 ${dir}',
+          cn: '${rotate} => 远 ${dir}',
+          ko: '${rotate} => ${dir} 멀리',
+        },
+        staffSwordMid: {
+          en: '${rotate} => Mid ${dir}',
+          de: '${rotate} => Mittig ${dir}',
+          fr: '${rotate} => Milieu ${dir}',
+          ja: '${rotate} => 外 ${dir}',
+          cn: '${rotate} => 中 ${dir}',
+          ko: '${rotate} => ${dir} 중간',
+        },
+        dirN: Outputs.dirN,
+        dirE: Outputs.dirE,
+        dirS: Outputs.dirS,
+        dirW: Outputs.dirW,
+        dirNNW: Outputs.dirNNW,
+        dirNNE: Outputs.dirNNE,
+        dirENE: Outputs.dirENE,
+        dirESE: Outputs.dirESE,
+        dirSSE: Outputs.dirSSE,
+        dirSSW: Outputs.dirSSW,
+        dirWSW: Outputs.dirWSW,
+        dirWNW: Outputs.dirWNW,
+      },
+    },
+    {
+      id: 'TOP P6 Cosmo Memory',
+      type: 'StartsUsing',
+      netRegex: { id: '7BA1', source: 'Alpha Omega', capture: false },
+      condition: (data) => data.role === 'tank',
+      alarmText: (_data, _matches, output) => output.text!(),
+      outputStrings: {
+        text: {
+          en: 'TANK LB!!',
+          de: 'TANK LB!!',
+          fr: 'LB TANK !!',
+          ja: 'タンクLB!!',
+          cn: '坦克LB！！',
+          ko: '탱리밋!!',
+        },
+      },
+    },
+    {
+      id: 'TOP Cosmo Arrow In/Out Collect',
+      type: 'StartsUsing',
+      // Sometimes cast by Omega, sometimes by Alpha Omega
+      netRegex: { id: '7BA3', capture: false },
+      run: (data) => {
+        // This will overcount but get reset after
+        data.cosmoArrowCount = data.cosmoArrowCount + 1;
+      },
+    },
+    {
+      id: 'TOP Cosmo Arrow In/Out First',
+      type: 'StartsUsing',
+      // Sometimes cast by Omega, sometimes by Alpha Omega
+      netRegex: { id: '7BA3', capture: false },
+      delaySeconds: 0.1,
+      durationSeconds: 7,
+      suppressSeconds: 5,
+      infoText: (data, _matches, output) => {
+        data.cosmoArrowExaCount = 1;
+        if (data.cosmoArrowCount === 2) {
+          data.cosmoArrowIn = true;
+          return output.inFirst!();
+        }
+        data.cosmoArrowIn = false;
+        return output.outFirst!();
+      },
+      outputStrings: {
+        inFirst: {
+          en: 'In First',
+          de: 'Zuerst rein',
+          fr: 'Intérieur en 1er',
+          ja: '内側から',
+          cn: '先进',
+          ko: '안 먼저',
+        },
+        outFirst: {
+          en: 'Out First',
+          de: 'Zuerst raus',
+          fr: 'Extérieur en 1er',
+          ja: '外側から',
+          cn: '先出',
+          ko: '밖 먼저',
+        },
+      },
+    },
+    {
+      id: 'TOP Cosmo Arrow In/Out Wait',
+      type: 'Ability',
+      // Sometimes cast by Omega, sometimes by Alpha Omega
+      netRegex: { id: '7BA3', capture: false },
+      suppressSeconds: 5,
+      infoText: (data, _matches, output) => {
+        if (data.cosmoArrowIn)
+          return output.inWait2!();
+        return output.outWait2!();
+      },
+      outputStrings: {
+        inWait2: {
+          en: 'In => Wait 2',
+          de: 'Rein => Warte 2',
+          fr: 'Intérieur => Attendez 2',
+          ja: '内 => 待機 2',
+          cn: '进 => 等 2',
+          ko: '안 => 대기 2번',
+        },
+        outWait2: {
+          en: 'Out => Wait 2',
+          de: 'Raus => Warte 2',
+          fr: 'Extérieur => Attendez 2',
+          ja: '外 => 待機 2',
+          cn: '出 => 等 2',
+          ko: '밖 => 대기 2번',
+        },
+      },
+    },
+    {
+      id: 'TOP Cosmo Arrow Dodges',
+      type: 'Ability',
+      netRegex: { id: '7BA4', source: 'Alpha Omega', capture: false },
+      preRun: (data) => data.cosmoArrowExaCount = data.cosmoArrowExaCount + 1,
+      durationSeconds: (data) => {
+        if (data.cosmoArrowExaCount === 3 && data.cosmoArrowIn)
+          return 5;
+        return 3;
+      },
+      suppressSeconds: 1, // Only capture 1 in the set of casts
+      infoText: (data, _matches, output) => {
+        if (data.cosmoArrowIn) {
+          switch (data.cosmoArrowExaCount) {
+            case 3:
+              return output.outWait2!();
+            case 5:
+              return output.SidesIn!();
+            case 6:
+              return output.in!();
+          }
+          // No callout
+          return;
+        }
+
+        switch (data.cosmoArrowExaCount) {
+          case 3:
+          case 5:
+            return output.in!();
+          case 4:
+            return output.SidesOut!();
+        }
+      },
+      run: (data) => {
+        if (data.cosmoArrowExaCount === 7) {
+          data.cosmoArrowExaCount = 0;
+          data.cosmoArrowCount = 0;
+        }
+      },
+      outputStrings: {
+        in: Outputs.in,
+        inWait2: {
+          en: 'In => Wait 2',
+          de: 'Rein => Warte 2',
+          fr: 'Intérieur => Attendez 2',
+          ja: '内 => 待機 2',
+          cn: '进 => 等 2',
+          ko: '안 => 대기 2번',
+        },
+        outWait2: {
+          en: 'Out => Wait 2',
+          de: 'Raus => Warte 2',
+          fr: 'Extérieur => Attendez 2',
+          ja: '外 => 待機 2',
+          cn: '出 => 等 2',
+          ko: '밖 => 대기 2번',
+        },
+        SidesIn: Outputs.moveAway,
+        SidesOut: {
+          en: 'Sides + Out',
+          de: 'Seien + Raus',
+          fr: 'Côtés + Extérieur',
+          ja: '横 + 外へ',
+          cn: '两侧 + 出',
+          ko: '옆 + 밖으로',
+        },
+      },
+    },
+    {
+      id: 'TOP Cosmo Dive',
+      type: 'StartsUsing',
+      netRegex: { id: '7BA6', source: 'Alpha Omega', capture: false },
+      durationSeconds: 5,
+      alertText: (data, _matches, output) => {
+        if (data.role === 'tank')
+          return output.cosmoDiveTank!();
+        return output.cosmoDiveParty!();
+      },
+      outputStrings: {
+        // Yes, these are also tankbusters, but mit is so tight in this phase
+        // that everybody needs to know that already, and so just call positioning.
+        cosmoDiveTank: {
+          en: 'Tanks Near (party far)',
+          de: 'Tanks nahe (Gruppe entfernt)',
+          fr: 'Tanks proche (groupe éloigné)',
+          ja: 'タンク内側 (パーティー離れる)',
+          cn: '坦克靠近 (人群远离)',
+          ko: '탱커 가까이 (본대 멀리)',
+        },
+        cosmoDiveParty: {
+          en: 'Party Far (tanks near)',
+          de: 'Gruppe entfernt (Tanks nahe)',
+          fr: 'Groupe éloigné (Tanks proche)',
+          ja: 'パーティー離れる (タンク内側)',
+          cn: '人群远离 (坦克靠近)',
+          ko: '본대 멀리 (탱커 가까이)',
+        },
+      },
+    },
+    {
+      id: 'TOP Unlimited Wave Cannon',
+      type: 'StartsUsing',
+      netRegex: { id: '7BAC', source: 'Alpha Omega', capture: false },
+      alertText: (_data, _matches, output) => output.text!(),
+      outputStrings: {
+        text: {
+          en: 'Bait Middle',
+          de: 'Mitte ködern',
+          fr: 'Attirez au milieu',
+          ja: '真ん中',
+          cn: '中间诱导',
+          ko: '중앙에 장판 유도',
+        },
+      },
+    },
+    {
+      id: 'TOP Unlimited Wave Cannon Collect',
+      // Invisible NPCs cast Wave Cannon from starting position of the Exaflares
+      // Data from ACT can be innacurate, use OverlayPlugin
+      // These casts start 1 second after each other
+      type: 'StartsUsing',
+      netRegex: { id: '7BAD', source: 'Alpha Omega' },
+      run: (data, matches) => {
+        // Cleanup collector if second set
+        if (data.waveCannonFlares.length === 4)
+          data.waveCannonFlares = [];
+        data.waveCannonFlares.push(parseInt(matches.sourceId, 16));
+      },
+    },
+    {
+      id: 'TOP Unlimited Wave Cannon Dodges',
+      // As low as 1.2s delay works consistently on low latency, but 1.5s works for more players
+      type: 'StartsUsing',
+      netRegex: { id: '7BAC', source: 'Alpha Omega', capture: false },
+      delaySeconds: 1.5,
+      durationSeconds: 10.6, // Time until 3rd puddle
+      promise: async (data) => {
+        if (data.waveCannonFlares.length < 2) {
+          console.error(
+            `TOP Unlimited Wave Cannon Dodge: Expected at least 2 casts, Got: ${
+              JSON.stringify(data.waveCannonFlares.length)
+            }`,
+          );
+        }
+        data.combatantData = [];
+        data.combatantData = (await callOverlayHandler({
+          call: 'getCombatants',
+          ids: [...data.waveCannonFlares],
+        })).combatants;
+      },
+      infoText: (data, _matches, output) => {
+        if (data.combatantData.length < 2) {
+          console.error(
+            `TOP Unlimited Wave Cannon Dodge: Expected at least 2 Wave Cannons, Got: ${
+              JSON.stringify(data.combatantData)
+            }`,
+          );
+          return;
+        }
+        const firstWaveCannon =
+          data.combatantData.filter((combatant) => combatant.ID === data.waveCannonFlares[0])[0];
+        const secondWaveCannon =
+          data.combatantData.filter((combatant) => combatant.ID === data.waveCannonFlares[1])[0];
+
+        if (firstWaveCannon === undefined || secondWaveCannon === undefined) {
+          console.error(
+            `TOP Unlimited Wave Cannon Dodge: Failed to retreive combatant Data: ${
+              JSON.stringify(data.combatantData)
+            }`,
+          );
+          return;
+        }
+
+        // Collect Exaflare position
+        const first = [firstWaveCannon.PosX - 100, firstWaveCannon.PosY - 100];
+        const second = [secondWaveCannon.PosX - 100, secondWaveCannon.PosY - 100];
+        if (
+          first[0] === undefined || first[1] === undefined ||
+          second[0] === undefined || second[1] === undefined
+        ) {
+          console.error(`TOP Unlimited Wave Cannon Dodge: missing coordinates`);
+          return;
+        }
+
+        // Compute atan2 of determinant and dot product to get rotational direction
+        // Note: X and Y are flipped due to Y axis being reversed
+        const getRotation = (x1: number, y1: number, x2: number, y2: number) => {
+          return Math.atan2(y1 * x2 - x1 * y2, y1 * y2 + x1 * x2);
+        };
+
+        // Get rotation of first and second exaflares
+        const rotation = getRotation(first[0], first[1], second[0], second[1]);
+
+        // Get location to dodge to by looking at first exaflare position
+        // Calculate combatant position in an all 8 cards/intercards
+        const matchedPositionTo8Dir = (combatant: PluginCombatantState) => {
+          // Positions are moved up 100 and right 100
+          const y = combatant.PosY - 100;
+          const x = combatant.PosX - 100;
+
+          // During Unlimited Wave Cannon, 4 Wave Cannons spawn in order around the map
+          // N = (100, 76), E = (124, 100), S = (100, 124), W = (76, 100)
+          // NE = (116.97, 83.03), SE = (116.97, 116.97), SW = (83.03, 116.97), NW = (83.03, 83.03)
+          //
+          // Map NW = 0, N = 1, ..., W = 7
+
+          return Math.round(5 - 4 * Math.atan2(x, y) / Math.PI) % 8;
+        };
+
+        const dir = matchedPositionTo8Dir(firstWaveCannon);
+        const dirs: { [dir: number]: string } = {
+          0: output.northwest!(),
+          1: output.north!(),
+          2: output.northeast!(),
+          3: output.east!(),
+          4: output.southeast!(),
+          5: output.south!(),
+          6: output.southwest!(),
+          7: output.west!(),
+        };
+
+        const startDir = rotation < 0 ? (dir - 1 + 8) % 8 : (dir + 1) % 8;
+        const start = dirs[startDir] ?? output.unknown!();
+
+        if (rotation < 0) {
+          return output.directions!({
+            start: start,
+            rotation: output.clockwise!(),
+          });
+        }
+        if (rotation > 0) {
+          return output.directions!({
+            start: start,
+            rotation: output.counterclock!(),
+          });
+        }
+      },
+      outputStrings: {
+        directions: {
+          en: '${start} => ${rotation}',
+          de: '${start} => ${rotation}',
+          fr: '${start} => ${rotation}',
+          ja: '${start} => ${rotation}',
+          cn: '${start} => ${rotation}',
+          ko: '${start} => ${rotation}',
+        },
+        north: Outputs.north,
+        northeast: Outputs.northeast,
+        east: Outputs.east,
+        southeast: Outputs.southeast,
+        south: Outputs.south,
+        southwest: Outputs.southwest,
+        west: Outputs.west,
+        northwest: Outputs.northwest,
+        unknown: Outputs.unknown,
+        clockwise: {
+          en: 'Clockwise',
+          de: 'Im Uhrzeigersinn',
+          fr: 'Horaire',
+          ja: '時計回り',
+          cn: '顺时针',
+          ko: '시계방향',
+        },
+        counterclock: {
+          en: 'Counterclockwise',
+          de: 'Gegen den Uhrzeigersinn',
+          fr: 'Anti-horaire',
+          ja: '反時計回り',
+          cn: '逆时针',
+          ko: '반시계방향',
+        },
+      },
+    },
+    {
+      id: 'TOP Wave Cannon Wild Charge',
+      type: 'StartsUsing',
+      netRegex: { id: '7BA9', source: 'Alpha Omega', capture: false },
+      delaySeconds: 5,
+      alertText: (_data, _matches, output) => output.text!(),
+      outputStrings: {
+        text: {
+          en: 'Line Charge',
+          de: 'Linien Ansturm',
+          fr: 'Ruée en ligne',
+          ja: '直線あたまわり',
+          cn: '直线分摊',
+          ko: '직선 쉐어',
+        },
+      },
+    },
+    {
+      id: 'TOP Cosmo Meteor',
+      type: 'StartsUsing',
+      netRegex: { id: '7BB0', source: 'Alpha Omega', capture: false },
+      alertText: (_data, _matches, output) => output.text!(),
+      outputStrings: {
+        text: {
+          en: 'Bait Middle',
+          de: 'Mitte ködern',
+          fr: 'Attirez au milieu',
+          ja: '真ん中',
+          cn: '中间诱导',
+          ko: '중앙에 장판 유도',
+        },
+      },
     },
   ],
   timelineReplace: [
     {
       'locale': 'de',
-      'missingTranslations': true,
       'replaceSync': {
         'Alpha Omega': 'Alpha-Omega',
         'Cosmo Meteor': 'Kosmosmeteor',
@@ -1186,6 +2734,7 @@ const triggerSet: TriggerSet<Data> = {
         'Omega-M': 'Omega-M',
         'Optical Unit': 'Optikmodul',
         'Rear Power Unit': 'hinter(?:e|er|es|en) Antriebseinheit',
+        'Left Arm Unit': 'link(?:e|er|es|en) Arm',
         'Right Arm Unit': 'recht(?:e|er|es|en) Arm',
         'Rocket Punch': 'Raketenschlag',
       },
@@ -1258,7 +2807,6 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       'locale': 'fr',
-      'missingTranslations': true,
       'replaceSync': {
         'Alpha Omega': 'Alpha-Oméga',
         'Cosmo Meteor': 'Cosmométéore',
@@ -1267,6 +2815,7 @@ const triggerSet: TriggerSet<Data> = {
         'Omega-M': 'Oméga-M',
         'Optical Unit': 'unité optique',
         'Rear Power Unit': 'unité arrière',
+        'Left Arm Unit': 'unité bras gauche',
         'Right Arm Unit': 'unité bras droit',
         'Rocket Punch': 'Astéropoing',
       },
@@ -1339,7 +2888,6 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       'locale': 'ja',
-      'missingTranslations': true,
       'replaceSync': {
         'Alpha Omega': 'アルファオメガ',
         'Cosmo Meteor': 'コスモメテオ',
@@ -1348,6 +2896,7 @@ const triggerSet: TriggerSet<Data> = {
         'Omega-M': 'オメガM',
         'Optical Unit': 'オプチカルユニット',
         'Rear Power Unit': 'リアユニット',
+        'Left Arm Unit': 'レフトアームユニット',
         'Right Arm Unit': 'ライトアームユニット',
         'Rocket Punch': 'ロケットパンチ',
       },
@@ -1416,6 +2965,178 @@ const triggerSet: TriggerSet<Data> = {
         '(?<! )Wave Cannon(?! Kyrios)': '波動砲',
         '(?<! )Wave Cannon Kyrios': '波動砲P',
         'Wave Repeater': '速射式波動砲',
+      },
+    },
+    {
+      'locale': 'cn',
+      'replaceSync': {
+        'Alpha Omega': '阿尔法欧米茄',
+        'Cosmo Meteor': '宇宙流星',
+        '(?<!Alpha )Omega(?!-)': '欧米茄',
+        'Omega-F': '欧米茄F',
+        'Omega-M': '欧米茄M',
+        'Optical Unit': '视觉组',
+        'Rear Power Unit': '尾部组',
+        'Left Arm Unit': '左臂组',
+        'Right Arm Unit': '右臂组',
+        'Rocket Punch': '火箭飞拳',
+      },
+      'replaceText': {
+        'Archive Peripheral': '手臂归档',
+        'Atomic Ray': '原子射线',
+        'Beyond Defense': '盾连击S',
+        'Beyond Strength': '盾连击G',
+        'Blaster': '冲击波',
+        'Blind Faith': '盲信',
+        'Colossal Blow': '巨能爆散',
+        'Condensed Wave Cannon Kyrios': '大功率波动炮P',
+        'Cosmo Arrow': '宇宙天箭',
+        'Cosmo Dive': '宇宙龙炎',
+        'Cosmo Memory': '宇宙记忆',
+        'Cosmo Meteor': '宇宙流星',
+        'Critical Error': '严重错误',
+        'Diffuse Wave Cannon(?! Kyrios)': '扩散波动炮',
+        'Diffuse Wave Cannon Kyrios': '扩散波动炮P',
+        'Discharger': '能量放出',
+        'Efficient Bladework': '剑击',
+        'Explosion': '爆炸',
+        'Firewall': '防御程序',
+        'Flame Thrower': '火炎放射',
+        'Flash Gale': '闪光风',
+        'Guided Missile Kyrios': '跟踪导弹P',
+        'Hello, Distant World': '你好，远处世界',
+        'Hello, Near World': '你好，近处世界',
+        'Hello, World': '你好，世界',
+        'High-powered Sniper Cannon': '狙击式大功率波动炮”',
+        'Hyper Pulse': '超能脉冲',
+        'Ion Efflux': '离子流出',
+        'Laser Shower': '激光骤雨',
+        'Latent Defect': '潜在错误',
+        'Left Arm Unit': '左臂组',
+        'Limitless Synergy': '协作程序LB',
+        'Magic Number': '魔数',
+        'Optical Laser': '光学射线F',
+        'Optimized Bladedance': '欧米茄刀光剑舞',
+        'Optimized Blizzard III': '欧米茄冰封',
+        'Optimized Fire III': '欧米茄烈炎',
+        'Optimized Meteor': '欧米茄陨石流星',
+        'Optimized Passage of Arms': '欧米茄武装戍卫',
+        'Optimized Sagittarius Arrow': '欧米茄射手天箭',
+        'Oversampled Wave Cannon': '探测式波动炮',
+        'Pantokrator': '全能之主',
+        'Party Synergy': '协作程序PT',
+        'Patch': '补丁',
+        'Peripheral Synthesis': '生成外设',
+        'Pile Pitch': '能量投射',
+        'Program Loop': '循环程序',
+        'Rear Lasers': '背环激光',
+        'Right Arm Unit': '右臂组',
+        'Run: \\*\\*\\*\\*mi\\* \\(Delta Version\\)': '代码：＊能＊（德尔塔）',
+        'Run: \\*\\*\\*\\*mi\\* \\(Omega Version\\)': '代码：＊能＊（欧米茄）',
+        'Run: \\*\\*\\*\\*mi\\* \\(Sigma Version\\)': '代码：＊能＊（西格玛）',
+        '(?<! )Sniper Cannon': '狙击式波动炮”',
+        'Solar Ray': '太阳射线',
+        'Spotlight': '聚光灯',
+        'Storage Violation': '清除记忆污染S',
+        'Subject Simulation F': '变形F',
+        'Superliminal Steel': '剑连击B',
+        'Swivel Cannon': '回旋式波动炮',
+        'Synthetic Shield': '合成盾',
+        'Unlimited Wave Cannon': '波动炮：限制解除',
+        '(?<! )Wave Cannon(?! Kyrios)': '波动炮',
+        '(?<! )Wave Cannon Kyrios': '波动炮P',
+        'Wave Repeater': '速射式波动炮',
+      },
+    },
+    {
+      'locale': 'ko',
+      'replaceSync': {
+        'Alpha Omega': '알파 오메가',
+        'Cosmo Meteor': '세계의 메테오',
+        '(?<!Alpha )Omega(?!-)': '오메가',
+        'Omega-F': '오메가 F',
+        'Omega-M': '오메가 M',
+        'Optical Unit': '광학 유닛',
+        'Rear Power Unit': '후면 유닛',
+        'Left Arm Unit': '왼팔 유닛',
+        'Right Arm Unit': '오른팔 유닛',
+        'Rocket Punch': '로켓 주먹',
+      },
+      'replaceText': {
+        '\\(stacks\\)': '(쉐어)',
+        '\\(Wild Charge\\)': '(쉐어)',
+        'Baits': '유도',
+        'Far': '멀리',
+        'Near(?! World)': '가까이',
+        'Flare': '플레어',
+        'Puddle': '장판',
+        'Stack(?!s)': '쉐어',
+        'Archive Peripheral': '기록 보존 장치',
+        'Atomic Ray': '원자 파동',
+        'Beyond Defense': '방패 연격 S',
+        'Beyond Strength': '방패 연격 G',
+        'Blaster': '블래스터',
+        'Blind Faith': '맹목적인 믿음',
+        'Blue Screen': '블루 스크린',
+        'Colossal Blow': '광역 폭파',
+        'Condensed Wave Cannon Kyrios': '고출력 파동포 P',
+        'Cosmo Arrow': '세계의 화살',
+        'Cosmo Dive': '세계의 강하',
+        'Cosmo Memory': '세계의 기억',
+        'Cosmo Meteor': '세계의 메테오',
+        'Critical Error': '치명적인 오류',
+        'Diffuse Wave Cannon(?! Kyrios)': '확산 파동포',
+        'Diffuse Wave Cannon Kyrios': '확산 파동포 P',
+        'Discharger': '방출',
+        'Efficient Bladework': '검격',
+        'Explosion': '폭발',
+        'Firewall': '방어 프로그램',
+        'Flame Thrower': '화염방사',
+        'Flash Gale': '순간 강풍',
+        'Guided Missile Kyrios': '유도 미사일 P',
+        'Hello, Distant World': '헬로 월드: 원거리',
+        'Hello, Near World': '헬로 월드: 근거리',
+        'Hello, World': '헬로 월드',
+        'High-powered Sniper Cannon': '저격식 고출력 파동포',
+        'Hyper Pulse': '초파동 광선',
+        'Ion Efflux': '이온 유출',
+        'Laser Shower': '레이저 세례',
+        'Latent Defect': '잠재적 오류',
+        'Left Arm Unit': '왼팔 유닛',
+        'Limitless Synergy': '연계 프로그램[리미트]',
+        'Magic Number': '매직 넘버',
+        'Optical Laser': '광학 레이저 F',
+        'Optimized Bladedance': '쾌검난무: 오메가',
+        'Optimized Blizzard III': '블리자가: 오메가',
+        'Optimized Fire III': '파이라: 오메가',
+        'Optimized Meteor': '메테오: 오메가',
+        'Optimized Passage of Arms': '오메가의 결의',
+        'Optimized Sagittarius Arrow': '궁수자리 화살: 오메가',
+        'Oversampled Wave Cannon': '감지식 파동포',
+        'Pantokrator': '전지전능',
+        'Party Synergy': '연계 프로그램[파티]',
+        'Patch': '연쇄 오류',
+        'Peripheral Synthesis': '출력',
+        'Pile Pitch': '에너지 투사',
+        'Program Loop': '순환 프로그램',
+        'Rear Lasers': '후면 레이저',
+        'Right Arm Unit': '오른팔 유닛',
+        'Run: \\*\\*\\*\\*mi\\*(?! \\()': '코드: ＊＊미＊',
+        'Run: \\*\\*\\*\\*mi\\* \\(Delta Version\\)': '코드: ＊＊미＊[델타]',
+        'Run: \\*\\*\\*\\*mi\\* \\(Omega Version\\)': '코드: ＊＊미＊[오메가]',
+        'Run: \\*\\*\\*\\*mi\\* \\(Sigma Version\\)': '코드: ＊＊미＊[시그마]',
+        '(?<! )Sniper Cannon': '저격식 파동포',
+        'Solar Ray': '태양 광선',
+        'Spotlight': '집중 조명',
+        'Storage Violation': '기억 오염 제거 S',
+        'Subject Simulation F': '형태 변경 F',
+        'Superliminal Steel': '칼날 연격 B',
+        'Swivel Cannon': '선회식 파동포',
+        'Synthetic Shield': '방패 장착',
+        'Unlimited Wave Cannon': '파동포: 리미터 해제',
+        '(?<! )Wave Cannon(?! Kyrios)': '파동포',
+        '(?<! )Wave Cannon Kyrios': '파동포 P',
+        'Wave Repeater': '속사식 파동포',
       },
     },
   ],

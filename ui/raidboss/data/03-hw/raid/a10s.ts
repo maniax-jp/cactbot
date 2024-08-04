@@ -29,6 +29,7 @@ const chargeOutputStrings = {
 };
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'AlexanderTheBreathOfTheCreatorSavage',
   zoneId: ZoneId.AlexanderTheBreathOfTheCreatorSavage,
   timelineFile: 'a10s.txt',
   initData: () => {
@@ -154,7 +155,7 @@ const triggerSet: TriggerSet<Data> = {
           return;
 
         const charge = data.charges.shift();
-        if (charge)
+        if (charge !== undefined)
           return { alertText: output[charge]!() };
       },
     },
@@ -190,7 +191,7 @@ const triggerSet: TriggerSet<Data> = {
           return output.tankSwap!();
 
         if (data.role === 'healer' || data.job === 'BLU')
-          return output.shieldPlayer!({ player: data.ShortName(matches.target) });
+          return output.shieldPlayer!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         tankSwap: Outputs.tankSwap,

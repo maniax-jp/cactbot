@@ -15,6 +15,7 @@ export type Data = RaidbossData;
 // TODO: Chi Bouncing Bomb
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'UltimaThule',
   zoneId: ZoneId.UltimaThule,
   triggers: [
     {
@@ -212,6 +213,7 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'Under => Back',
           de: 'Unter Ihn => Hinter den Boss',
+          fr: 'Dessous => Arrière',
           ja: '下 => 後ろ',
           cn: '脚下 => 背后',
           ko: '안으로 => 뒤로',
@@ -228,6 +230,7 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'Sides => Back',
           de: 'Seiten => Hinter den Boss',
+          fr: 'Côtés => Arrière',
           ja: '横 => 後ろ',
           cn: '两侧 => 背后',
           ko: '옆으로 => 뒤로',
@@ -244,6 +247,7 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'Under => Front',
           de: 'Unter Ihn => Vor den Boss',
+          fr: 'Dessous => Devant',
           ja: '下 => 前',
           cn: '脚下 => 正面',
           ko: '안으로 => 앞으로',
@@ -260,6 +264,7 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'Sides => Front',
           de: 'Seiten => Vor den Boss',
+          fr: 'Côtés => Devant',
           ja: '横 => 前',
           cn: '两侧 => 正面',
           ko: '옆으로 => 앞으로',
@@ -302,6 +307,7 @@ const triggerSet: TriggerSet<Data> = {
         northSouth: {
           en: 'Go North / South edge',
           de: 'Geh zur Kante im Norden / Süden',
+          fr: 'Allez au bord Nord/Sud',
           ja: '南北の隅へ',
           cn: '去南北边缘',
           ko: '남/북쪽 끝으로',
@@ -309,6 +315,7 @@ const triggerSet: TriggerSet<Data> = {
         eastWest: {
           en: 'Go East / West edge',
           de: 'Geh zur Kante im Osten / Westen',
+          fr: 'Allez au bord Est/Ouest',
           ja: '東西の隅へ',
           cn: '去东西边缘',
           ko: '동/서쪽 끝으로',

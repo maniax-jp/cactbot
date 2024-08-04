@@ -6,6 +6,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheWanderersPalaceHard',
   zoneId: ZoneId.TheWanderersPalaceHard,
   triggers: [
     {
@@ -20,12 +21,13 @@ const triggerSet: TriggerSet<Data> = {
       type: 'GainsEffect',
       netRegex: { effectId: 'D2' },
       alertText: (data, matches, output) =>
-        output.text!({ player: data.ShortName(matches.target) }),
+        output.text!({ player: data.party.member(matches.target) }),
       outputStrings: {
         text: {
           en: 'Heal ${player} to full',
           de: 'Heile ${player} voll',
           fr: 'Soin complet sur ${player}',
+          ja: '${player} を全回復して',
           cn: '奶满${player}',
           ko: '완전 회복: ${player}',
         },

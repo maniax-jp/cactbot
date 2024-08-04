@@ -31,7 +31,8 @@ const ruleModule = {
       description: 'suggest outputStrings in cactbot',
       category: 'Stylistic Issues',
       recommended: true,
-      url: 'https://github.com/quisquous/cactbot/blob/main/docs/RaidbossGuide.md#trigger-elements',
+      url:
+        'https://github.com/OverlayPlugin/cactbot/blob/main/docs/RaidbossGuide.md#trigger-properties',
     },
     fixable: 'code',
     schema: [],
@@ -40,6 +41,7 @@ const ruleModule = {
       notFoundProperty: 'no \'{{prop}}\' in \'{{outputParam}}\'',
       notFoundTemplate: '`output.{{prop}}(...)` doesn\'t have template \'{{template}}\'.',
       missingTemplateValue: 'template \'{{prop}}\' is missing in function call',
+      incorrectObjectKey: 'template \'{{prop}}\' specifies an object key with too many parts',
     },
   },
   create: function(context) {
@@ -107,6 +109,7 @@ const ruleModule = {
                      text: {
                        en: Outputs.killAdds.en + '(back first)',
                        de: Outputs.killAdds.de + '(hinten zuerst)',
+                       fr: Outputs.killAdds.fr + '(derrière en premier)',
                        ja: Outputs.killAdds.ja + '(下の雑魚から)',
                        cn: Outputs.killAdds.cn + '(先打后方的)',
                        ko: Outputs.killAdds.ko + '(아래쪽 먼저)',
@@ -236,12 +239,23 @@ const ruleModule = {
             const keysInParams = getAllKeys(args[0].properties);
             if (outputTemplate !== null && outputTemplate !== undefined) {
               for (const key of outputTemplate) {
-                if (!t.isIdentifier(args[0]) && !keysInParams.includes(key)) {
+                const keyParts = key.split('.');
+                if (keyParts.length > 2) {
+                  context.report({
+                    node,
+                    messageId: 'incorrectObjectKey',
+                    data: {
+                      prop: key,
+                    },
+                  });
+                }
+                const trimmedKey = keyParts[0];
+                if (!t.isIdentifier(args[0]) && !keysInParams.includes(trimmedKey)) {
                   context.report({
                     node,
                     messageId: 'missingTemplateValue',
                     data: {
-                      prop: key,
+                      prop: trimmedKey,
                     },
                   });
                 }

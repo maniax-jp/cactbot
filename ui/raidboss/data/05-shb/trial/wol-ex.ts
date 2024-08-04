@@ -81,6 +81,7 @@ const quintupleOutputStrings = {
 };
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheSeatOfSacrificeExtreme',
   zoneId: ZoneId.TheSeatOfSacrificeExtreme,
   timelineFile: 'wol-ex.txt',
   timelineTriggers: [
@@ -109,7 +110,7 @@ const triggerSet: TriggerSet<Data> = {
           fr: 'Positions par rôle',
           ja: 'ロール特定位置へ',
           cn: '去指定位置',
-          ko: '1단리밋 산개위치로',
+          ko: '직업군별 위치로',
         },
         limitBreak2: {
           en: 'healer stacks',
@@ -135,7 +136,7 @@ const triggerSet: TriggerSet<Data> = {
       id: 'WOLEx Terror Unleashed',
       type: 'Ability',
       netRegex: { source: 'Warrior Of Light', id: '4F09', capture: false },
-      condition: (data) => data.role === 'healer',
+      condition: (data) => data.role === 'healer' || data.job === 'BLU',
       suppressSeconds: 5,
       alertText: (_data, _matches, output) => output.text!(),
       outputStrings: {
@@ -376,7 +377,7 @@ const triggerSet: TriggerSet<Data> = {
       // This is still 1 second before this cast goes off, giving ~7 seconds before LB is needed.
       delaySeconds: 4,
       alarmText: (data, _matches, output) => {
-        if (data.role === 'tank')
+        if (data.role === 'tank' || data.job === 'BLU')
           return output.text!();
       },
       run: (data) => {
@@ -566,7 +567,7 @@ const triggerSet: TriggerSet<Data> = {
         if (matches.target === data.me)
           return output.stackOnYou?.();
         if (!data.deluge)
-          return output.stackOnTarget?.({ player: data.ShortName(matches.target) });
+          return output.stackOnTarget?.({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         stackOnYou: Outputs.stackOnYou,
@@ -616,7 +617,7 @@ const triggerSet: TriggerSet<Data> = {
       alertText: (data, _matches, output) => {
         const next = data.quintuplecasts?.shift();
         // The last cast of 4EF0 will not have a next mechanic to call.
-        if (next)
+        if (next !== undefined)
           return output[next]!();
       },
       outputStrings: quintupleOutputStrings,

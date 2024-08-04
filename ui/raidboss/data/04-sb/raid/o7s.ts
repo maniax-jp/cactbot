@@ -7,14 +7,15 @@ import { TriggerSet } from '../../../../../types/trigger';
 export interface Data extends RaidbossData {
   rot?: boolean;
   seenVirus?: boolean;
-  first?: string;
-  second?: string;
+  first?: 'dada' | 'biblio';
+  second?: 'dada' | 'biblio';
   loadCount?: number;
   runCount?: number;
 }
 
 // O7S - Sigmascape 3.0 Savage
 const triggerSet: TriggerSet<Data> = {
+  id: 'SigmascapeV30Savage',
   zoneId: ZoneId.SigmascapeV30Savage,
   timelineFile: 'o7s.txt',
   triggers: [
@@ -114,7 +115,7 @@ const triggerSet: TriggerSet<Data> = {
       infoText: (data, matches, output) => {
         if (data.me === matches.target)
           return;
-        return output.blueMarkerOn!({ player: data.ShortName(matches.target) });
+        return output.blueMarkerOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         blueMarkerOn: {
@@ -174,7 +175,7 @@ const triggerSet: TriggerSet<Data> = {
         if (data.me === matches.target)
           return output.rotOnYou!();
 
-        return output.rotOn!({ player: data.ShortName(matches.target) });
+        return output.rotOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         rotOnYou: {

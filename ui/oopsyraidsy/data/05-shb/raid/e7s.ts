@@ -13,23 +13,23 @@ import { playerDamageFields } from '../../../oopsy_common';
 
 const wrongBuff = (str: string) => {
   return {
-    en: str + ' (wrong buff)',
-    de: str + ' (falscher Buff)',
-    fr: str + ' (mauvais buff)',
-    ja: str + ' (不適切なバフ)',
-    cn: str + ' (Buff错了)',
-    ko: str + ' (버프 틀림)',
+    en: `${str} (wrong buff)`,
+    de: `${str} (falscher Buff)`,
+    fr: `${str} (mauvais buff)`,
+    ja: `${str} (不適切なバフ)`,
+    cn: `${str} (Buff错了)`,
+    ko: `${str} (버프 틀림)`,
   };
 };
 
 const noBuff = (str: string) => {
   return {
-    en: str + ' (no buff)',
-    de: str + ' (kein Buff)',
-    fr: str + ' (pas de buff)',
-    ja: str + ' (バフ無し)',
-    cn: str + ' (没有Buff)',
-    ko: str + ' (버프 없음)',
+    en: `${str} (no buff)`,
+    de: `${str} (kein Buff)`,
+    fr: `${str} (pas de buff)`,
+    ja: `${str} (バフ無し)`,
+    cn: `${str} (没有Buff)`,
+    ko: `${str} (버프 없음)`,
   };
 };
 
@@ -110,7 +110,7 @@ const triggerSet: OopsyTriggerSet<Data> = {
     {
       id: 'E7S Light\'s Course',
       type: 'Ability',
-      netRegex: NetRegexes.abilityFull({
+      netRegex: NetRegexes.ability({
         id: ['4C62', '4C63', '4C64', '4C5B', '4C5F'],
         ...playerDamageFields,
       }),
@@ -136,7 +136,7 @@ const triggerSet: OopsyTriggerSet<Data> = {
     {
       id: 'E7S Darks\'s Course',
       type: 'Ability',
-      netRegex: NetRegexes.abilityFull({
+      netRegex: NetRegexes.ability({
         id: ['4C65', '4C66', '4C67', '4C5A', '4C60'],
         ...playerDamageFields,
       }),
@@ -166,7 +166,7 @@ const triggerSet: OopsyTriggerSet<Data> = {
       id: 'E7S Crusade Knockback',
       type: 'Ability',
       // 4C76 is the knockback damage, 4C58 is the damage for standing on the puck.
-      netRegex: NetRegexes.abilityFull({ id: '4C76', ...playerDamageFields }),
+      netRegex: NetRegexes.ability({ id: '4C76', ...playerDamageFields }),
       deathReason: (_data, matches) => {
         return {
           id: matches.targetId,

@@ -10,6 +10,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'HeavenOnHighFloors61_70',
   zoneId: ZoneId.HeavenOnHighFloors61_70,
 
   triggers: [
@@ -44,6 +45,8 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'Avoid Puddle',
           de: 'Flächen vermeiden',
+          fr: 'Évitez la zone au sol',
+          ja: '円範囲を避ける',
           cn: '躲避圈圈',
           ko: '장판 피하기',
         },
@@ -68,6 +71,7 @@ const triggerSet: TriggerSet<Data> = {
           en: 'Get In Puddle',
           de: 'Geh in die Flächen',
           fr: 'Prenez une zone au sol',
+          ja: '円範囲に入る',
           cn: '进入圈圈',
           ko: '장판 밟기',
         },
@@ -84,6 +88,8 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'Out of Puddle',
           de: 'Raus aus der Fläche',
+          fr: 'À l\'extérieur de la zone au sol',
+          ja: '円範囲から離れる',
           cn: '离开圈圈',
           ko: '장판 밖으로',
         },

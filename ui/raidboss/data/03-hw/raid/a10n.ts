@@ -7,6 +7,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'AlexanderTheBreathOfTheCreator',
   zoneId: ZoneId.AlexanderTheBreathOfTheCreator,
   timelineFile: 'a10n.txt',
   timelineTriggers: [
@@ -35,6 +36,7 @@ const triggerSet: TriggerSet<Data> = {
           en: 'Avoid side saws',
           de: 'Weiche den Sägen an der Seite aus',
           fr: 'Évitez les scies sur le côté',
+          ja: '脇のノコギリを避ける',
           cn: '躲避场边电锯',
           ko: '옆쪽의 톱 피하기',
         },
@@ -120,6 +122,7 @@ const triggerSet: TriggerSet<Data> = {
           en: 'Get away--Laser on YOU',
           de: 'Geh weg--Laser auf DIR',
           fr: 'Éloignez-vous - Laser sur VOUS',
+          ja: '自分にレーザー - 離れて',
           cn: '出去--激光点名',
           ko: '멀리 - 선 대상자',
         },
@@ -127,6 +130,7 @@ const triggerSet: TriggerSet<Data> = {
           en: 'Avoid Prey Laser',
           de: 'Weiche dem Markierungs-Laser aus',
           fr: 'Évitez le laser',
+          ja: 'レーザーを避ける',
           cn: '躲避追踪激光',
           ko: '선 피하기',
         },

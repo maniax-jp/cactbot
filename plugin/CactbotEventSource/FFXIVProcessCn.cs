@@ -8,7 +8,7 @@ using RainbowMage.OverlayPlugin;
 
 namespace Cactbot {
   public class FFXIVProcessCn : FFXIVProcess {
-    // Last updated for FFXIV 6.2
+    // Last updated for FFXIV 6.5
 
     [StructLayout(LayoutKind.Explicit)]
     public unsafe struct EntityMemory {
@@ -29,22 +29,22 @@ namespace Cactbot {
       [FieldOffset(0x92)]
       public ushort distance;
 
-      [FieldOffset(0xA0)]
+      [FieldOffset(0xB0)]
       public Single pos_x;
 
-      [FieldOffset(0xA4)]
+      [FieldOffset(0xB4)]
       public Single pos_z;
 
-      [FieldOffset(0xA8)]
+      [FieldOffset(0xB8)]
       public Single pos_y;
 
-      [FieldOffset(0xB0)]
+      [FieldOffset(0xC0)]
       public Single rotation;
 
-      [FieldOffset(0x1C4)]
+      [FieldOffset(0x1BC)]
       public CharacterDetails charDetails;
 
-      [FieldOffset(0x1AEB)]
+      [FieldOffset(0x1E6)]
       public byte shieldPercentage;
     }
 
@@ -72,10 +72,10 @@ namespace Cactbot {
       [FieldOffset(0x16)]
       public short max_cp;
 
-      [FieldOffset(0x1C)]
+      [FieldOffset(0x1E)]
       public EntityJob job;
 
-      [FieldOffset(0x1D)]
+      [FieldOffset(0x1F)]
       public byte level;
     }
     public FFXIVProcessCn(ILogger logger) : base(logger) { }
@@ -105,12 +105,6 @@ namespace Cactbot {
     private static bool kInCombatSignatureRIP = true;
     // Because this line is a cmp byte line, the signature is not at the end of the line.
     private static int kInCombatRipOffset = 1;
-
-    // Bait integer.
-    // Variable is accessed via a cmp eax,[...] line at offset=0.
-    private static String kBaitSignature = "4883C4305BC3498BC8E8????????3B05";
-    private static int kBaitBaseOffset = 0;
-    private static bool kBaitBaseRIP = true;
 
     // A piece of code that reads the job data.
     // The pointer of interest is the first ???????? in the signature.
@@ -154,13 +148,6 @@ namespace Cactbot {
         logger_.Log(LogLevel.Error, Strings.InCombatSignatureFoundMultipleMatchesErrorMessage, p.Count);
       } else {
         in_combat_addr_ = p[0];
-      }
-
-      p = SigScan(kBaitSignature, kBaitBaseOffset, kBaitBaseRIP);
-      if (p.Count != 1) {
-        logger_.Log(LogLevel.Error, Strings.BaitSignatureFoundMultipleMatchesErrorMessage, p.Count);
-      } else {
-        bait_addr_ = p[0];
       }
     }
 
@@ -229,10 +216,7 @@ namespace Cactbot {
       IntPtr entity_ptr = ReadIntPtr(player_ptr_addr_);
       if (entity_ptr == IntPtr.Zero)
         return null;
-      var data = GetEntityData(entity_ptr);
-      if (data.job == EntityJob.FSH)
-        data.bait = GetBait();
-      return data;
+      return GetEntityData(entity_ptr);
     }
 
     public unsafe override JObject GetJobSpecificData(EntityJob job) {
@@ -504,10 +488,10 @@ namespace Cactbot {
       [FieldOffset(0x00)]
       public ushort hutonMilliseconds;
 
-      [FieldOffset(0x04)]
+      [FieldOffset(0x02)]
       public byte ninkiAmount;
 
-      [FieldOffset(0x05)]
+      [FieldOffset(0x03)]
       private byte hutonCount; // Why though?
     };
 
@@ -638,17 +622,17 @@ namespace Cactbot {
 
     [StructLayout(LayoutKind.Explicit)]
     public struct ScholarJobMemory {
-      [FieldOffset(0x02)]
+      [FieldOffset(0x00)]
       public byte aetherflowStacks;
 
-      [FieldOffset(0x03)]
+      [FieldOffset(0x01)]
       public byte fairyGauge;
 
-      [FieldOffset(0x04)]
+      [FieldOffset(0x02)]
       public ushort fairyMilliseconds; // Seraph time left ms.
 
-      [FieldOffset(0x06)]
-      public byte fairyStatus; // Varies depending on which fairy was summoned, during Seraph/Dissipation: 6 - Eos, 7 - Selene, else 0.
+      [FieldOffset(0x04)]
+      public byte fairyStatus; // Seraph: 6, else 0.
     };
 
 

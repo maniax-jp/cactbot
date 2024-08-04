@@ -22,7 +22,7 @@ export const damageFields = {
 };
 
 export const playerTargetFields = {
-  targetId: '[^4].......',
+  targetId: '1.......',
 };
 
 export const playerDamageFields = {
@@ -89,23 +89,6 @@ Examples:
 
 /* eslint-enable */
 
-export const ShortNamify = (
-  name: string | undefined,
-  playerNicks: { [name: string]: string },
-): string => {
-  // TODO: make this unique among the party in case of first name collisions.
-  // TODO: probably this should be a general cactbot utility.
-  if (!name)
-    return '???';
-
-  const nick = playerNicks[name];
-  if (nick)
-    return nick;
-
-  const idx = name.indexOf(' ');
-  return idx < 0 ? name : name.slice(0, idx);
-};
-
 export const Translate = (lang: Lang, obj?: LocaleText | string): string | undefined => {
   if (typeof obj !== 'object')
     return obj;
@@ -145,7 +128,7 @@ export const IsPlayerId = (id?: string): boolean => {
   if (id === undefined)
     return false;
   const firstChar = id[0];
-  return firstChar ? firstChar < '4' : false;
+  return firstChar !== undefined ? firstChar < '4' : false;
 };
 
 export const IsTriggerEnabled = (options: OopsyOptions, id: string): boolean => {
@@ -179,8 +162,8 @@ export const GetShareMistakeText = (
   return {
     en: `${localeText['en']} (share x${numTargets})`,
     de: `${localeText['de'] ?? localeText['en']} (geteilt mit ${numTargets})`,
-    fr: `${localeText['fr'] ?? localeText['en']} (partage)`, // FIXME
-    ja: `${localeText['ja'] ?? localeText['en']} (頭割り)`, // FIXME
+    fr: `${localeText['fr'] ?? localeText['en']} (partage x${numTargets})`,
+    ja: `${localeText['ja'] ?? localeText['en']} (頭割り: ${numTargets}人)`,
     cn: `${localeText['cn'] ?? localeText['en']} (重叠: ${numTargets}次)`,
     ko: `${localeText['ko'] ?? localeText['en']} (같이 맞음: ${numTargets}명)`,
   };

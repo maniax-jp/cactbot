@@ -8,6 +8,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'HeavenOnHighGeneral',
   zoneId: [
     ZoneId.HeavenOnHighFloors1_10,
     ZoneId.HeavenOnHighFloors11_20,
@@ -23,8 +24,10 @@ const triggerSet: TriggerSet<Data> = {
   zoneLabel: {
     en: 'Heaven-on-High (All Floors)',
     de: 'Himmelssäule (Alle Ebenen)',
+    fr: 'Pilier des cieux (Tous niveaux)',
+    ja: 'アメノミハシラ (全階層)',
     cn: '天之御柱 (全楼层)',
-    ko: '천궁탑',
+    ko: '천궁탑 (전체 층)',
   },
 
   triggers: [
@@ -42,6 +45,8 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'Quivering Coffer spawned!',
           de: 'zuckende Schnapptruhe ist erschienen',
+          fr: 'Coffre gigotant apparaît !',
+          ja: 'ミミック！',
           cn: '已生成 抖动的宝箱!',
           ko: '꿈틀거리는 보물상자 등장!',
         },
@@ -108,6 +113,8 @@ const triggerSet: TriggerSet<Data> = {
         duplicate: {
           en: '${pomander} duplicate',
           de: 'Doppelter ${pomander}',
+          fr: '${pomander} dupliquée',
+          ja: '${pomander} 被り',
           cn: '${pomander} 重复',
           ko: '${pomander} 중복',
         },
@@ -115,7 +122,7 @@ const triggerSet: TriggerSet<Data> = {
         safety: {
           en: 'Safety',
           de: 'Siegelbruchs',
-          fr: 'désamorçage',
+          fr: 'Désamorçage',
           ja: '呪印解除',
           cn: '咒印解除',
           ko: '함정 해제',
@@ -123,7 +130,7 @@ const triggerSet: TriggerSet<Data> = {
         sight: {
           en: 'Sight',
           de: 'Sicht',
-          fr: 'localisation',
+          fr: 'Localisation',
           ja: 'サイトロ',
           cn: '全景',
           ko: '사이트로',
@@ -131,7 +138,7 @@ const triggerSet: TriggerSet<Data> = {
         strength: {
           en: 'Strength',
           de: 'Stärkung',
-          fr: 'puissance',
+          fr: 'Puissance',
           ja: '自己強化',
           cn: '强化自身',
           ko: '자기 강화',
@@ -139,7 +146,7 @@ const triggerSet: TriggerSet<Data> = {
         steel: {
           en: 'Steel',
           de: 'Abwehr',
-          fr: 'protection',
+          fr: 'Protection',
           ja: '防御強化',
           cn: '强化防御',
           ko: '방어 강화',
@@ -147,7 +154,7 @@ const triggerSet: TriggerSet<Data> = {
         affluence: {
           en: 'Affluence',
           de: 'Schätze',
-          fr: 'décèlement',
+          fr: 'Décèlement',
           ja: '宝箱増加',
           cn: '宝箱增加',
           ko: '보물상자 증가',
@@ -155,7 +162,7 @@ const triggerSet: TriggerSet<Data> = {
         flight: {
           en: 'Flight',
           de: 'Feindtods',
-          fr: 'sécurisation',
+          fr: 'Sécurisation',
           ja: '敵排除',
           cn: '减少敌人',
           ko: '적 감소',
@@ -163,7 +170,7 @@ const triggerSet: TriggerSet<Data> = {
         alteration: {
           en: 'Alteration',
           de: 'Feindwandlung',
-          fr: 'affaiblissement',
+          fr: 'Affaiblissement',
           ja: '敵変化',
           cn: '改变敌人',
           ko: '적 대체',
@@ -171,7 +178,7 @@ const triggerSet: TriggerSet<Data> = {
         purity: {
           en: 'Purity',
           de: 'Entzauberung',
-          fr: 'anti-maléfice',
+          fr: 'Anti-maléfice',
           ja: '解呪',
           cn: '解咒',
           ko: '저주 해제',
@@ -179,7 +186,7 @@ const triggerSet: TriggerSet<Data> = {
         fortune: {
           en: 'Fortune',
           de: 'Glücks',
-          fr: 'chance',
+          fr: 'Chance',
           ja: '運気上昇',
           cn: '运气上升',
           ko: '운 상승',
@@ -187,7 +194,7 @@ const triggerSet: TriggerSet<Data> = {
         witching: {
           en: 'Witching',
           de: 'Wandlung',
-          fr: 'mutation',
+          fr: 'Mutation',
           ja: '形態変化',
           cn: '形态变化',
           ko: '적 변형',
@@ -195,7 +202,7 @@ const triggerSet: TriggerSet<Data> = {
         serenity: {
           en: 'Serenity',
           de: 'Enthexung',
-          fr: 'dissipation',
+          fr: 'Dissipation',
           ja: '魔法効果解除',
           cn: '魔法效果解除',
           ko: '마법 효과 해제',
@@ -203,7 +210,7 @@ const triggerSet: TriggerSet<Data> = {
         rage: {
           en: 'Rage',
           de: 'Manticoren',
-          fr: 'manticore',
+          fr: 'Manticore',
           ja: 'マンティコア化',
           cn: '曼提克化',
           ko: '만티코어 변신',
@@ -211,7 +218,7 @@ const triggerSet: TriggerSet<Data> = {
         lust: {
           en: 'Lust',
           de: 'Sukkuben',
-          fr: 'succube',
+          fr: 'Succube',
           ja: 'サキュバス化',
           cn: '梦魔化',
           ko: '서큐버스 변신',
@@ -219,7 +226,7 @@ const triggerSet: TriggerSet<Data> = {
         intuition: {
           en: 'Intuition',
           de: 'Finders',
-          fr: 'intuition',
+          fr: 'Intuition',
           ja: '財宝感知',
           cn: '感知宝藏',
           ko: '보물 탐지',
@@ -227,7 +234,7 @@ const triggerSet: TriggerSet<Data> = {
         raising: {
           en: 'Raising',
           de: 'Lebens',
-          fr: 'résurrection',
+          fr: 'Résurrection',
           ja: 'リレイズ',
           cn: '重生',
           ko: '리레이즈',
@@ -243,7 +250,7 @@ const triggerSet: TriggerSet<Data> = {
         frailty: {
           en: 'Frailty',
           de: 'Feindschwächung',
-          fr: 'incapacité',
+          fr: 'Incapacité',
           ja: '敵弱体',
           cn: '弱化敌人',
           ko: '적 약화',
@@ -251,7 +258,7 @@ const triggerSet: TriggerSet<Data> = {
         concealment: {
           en: 'Concealment',
           de: 'Verschwindens',
-          fr: 'invisibilité',
+          fr: 'Invisibilité',
           ja: 'バニシュ',
           cn: '隐形',
           ko: '배니시',
@@ -259,7 +266,7 @@ const triggerSet: TriggerSet<Data> = {
         petrification: {
           en: 'Petrification',
           de: 'Feindversteinerung',
-          fr: 'pétrification',
+          fr: 'Pétrification',
           ja: '敵石化',
           cn: '石化敌人',
           ko: '적 석화',
@@ -288,6 +295,8 @@ const triggerSet: TriggerSet<Data> = {
         duplicate: {
           en: '${magicite} duplicate',
           de: 'Doppelter ${magicite} Stein',
+          fr: '${magicite} dupliquée',
+          ja: '${magicite} 被り',
           cn: '${magicite} 重复',
           ko: '${magicite} 중복',
         },
@@ -339,6 +348,8 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'Beacon of Passage activated',
           de: 'Weglaterne aktiviert',
+          fr: 'La lanterne de téléportation s\'est activée !',
+          ja: '転移が出来ます',
           cn: '转移灯笼已启动',
           ko: '전송 등불 활성화',
         },
@@ -355,7 +366,7 @@ const triggerSet: TriggerSet<Data> = {
     {
       'locale': 'fr',
       'replaceSync': {
-        'Quivering Coffer': 'coffre gigotant',
+        'Quivering Coffer': 'Coffre gigotant',
       },
     },
     {

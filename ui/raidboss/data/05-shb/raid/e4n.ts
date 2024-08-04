@@ -6,6 +6,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'EdensGateSepulture',
   zoneId: ZoneId.EdensGateSepulture,
   timelineFile: 'e4n.txt',
   triggers: [
@@ -19,18 +20,7 @@ const triggerSet: TriggerSet<Data> = {
       id: 'E4N Earthen Fury',
       type: 'StartsUsing',
       netRegex: { id: '40F8', source: 'Titan', capture: false },
-
-      infoText: (_data, _matches, output) => output.text!(),
-      outputStrings: {
-        text: {
-          en: 'aoe + dot',
-          de: 'AoE + DoT',
-          fr: 'AoE + dot',
-          ja: 'AoE + DoT',
-          cn: 'AOE + dot',
-          ko: '전체공격 + 도트뎀',
-        },
-      },
+      response: Responses.bleedAoe(),
     },
     {
       id: 'E4N Stonecrusher',

@@ -11,6 +11,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'MemoriaMiseraExtreme',
   zoneId: ZoneId.MemoriaMiseraExtreme,
   timelineFile: 'varis-ex.txt',
   timelineTriggers: [
@@ -140,10 +141,10 @@ const triggerSet: TriggerSet<Data> = {
         if (data.me === target)
           return output.tankBusterOnYou!();
 
-        if (data.role === 'dps')
+        if (data.role === 'dps' && data.job !== 'BLU')
           return output.avoidTankCleave!();
 
-        return output.tankBusterOn!({ player: data.ShortName(target) });
+        return output.tankBusterOn!({ player: data.party.member(target) });
       },
       outputStrings: {
         tankBusterOnYou: Outputs.tankBusterOnYou,

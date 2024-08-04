@@ -1,5 +1,4 @@
 import Conditions from '../../../../../resources/conditions';
-import NetRegexes from '../../../../../resources/netregexes';
 import { Responses } from '../../../../../resources/responses';
 import ZoneId from '../../../../../resources/zone_id';
 import { RaidbossData } from '../../../../../types/data';
@@ -10,6 +9,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheBindingCoilOfBahamutTurn1',
   zoneId: ZoneId.TheBindingCoilOfBahamutTurn1,
   initData: () => {
     return {
@@ -87,11 +87,9 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       id: 'T1 Slime Timer First',
-      type: 'GameLog',
-      netRegex: NetRegexes.message({
-        line: 'The Allagan megastructure will be sealed off.*?',
-        capture: false,
-      }),
+      type: 'SystemLogMessage',
+      // The Allagan megastructure will be sealed off
+      netRegex: { id: '7DC', param1: '379', capture: false },
       delaySeconds: 35,
       suppressSeconds: 5,
       infoText: (_data, _matches, output) => output.text!(),

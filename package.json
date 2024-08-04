@@ -1,12 +1,14 @@
 {
   "name": "cactbot",
-  "version": "0.28.11",
+  "version": "0.32.5",
+  "releaseSummary": "initial savage floors 1-3, jobs fixes",
+  "releaseInDraft": "false",
   "license": "Apache-2.0",
   "type": "module",
   "types": "./types",
   "repository": {
     "type": "git",
-    "url": "https://github.com/quisquous/cactbot"
+    "url": "https://github.com/OverlayPlugin/cactbot"
   },
   "files": [
     "./ui",
@@ -19,7 +21,7 @@
     "build": "webpack --progress --config webpack/webpack.prod.ts",
     "build-gh-pages": " webpack --config webpack/webpack.ghpages.ts",
     "start": "webpack serve --config webpack/webpack.dev.ts",
-    "fetch-deps": "ts-node ./util/fetch_deps.ts",
+    "fetch-deps": "node --loader=ts-node/esm ./util/fetch_deps.ts",
     "tsc-no-emit": "tsc --noEmit",
     "lint": "run-s lint:**",
     "lint:dprint": "dprint check",
@@ -27,21 +29,28 @@
     "lintfix": "run-s lintfix:**",
     "lintfix:dprint": "dprint fmt",
     "lintfix:eslint": "eslint --max-warnings=0 --fix ./",
-    "stylelint": "stylelint resources/**/*.css ui/**/*.css user/**/*.css test/**/*.css util/**/*.css",
-    "stylelintfix": "stylelint --fix resources/**/*.css ui/**/*.css user/**/*.css test/**/*.css util/**/*.css",
+    "stylelint": "stylelint \"resources/**/*.css\" \"ui/**/*.css\" \"user/**/*.css\" \"test/**/*.css\" \"util/**/*.css\"",
+    "stylelintfix": "stylelint --fix \"resources/**/*.css\" \"ui/**/*.css\" \"user/**/*.css\" \"test/**/*.css\" \"util/**/*.css\"",
     "markdownlint": "markdownlint . --ignore node_modules --ignore publish --ignore plugin/ThirdParty",
+    "workflowlint": "yamllint -c .yamllint.yml .github/workflows/ && node .github/scripts/lint-workflow.cjs",
     "test": "mocha",
+    "sync-files": "node --loader=ts-node/esm util/sync_files.ts && git diff --exit-code",
     "lint-staged": "lint-staged",
-    "coverage-report": "ts-node util/gen_coverage_report.ts",
-    "util": "ts-node util/index.ts",
+    "coverage-report": "node --loader=ts-node/esm util/gen_coverage_report.ts",
+    "util": "node --loader=ts-node/esm util/index.ts",
     "find-translations": "npm run util -- findTranslations",
     "translate-timeline": "npm run util -- translateTimeline",
     "generate": "npm run util -- generate",
-    "process-triggers": "ts-node util/process_triggers_folder.ts",
-    "generate-log-guide": "ts-node util/gen_log_guide.ts",
-    "version": "node util/sync_version.cjs && git add -u"
+    "query": "npm run util -- query",
+    "process-triggers": "node --loader=ts-node/esm util/process_triggers_folder.ts",
+    "generate-log-guide": "node --loader=ts-node/esm util/gen_log_guide.ts",
+    "update-logdefs": "node --loader=ts-node/esm util/update_logdefs.ts",
+    "validate-versions": "node --loader=ts-node/esm util/validate_versions.ts",
+    "release": "node --loader=ts-node/esm util/do_release.ts",
+    "version": "node --loader=ts-node/esm util/bump_version.ts"
   },
   "devDependencies": {
+    "@actions/core": "^1.10.1",
     "@actions/exec": "^1.1.1",
     "@actions/github": "^5.0.0",
     "@actions/http-client": "^1.0.11",
@@ -75,10 +84,11 @@
     "cross-env": "^7.0.3",
     "css-loader": "^6.5.1",
     "css-minimizer-webpack-plugin": "^3.4.1",
-    "dprint": "^0.32.1",
+    "dprint": "^0.40.2",
     "eslint": "^8.26.0",
     "eslint-config-google": "^0.14.0",
     "eslint-import-resolver-typescript": "^3.5.2",
+    "eslint-plugin-deprecation": "^2.0.0",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-prefer-arrow": "^1.2.3",
     "eslint-plugin-rulesdir": "^0.2.1",
@@ -110,15 +120,15 @@
     "ts-loader": "^9.3.0",
     "ts-node": "^10.8.0",
     "tsconfig-paths": "^3.9.0",
-    "ttypescript": "^1.5.12",
+    "ttypescript": "^1.5.15",
     "typescript": "^4.6.4",
-    "webpack": "^5.72.0",
+    "webpack": "^5.76.0",
     "webpack-cli": "^4.9.2",
     "webpack-dev-server": "^4.9.0",
     "webpack-merge": "^5.8.0"
   },
   "engines": {
-    "node": ">=18.10.0"
+    "node": ">=20.10.0"
   },
   "stylelint": {
     "extends": "stylelint-config-standard"
@@ -142,7 +152,7 @@
     "*.md": "markdownlint",
     "*.py": "python -m pylint --errors-only",
     "ui/(raidboss|oopsyraidsy)/data/**": [
-      "ts-node test/test_raidboss_data.ts"
+      "node --loader=ts-node/esm test/test_data_files.ts"
     ]
   },
   "dependencies": {

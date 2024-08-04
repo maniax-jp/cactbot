@@ -118,6 +118,7 @@ const paradeigmaLeanOutputStrings = {
   dirWithLean: {
     en: '${dir} bird (lean ${lean})',
     de: '${dir} Vogel (nach ${lean} neigen)',
+    fr: 'Oiseau ${dir} (côté ${lean})',
     ja: '${dir}の鳥 (すこし${lean})',
     cn: '${dir}鸟 (偏${lean})',
     ko: '${dir}쪽 새, (약간 ${lean}쪽으로)',
@@ -210,6 +211,7 @@ const eclipseOutput = (idx: number, flags?: string): keyof typeof eclipseOutputS
 };
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheMinstrelsBalladZodiarksFall',
   zoneId: ZoneId.TheMinstrelsBalladZodiarksFall,
   timelineFile: 'zodiark-ex.txt',
   initData: () => ({
@@ -254,6 +256,7 @@ const triggerSet: TriggerSet<Data> = {
         underQuetz: {
           en: 'Under NW Quetzalcoatl',
           de: 'Unter NW Quetzalcoatl',
+          fr: 'Sous le Quetzalcóatl NO',
           ja: '北東の鳥の下',
           cn: '站在左上 (西北) 鸟',
           ko: '북동쪽 새 밑으로', // This is northeast. Because Korean folks go there.
@@ -506,6 +509,7 @@ const triggerSet: TriggerSet<Data> = {
           // Similarly, there's a Algedon knockback call too.
           en: 'sides (for laser)',
           de: 'Seiten (für die Laser)',
+          fr: 'Côtés (pour les lasers)',
           ja: '横側 (レーザー回避)',
           cn: '两边 (躲避激光)',
           ko: '양옆 (레이저 피하기)',
@@ -513,6 +517,7 @@ const triggerSet: TriggerSet<Data> = {
         middle: {
           en: 'middle (for laser)',
           de: 'Mitte (für die Laser)',
+          fr: 'Milieu (pour les lasers)',
           ja: '真ん中 (レーザー回避)',
           cn: '中间 (躲避激光)',
           ko: '중앙 (레이저 피하기)',
@@ -649,12 +654,12 @@ const triggerSet: TriggerSet<Data> = {
       alertText: (_data, _matches, output) => output.text!(),
       outputStrings: {
         text: {
-          en: Outputs.killAdds.en + '(back first)',
-          de: Outputs.killAdds.de + '(hinten zuerst)',
-          fr: Outputs.killAdds.fr + '(arrière d\'abord)',
-          ja: Outputs.killAdds.ja + '(下の雑魚から)',
-          cn: Outputs.killAdds.cn + '(先打后方的)',
-          ko: Outputs.killAdds.ko + '(아래쪽 먼저)',
+          en: 'Kill adds (back first)',
+          de: 'Adds besiegen (hinten zuerst)',
+          fr: 'Tuez les adds (arrière d\'abord)',
+          ja: '雑魚から倒して (下の雑魚から)',
+          cn: '击杀小怪 (先打后方的)',
+          ko: '쫄 잡기 (아래쪽 먼저)',
         },
       },
     },
@@ -727,7 +732,7 @@ const triggerSet: TriggerSet<Data> = {
         frontsides: {
           en: 'front sides',
           de: 'Vorne Seiten',
-          fr: 'Côtés devant',
+          fr: 'Devant sur les côtés',
           ja: '前の横側',
           cn: '前方两边',
           ko: '앞쪽 양옆',
@@ -735,7 +740,7 @@ const triggerSet: TriggerSet<Data> = {
         backmiddle: {
           en: 'back middle',
           de: 'Hinten Mitte',
-          fr: 'Arrière au centre',
+          fr: 'Arrière centre',
           ja: '後ろの真ん中',
           cn: '后方中间',
           ko: '뒤쪽 중앙',
@@ -743,7 +748,8 @@ const triggerSet: TriggerSet<Data> = {
         frontmiddle: {
           en: 'front middle',
           de: 'Vorne Mitte',
-          fr: 'Devant au centre',
+          fr: 'Avant centre',
+          ja: '前の中央',
           cn: '前方中间',
           ko: '앞쪽 중앙',
         },
@@ -917,17 +923,7 @@ const triggerSet: TriggerSet<Data> = {
       id: 'ZodiarkEx Phobos',
       type: 'StartsUsing',
       netRegex: { id: '67F0', source: 'Zodiark', capture: false },
-      alertText: (_data, _matches, output) => output.text!(),
-      outputStrings: {
-        text: {
-          en: 'Heavy DoT',
-          de: 'Starker DoT',
-          fr: 'Gros DoT',
-          ja: '痛いDOT',
-          cn: '超痛流血AOE',
-          ko: '아픈 도트딜',
-        },
-      },
+      response: Responses.bleedAoe('alert'),
     },
     {
       id: 'ZodiarkEx Astral Eclipse Cleanup',

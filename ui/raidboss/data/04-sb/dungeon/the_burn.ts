@@ -9,6 +9,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheBurn',
   zoneId: ZoneId.TheBurn,
   timelineFile: 'the_burn.txt',
   triggers: [
@@ -193,7 +194,7 @@ const triggerSet: TriggerSet<Data> = {
         text: {
           en: 'Bait Star Explosions',
           de: 'Stern Explosion ködern',
-          fr: 'Attirez les explosions d\'étoiles',
+          fr: 'Évitez l\'AoE en ligne des étoiles',
           ja: '放射霧を誘導',
           cn: '诱导放射雾',
           ko: '별모양 장판 피하기',

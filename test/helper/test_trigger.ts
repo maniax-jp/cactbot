@@ -8,18 +8,20 @@ import path from 'path';
 
 import { assert } from 'chai';
 
-import NetRegexes, {
-  buildNetRegexForTrigger,
-  keysThatRequireTranslation,
-} from '../../resources/netregexes';
+import NetRegexes, { buildNetRegexForTrigger } from '../../resources/netregexes';
 import { UnreachableCode } from '../../resources/not_reached';
+import PartyTracker from '../../resources/party';
 import Regexes from '../../resources/regexes';
 import {
   builtInResponseStr,
   triggerFunctions,
   triggerTextOutputFunctions,
 } from '../../resources/responses';
-import { translateWithReplacements } from '../../resources/translations';
+import {
+  AnonNetRegexParams,
+  translateRegexBuildParamAnon,
+  translateWithReplacements,
+} from '../../resources/translations';
 import { RaidbossData } from '../../types/data';
 import { Matches } from '../../types/net_matches';
 import {
@@ -31,19 +33,48 @@ import {
   ResponseFunc,
   TriggerFunc,
 } from '../../types/trigger';
+import raidbossOptions from '../../ui/raidboss/raidboss_options';
+
+const emptyPartyTracker = new PartyTracker(raidbossOptions);
+
+const getFakeRaidbossData = (triggerSet?: LooseTriggerSet): RaidbossData => {
+  return {
+    me: '',
+    job: 'NONE',
+    role: 'none',
+    party: emptyPartyTracker,
+    lang: 'en',
+    parserLang: 'en',
+    displayLang: 'en',
+    currentHP: 0,
+    options: raidbossOptions,
+    inCombat: true,
+    triggerSetConfig: {},
+    ShortName: (x: string | undefined) => x ?? '',
+    StopCombat: (): void => {/* noop */},
+    ParseLocaleFloat: () => 0,
+    CanStun: () => false,
+    CanSilence: () => false,
+    CanSleep: () => false,
+    CanCleanse: () => false,
+    CanFeint: () => false,
+    CanAddle: () => false,
+    ...triggerSet?.initData?.() ?? {},
+  };
+};
 
 const isResponseFunc = (func: unknown): func is ResponseFunc<RaidbossData, Matches> => {
   return typeof func === 'function';
 };
 
-const testTriggerFile = (file: string) => {
+const testTriggerFile = (file: string, info: TriggerSetInfo) => {
   let contents: string;
   let triggerSet: LooseTriggerSet;
 
   before(async () => {
     contents = fs.readFileSync(file).toString();
     // Normalize path
-    const importPath = '../../' + path.relative(process.cwd(), file).replace('.ts', '.js');
+    const importPath = `../../${path.relative(process.cwd(), file).replace('.ts', '.js')}`;
 
     // Set a global flag to mark regexes for NetRegexes.doesNetRegexNeedTranslation.
     // See details in that function for more information.
@@ -60,6 +91,20 @@ const testTriggerFile = (file: string) => {
 
   // Dummy test so that failures in before show up with better text.
   it('should load properly', () => {/* noop */});
+
+  it('should have a unique set id', () => {
+    const id = triggerSet.id;
+    if (id === undefined) {
+      assert.fail('has an undefined id somehow');
+      return;
+    }
+    const prevFile = info.triggerSetId[id];
+    if (prevFile === undefined) {
+      info.triggerSetId[id] = file;
+      return;
+    }
+    assert.fail(`triggerset id conflict: ${id} already used by ${prevFile}`);
+  });
 
   it('should not use Regexes', () => {
     const regexes = /(?:(?:regex)(?:|Cn|De|Fr|Ko|Ja)\w*\s*:\w*\s*Regexes\.)/g;
@@ -162,7 +207,7 @@ const testTriggerFile = (file: string) => {
             }
             // Built-in response functions can be safely called once.
             const output = new TestOutputProxy(trigger, {}) as Output;
-            const data = (triggerSet.initData?.() ?? {}) as RaidbossData;
+            const data: RaidbossData = getFakeRaidbossData(triggerSet);
             const triggerFunc: TriggerFunc<RaidbossData, Matches, unknown> = currentTriggerFunction;
 
             const result = triggerFunc(data, {}, output);
@@ -228,7 +273,7 @@ const testTriggerFile = (file: string) => {
       if (!set)
         continue;
       for (const trigger of set) {
-        if (!trigger.id) {
+        if (trigger.id === undefined) {
           assert.fail(`Missing id field in trigger ${trigger.regex?.source ?? '???'}`);
           continue;
         }
@@ -278,6 +323,26 @@ const testTriggerFile = (file: string) => {
     }
   });
 
+  it('has globally unique trigger ids', () => {
+    for (const set of [triggerSet.triggers, triggerSet.timelineTriggers]) {
+      if (!set)
+        continue;
+      for (const trigger of set) {
+        // warned elsewhere
+        const id = trigger.id;
+        if (id === undefined)
+          continue;
+
+        const prevFile = info.triggerId[id];
+        if (prevFile === undefined) {
+          info.triggerId[id] = file;
+          continue;
+        }
+        assert.fail(`trigger id conflict: ${id} already used by ${prevFile}`);
+      }
+    }
+  });
+
   it('does not combine response with texts', () => {
     const bannedItems: (keyof LooseTrigger)[] = [
       'alarmText',
@@ -310,6 +375,7 @@ const testTriggerFile = (file: string) => {
     // This is the order in which they are run.
     const triggerOrder: (keyof LooseTrigger | keyof LooseTimelineTrigger)[] = [
       'id',
+      'comment',
       'type',
       'disabled',
       'netRegex',
@@ -454,7 +520,7 @@ const testTriggerFile = (file: string) => {
           const responseFunc = trigger.response;
           if (isResponseFunc(responseFunc)) {
             // Call the function to get the outputStrings.
-            const data = (triggerSet.initData?.() ?? {}) as RaidbossData;
+            const data = getFakeRaidbossData(triggerSet);
             response = responseFunc(data, {}, output) ?? {};
 
             if (typeof outputStrings !== 'object') {
@@ -577,7 +643,16 @@ const testTriggerFile = (file: string) => {
 
           for (const key of keys) {
             for (const param of outputStringsParams[key] ?? []) {
-              if (!Regexes.parse(`\\b${param}\\s*:`).exec(funcStr)) {
+              // Only allow one level of prop specification, e.g. `obj.key`
+              // Do not allow `obj.key.subkey`
+              const paramParts = param.split('.');
+              if (paramParts.length > 2) {
+                assert.fail(
+                  `'${id}' specifies an object key ('${param}') with too many parts`,
+                );
+              }
+              const trimmedParam = paramParts[0] ?? param;
+              if (!Regexes.parse(`\\b${trimmedParam}\\s*:`).exec(funcStr)) {
                 assert.fail(
                   `'${id}' does not define param '${param}' for outputStrings entry '${key}'`,
                 );
@@ -641,37 +716,16 @@ const testTriggerFile = (file: string) => {
           if (trigger.disabled)
             continue;
 
-          const textHasTranslation = (text: string): boolean => {
-            return translateWithReplacements(
-              text,
-              'replaceSync',
-              locale,
-              translations,
-            ).wasTranslated;
-          };
+          const result = translateRegexBuildParamAnon(trigger.netRegex ?? {}, locale, translations);
+          if (result.wasTranslated)
+            continue;
 
-          const checkIfFieldHasTranslation = (field: string | string[], fieldName: string) => {
-            if (typeof field === 'string') {
-              assert.isTrue(
-                textHasTranslation(field),
-                `${id}:locale ${locale}:missing timelineReplace replaceSync for ${fieldName} '${field}'`,
-              );
-            } else {
-              for (const s of field) {
-                assert.isTrue(
-                  textHasTranslation(s),
-                  `${id}:locale ${locale}:missing timelineReplace replaceSync for ${fieldName} '${s}'`,
-                );
-              }
-            }
-          };
-
-          for (const key of keysThatRequireTranslation) {
-            type AnonymousParams = { [name: string]: string | string[] | boolean | undefined };
-            const anonTriggerFields: AnonymousParams = trigger.netRegex;
-            const value = anonTriggerFields[key];
-            if (value !== undefined && typeof value !== 'boolean')
-              checkIfFieldHasTranslation(value, key);
+          const anonParams: AnonNetRegexParams = trigger.netRegex;
+          for (const field of result.missingFields ?? []) {
+            const fieldValueStr = JSON.stringify(anonParams[field]);
+            assert.fail(
+              `${id}:locale ${locale}:missing timelineReplace replaceSync for field "${field}" with value ${fieldValueStr}`,
+            );
           }
 
           continue;
@@ -700,10 +754,22 @@ const testTriggerFile = (file: string) => {
   });
 };
 
+type TriggerSetInfo = {
+  // id -> filename map
+  triggerSetId: { [id: string]: string };
+  // id -> filename map
+  triggerId: { [id: string]: string };
+};
+
 const testTriggerFiles = (triggerFiles: string[]): void => {
+  const info: TriggerSetInfo = {
+    triggerSetId: {},
+    triggerId: {},
+  };
   describe('trigger test', () => {
-    for (const file of triggerFiles)
-      describe(`${file}`, () => testTriggerFile(file));
+    for (const file of triggerFiles) {
+      describe(`${file}`, () => testTriggerFile(file, info));
+    }
   });
 };
 

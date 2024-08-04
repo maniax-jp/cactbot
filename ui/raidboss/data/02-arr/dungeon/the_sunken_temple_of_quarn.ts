@@ -6,6 +6,7 @@ import { TriggerSet } from '../../../../../types/trigger';
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheSunkenTempleOfQarn',
   zoneId: ZoneId.TheSunkenTempleOfQarn,
   triggers: [
     {
@@ -19,6 +20,7 @@ const triggerSet: TriggerSet<Data> = {
           en: 'Step on Glowing Plate',
           de: 'Auf der leuchtende Platte stehen',
           fr: 'Marchez sur la plaque qui brille',
+          ja: '光る床に乗る',
           cn: '踩发光地板',
           ko: '빛나는 발판 밟기',
         },

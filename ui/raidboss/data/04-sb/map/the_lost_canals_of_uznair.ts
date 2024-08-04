@@ -10,6 +10,7 @@ const uznairOutputStrings = {
   spawn: {
     en: '${name} spawned!',
     de: '${name} erscheint!',
+    fr: '${name} apparaît !',
     cn: '已生成 ${name}!',
     ko: '${name} 등장!',
   },
@@ -18,6 +19,7 @@ const uznairOutputStrings = {
 export type Data = RaidbossData;
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheLostCanalsOfUznair',
   zoneId: ZoneId.TheLostCanalsOfUznair,
 
   triggers: [

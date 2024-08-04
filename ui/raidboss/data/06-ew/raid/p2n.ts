@@ -13,6 +13,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'AsphodelosTheSecondCircle',
   zoneId: ZoneId.AsphodelosTheSecondCircle,
   timelineFile: 'p2n.txt',
   triggers: [
@@ -183,7 +184,7 @@ const triggerSet: TriggerSet<Data> = {
       netRegex: { id: '6D14' },
       condition: (data) => data.flareTarget !== data.me,
       alertText: (data, matches, output) =>
-        output.lineStackOn!({ player: data.ShortName(matches.target) }),
+        output.lineStackOn!({ player: data.party.member(matches.target) }),
       outputStrings: {
         lineStackOn: {
           en: 'Line stack on ${player}',

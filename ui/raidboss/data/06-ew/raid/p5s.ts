@@ -27,6 +27,7 @@ export const convertCoordinatesToDirection = (x: number, y: number): IntercardDi
 };
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'AbyssosTheFifthCircleSavage',
   zoneId: ZoneId.AbyssosTheFifthCircleSavage,
   timelineFile: 'p5s.txt',
   initData: () => {
@@ -140,7 +141,7 @@ const triggerSet: TriggerSet<Data> = {
 
         if (data.target === data.me)
           return output.busterOnYou!();
-        return output.busterOnTarget!({ player: data.ShortName(data.target) });
+        return output.busterOnTarget!({ player: data.party.member(data.target) });
       },
       outputStrings: {
         busterOnYou: Outputs.tankBusterOnYou,
@@ -416,12 +417,12 @@ const triggerSet: TriggerSet<Data> = {
     },
     {
       'locale': 'fr',
-      'missingTranslations': true,
       'replaceSync': {
         'Lively Bait': 'amuse-gueule',
         'Proto-Carbuncle': 'Proto-Carbuncle',
       },
       'replaceText': {
+        '--towers--': '--Tours--',
         'Acidic Slaver': 'Salive acide',
         'Claw to Tail': 'Griffes et queue',
         'Devour': 'Dévoration',

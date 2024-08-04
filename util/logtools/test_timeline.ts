@@ -26,7 +26,9 @@ const defaultDriftWarn = 0.2;
 const defaultDriftFail = 1.0;
 
 const maxFieldId = (fields: { [fieldName: string]: number }): number => {
-  return Math.max(...Object.values(fields));
+  // +1 for the 0-indexing
+  // +1 for the always-excluded-from-field-mappings hash
+  return Math.max(...Object.values(fields)) + 2;
 };
 
 const maxAbilityFieldId = maxFieldId(logDefinitionsVersions.latest.Ability.fields);
@@ -116,6 +118,7 @@ const testLineEvents = async (
     testTimeline._OnUpdateTimer(line.timestamp);
     // If this log line matches, it will OnSync and adjust the time as needed.
     testTimeline.OnLogLine(line.convertedLine, line.timestamp);
+    testTimeline.OnNetLogLine(line.networkLine, line.timestamp);
   }
 
   console.log('Timeline:');
@@ -255,15 +258,35 @@ const testTimelineFileStartEnd = async (
     console.error(`Invalid start datetime '${args.end}', aborting.`);
     process.exit(-2);
   }
-  const allLines = fs.readFileSync(logFilePath).toString().split('\n');
+
+  const startTimestamp = startDate.getTime();
+  const endTimestamp = endDate.getTime();
+
+  const logFileStream = fs.createReadStream(logFilePath);
+
+  const logFileReadLine = readline.createInterface({
+    input: logFileStream,
+    crlfDelay: Infinity,
+  });
 
   const repo = new LogRepository();
-  const lineEvents = allLines.map((line) => ParseLine.parse(repo, line)).filter((l) => {
-    const timestamp = l?.timestamp;
+
+  const lineEvents: LineEvent[] = [];
+
+  for await (const line of logFileReadLine) {
+    const parsedLine = ParseLine.parse(repo, line);
+
+    if (parsedLine === undefined)
+      continue;
+
+    const timestamp = parsedLine?.timestamp;
+
     if (timestamp === undefined)
-      return false;
-    return timestamp >= startDate.getTime() && timestamp <= endDate.getTime();
-  }) as LineEvent[];
+      continue;
+
+    if (timestamp >= startTimestamp && timestamp <= endTimestamp)
+      lineEvents.push(parsedLine);
+  }
 
   const driftWarn = args.drift_warning ?? defaultDriftWarn;
   const driftFail = args.drift_failure ?? defaultDriftFail;
@@ -360,12 +383,12 @@ export const main = async (): Promise<void> => {
     ['-s', '--start'],
     {
       type: 'string',
-      help: 'Timestamp of the start, e.g. \'12:34:56.789',
+      help: 'Timestamp of the start, e.g. \'2024-01-23T12:34:56.7890000-04:00\'',
     },
   );
   parser.addArgument(
     ['-e', '--end'],
-    { type: 'string', help: 'Timestamp of the end, e.g. \'12:34:56.789' },
+    { type: 'string', help: 'Timestamp of the end, e.g. \'2024-01-23T12:34:56.7890000-04:00\'' },
   );
 
   // Output Format arguments
@@ -434,6 +457,14 @@ class TestTimeline extends Timeline {
           continue;
         // Skip text events with no sync.
         if (event.sync === undefined)
+          continue;
+        // Skip events when jumping
+        // TODO: Instead of marking the destination as `missed',
+        // maybe add some new record type `jump'?
+        // https://github.com/quisquous/cactbot/pull/5435#issuecomment-1565543064
+        if (
+          lastRecord?.event.sync?.jump !== undefined && lastRecord?.event.sync?.jump > event.time
+        )
           continue;
 
         ui.records.push({

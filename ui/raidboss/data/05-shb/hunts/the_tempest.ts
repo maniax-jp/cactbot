@@ -11,6 +11,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'TheTempest',
   zoneId: ZoneId.TheTempest,
   triggers: [
     {
@@ -97,6 +98,7 @@ const triggerSet: TriggerSet<Data> = {
         avoidStack: {
           en: 'Avoid Stack',
           de: 'Vermeide Sammeln',
+          fr: 'Ne vous packez pas',
           cn: '远离分摊',
           ko: '쉐어징 피하기',
         },

@@ -11,6 +11,7 @@ export interface Data extends RaidbossData {
 }
 
 const triggerSet: TriggerSet<Data> = {
+  id: 'AlexanderTheHeartOfTheCreatorSavage',
   zoneId: ZoneId.AlexanderTheHeartOfTheCreatorSavage,
   timelineFile: 'a11s.txt',
   timelineTriggers: [
@@ -141,7 +142,7 @@ const triggerSet: TriggerSet<Data> = {
       infoText: (data, matches, output) => {
         if (data.me === matches.target)
           return;
-        return output.gaOn!({ player: data.ShortName(matches.target) });
+        return output.gaOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         gaOn: {
@@ -235,12 +236,12 @@ const triggerSet: TriggerSet<Data> = {
 
         // Evens
         const partner = data.limitCutMap[data.limitCutNumber - 1];
-        if (!partner) {
+        if (partner === undefined) {
           // In case something goes awry?
           return output.knockbackCharge!();
         }
 
-        return output.facePlayer!({ player: data.ShortName(partner) });
+        return output.facePlayer!({ player: data.party.member(partner) });
       },
       outputStrings: {
         knockbackCleave: {
@@ -289,7 +290,7 @@ const triggerSet: TriggerSet<Data> = {
           return output.sharedTankbusterOnYou!();
 
         if (data.role === 'tank' || data.role === 'healer' || data.job === 'BLU')
-          return output.sharedTankbusterOn!({ player: data.ShortName(matches.target) });
+          return output.sharedTankbusterOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         sharedTankbusterOnYou: {
@@ -342,11 +343,12 @@ const triggerSet: TriggerSet<Data> = {
         },
       },
     },
+    // There is a GameLog message (en: The plasma shield is shattered!), but no corresponding
+    // SystemLogMessage. The 0x19 (NetworkDeath) line shows up >2 seconds later (too late).
     {
       id: 'A11S Plasma Shield Shattered',
-      type: 'GameLog',
-      netRegex: { line: 'The plasma shield is shattered.*?', capture: false },
-
+      type: 'NetworkEffectResult',
+      netRegex: { name: 'Plasma Shield', currentHp: '0', capture: false },
       response: Responses.spread(),
     },
     {
@@ -362,7 +364,7 @@ const triggerSet: TriggerSet<Data> = {
       alertText: (data, matches, output) => {
         if (data.me === matches.target)
           return;
-        return output.chargeOn!({ player: data.ShortName(matches.target) });
+        return output.chargeOn!({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         chargeOn: {
