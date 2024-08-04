@@ -92,8 +92,9 @@ Options.Triggers.push({
   triggers: [
     {
       id: 'Sildihn Geryon Seal Left Mechs',
-      type: 'GameLog',
-      netRegex: NetRegexes.message({ line: 'The Silt Pump will be sealed off.*?', capture: false }),
+      type: 'SystemLogMessage',
+      // The Silt Pump will be sealed off
+      netRegex: { id: '7DC', param1: '1068', capture: false },
       // May be overwritten by Runaway Sludge below.
       run: (data) => data.catapultMechs = leftDoorYesPump,
     },
@@ -120,11 +121,9 @@ Options.Triggers.push({
     },
     {
       id: 'Sildihn Geryon Seal Right Mechs',
-      type: 'GameLog',
-      netRegex: NetRegexes.message({
-        line: 'The Settling Basin will be sealed off.*?',
-        capture: false,
-      }),
+      type: 'SystemLogMessage',
+      // The Settling Basin will be sealed off
+      netRegex: { id: '7DC', param1: '106D', capture: false },
       // May be overwritten by Suddenly Sewage below.
       run: (data) => data.catapultMechs = rightDoorNoCeruleum,
     },
@@ -592,7 +591,7 @@ Options.Triggers.push({
           en: 'Move Through',
           de: 'Durchlaufen',
           fr: 'Passez à travers',
-          ja: 'ボスをまたいて移動',
+          ja: 'ボスをまたいで移動',
           cn: '穿穿穿',
           ko: '보스 통과하기',
         },
@@ -779,7 +778,6 @@ Options.Triggers.push({
     },
     {
       'locale': 'fr',
-      'missingTranslations': true,
       'replaceSync': {
         'Amalj\'aa Artillery Carriage': 'canon de campagne amalj\'aa',
         'Antique Boulder': 'roche instable',
@@ -806,6 +804,12 @@ Options.Triggers.push({
         'Thorne Knight': 'chevalier-mage des Thorne',
       },
       'replaceText': {
+        '--draw in--': '--Attirez dedans--',
+        '\\(in\\)': '(Intérieur)',
+        '\\(out\\)': '(Extérieur)',
+        '\\(far\\)': '(Éloigné)',
+        '\\(near\\)': '(Proche)',
+        '\\(mid\\)': '(Milieu)',
         'Amalj\'aa Artillery': 'Artillerie amalj\'aa',
         'Biting Wind': 'Tornade',
         'Blaze of Glory': 'Croix des flammes sacrées',

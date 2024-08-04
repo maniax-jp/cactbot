@@ -29,7 +29,7 @@ Options.Triggers.push({
         if (matches.target === data.me)
           return output.tankBusterOnYou();
         if (data.role === 'healer')
-          return output.busterOn({ player: data.ShortName(matches.target) });
+          return output.busterOn({ player: data.party.member(matches.target) });
       },
       infoText: (data, matches, output) => {
         if (matches.target === data.me || data.role === 'tank' || data.role === 'healer')
@@ -138,16 +138,15 @@ Options.Triggers.push({
       condition: Conditions.targetIsYou(),
       response: Responses.spread(),
     },
+    // https://xivapi.com/InstanceContentTextData/19521
+    // en: No. No... Not yet. Not. Yet.
     {
       id: 'TsukuyomiEx Dance of the Dead',
-      type: 'GameLog',
+      type: 'BattleTalk2',
       // There's no "starts using" here.  She pushes at 35% to this ability.
       // This happens after 2nd meteors naturally, but if dps is good
       // then this could push unexpectedly earlier (or paired with buster).
-      netRegex: NetRegexes.dialog({
-        line: '[^:]*:No\. No\.\.\. Not yet\. Not\. Yet\..*?',
-        capture: false,
-      }),
+      netRegex: { instanceContentTextId: '4C41', capture: false },
       response: Responses.aoe(),
     },
     {

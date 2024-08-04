@@ -130,7 +130,7 @@ Options.Triggers.push({
       infoText: (data, matches, output) => {
         if (data.me === matches.target)
           return;
-        return output.gaOn({ player: data.ShortName(matches.target) });
+        return output.gaOn({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         gaOn: {
@@ -221,11 +221,11 @@ Options.Triggers.push({
         }
         // Evens
         const partner = data.limitCutMap[data.limitCutNumber - 1];
-        if (!partner) {
+        if (partner === undefined) {
           // In case something goes awry?
           return output.knockbackCharge();
         }
-        return output.facePlayer({ player: data.ShortName(partner) });
+        return output.facePlayer({ player: data.party.member(partner) });
       },
       outputStrings: {
         knockbackCleave: {
@@ -273,7 +273,7 @@ Options.Triggers.push({
         if (data.me === matches.target)
           return output.sharedTankbusterOnYou();
         if (data.role === 'tank' || data.role === 'healer' || data.job === 'BLU')
-          return output.sharedTankbusterOn({ player: data.ShortName(matches.target) });
+          return output.sharedTankbusterOn({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         sharedTankbusterOnYou: {
@@ -326,10 +326,12 @@ Options.Triggers.push({
         },
       },
     },
+    // There is a GameLog message (en: The plasma shield is shattered!), but no corresponding
+    // SystemLogMessage. The 0x19 (NetworkDeath) line shows up >2 seconds later (too late).
     {
       id: 'A11S Plasma Shield Shattered',
-      type: 'GameLog',
-      netRegex: { line: 'The plasma shield is shattered.*?', capture: false },
+      type: 'NetworkEffectResult',
+      netRegex: { name: 'Plasma Shield', currentHp: '0', capture: false },
       response: Responses.spread(),
     },
     {
@@ -345,7 +347,7 @@ Options.Triggers.push({
       alertText: (data, matches, output) => {
         if (data.me === matches.target)
           return;
-        return output.chargeOn({ player: data.ShortName(matches.target) });
+        return output.chargeOn({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         chargeOn: {

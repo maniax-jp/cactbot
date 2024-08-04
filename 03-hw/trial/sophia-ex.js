@@ -190,7 +190,7 @@ Options.Triggers.push({
       infoText: (data, matches, output) => {
         if (data.me === matches.target)
           return output.infusionOnYou();
-        return output.infusionOn({ player: data.ShortName(matches.target) });
+        return output.infusionOn({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         infusionOnYou: {
@@ -263,7 +263,7 @@ Options.Triggers.push({
       netRegex: { id: '002D' },
       run: (data, matches) => {
         const spot = data.cloneSpots?.[matches.sourceId];
-        if (!spot)
+        if (spot === undefined)
           throw new UnreachableCode();
         // Only Thunder 2 is ever used on centerline clones,
         // so center clones will never affect quadrant safety.

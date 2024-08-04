@@ -7,7 +7,8 @@ Options.Triggers.push({
       type: 'GainsEffect',
       netRegex: { effectId: '239' },
       condition: (data) => data.CanCleanse(),
-      infoText: (data, matches, output) => output.text({ player: data.ShortName(matches.target) }),
+      infoText: (data, matches, output) =>
+        output.text({ player: data.party.member(matches.target) }),
       outputStrings: {
         text: {
           en: 'Esuna ${player}',
@@ -28,13 +29,15 @@ Options.Triggers.push({
           return output.stun({ name: matches.source });
       },
       infoText: (data, matches, output) => {
-        return output.tailScrewOn({ player: data.ShortName(matches.target) });
+        return output.tailScrewOn({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         stun: Outputs.stunTarget,
         tailScrewOn: {
           en: 'Tail Screw on ${player}',
           de: 'Schweifschraube auf ${player}',
+          fr: 'Coup de queue sur ${player}',
+          ja: '${player} にテールスクリュー',
           cn: '螺旋尾点${player}',
           ko: '${player} 꼬리 후려치기',
         },

@@ -187,11 +187,11 @@ Options.Triggers.push({
         const partner = data.ferroTether[data.me];
         const marker1 = data.ferroMarker[data.me];
         const marker2 = data.ferroMarker[partner ?? ''];
-        if (!partner || !marker1 || !marker2)
-          return matches.ability + ' (???)';
+        if (partner === undefined || marker1 === undefined || marker2 === undefined)
+          return `${matches.ability} (???)`;
         if (marker1 === marker2)
-          return output.repel({ player: data.ShortName(partner) });
-        return output.attract({ player: data.ShortName(partner) });
+          return output.repel({ player: data.party.member(partner) });
+        return output.attract({ player: data.party.member(partner) });
       },
       outputStrings: {
         repel: {
@@ -225,7 +225,7 @@ Options.Triggers.push({
       netRegex: { source: 'Liquid Rage', id: 'F1A' },
       condition: (data) => data.CanCleanse(),
       alertText: (data, matches, output) => {
-        return output.text({ player: data.ShortName(matches.target) });
+        return output.text({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         text: {
@@ -248,7 +248,7 @@ Options.Triggers.push({
       },
       infoText: (data, matches, output) => {
         if (data.me !== matches.target)
-          return output.clawOn({ player: data.ShortName(matches.target) });
+          return output.clawOn({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         clawOn: {

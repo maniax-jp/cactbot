@@ -290,7 +290,7 @@ Options.Triggers.push({
           // Does not happen on first or third Slippery Soap
           if (matches.target === data.me)
             return output.getBehindPartyKnockback();
-          return output.getInFrontOfPlayerKnockback({ player: data.ShortName(matches.target) });
+          return output.getInFrontOfPlayerKnockback({ player: data.party.member(matches.target) });
         }
         if (matches.target === data.me) {
           if (data.soapCounter === 1)
@@ -299,7 +299,7 @@ Options.Triggers.push({
             return output.getBehindPuffs();
           return output.getBehindParty();
         }
-        return output.getInFrontOfPlayer({ player: data.ShortName(matches.target) });
+        return output.getInFrontOfPlayer({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         getBehindPuff: {
@@ -420,7 +420,7 @@ Options.Triggers.push({
         }
         if (data.role !== 'tank' && data.role !== 'healer')
           return;
-        return { infoText: output.busterOnTarget({ player: data.ShortName(matches.target) }) };
+        return { infoText: output.busterOnTarget({ player: data.party.member(matches.target) }) };
       },
     },
     {
@@ -509,8 +509,8 @@ Options.Triggers.push({
         if (puffDir === undefined)
           return output.default();
         const puffLocs = dirCards.includes(puffDir) ? 'Cardinal' : 'Intercard';
-        const baitOutput = silkieStatus + puffEffect + puffLocs + 'Puff';
-        const safeOutput = silkieStatus + 'Puffs' + puffLocs + 'SafeLater';
+        const baitOutput = `${silkieStatus + puffEffect + puffLocs}Puff`;
+        const safeOutput = `${silkieStatus}Puffs${puffLocs}SafeLater`;
         // set the output for the subsequent safe call here and pass the output to the followup trigger
         // this keeps all of the interrelated output strings in this trigger for ease of customization
         data.freshPuff2SafeAlert = output[safeOutput]();
@@ -822,7 +822,7 @@ Options.Triggers.push({
       id: 'ASS Hells\' Nebula',
       type: 'StartsUsing',
       netRegex: { id: '796C', source: 'Sil\'dihn Armor', capture: false },
-      condition: (data) => data.role === 'healer',
+      condition: (data) => data.role === 'healer' || data.job === 'BLU',
       infoText: (_data, _matches, output) => output.text(),
       outputStrings: {
         text: {
@@ -979,7 +979,7 @@ Options.Triggers.push({
       alertText: (data, matches, output) => {
         if (matches.target === data.me)
           return output.chargeOnYou();
-        return output.chargeOn({ player: data.ShortName(matches.target) });
+        return output.chargeOn({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         chargeOn: {
@@ -1044,7 +1044,9 @@ Options.Triggers.push({
             return output.spreadThenStackOnYou();
           if (data.thunderousEchoPlayer === undefined)
             return output.spreadThenStack();
-          return output.spreadThenStackOn({ player: data.ShortName(data.thunderousEchoPlayer) });
+          return output.spreadThenStackOn({
+            player: data.party.member(data.thunderousEchoPlayer),
+          });
         }
         if (data.hasLingering)
           return output.baitThenSpread();
@@ -1052,7 +1054,7 @@ Options.Triggers.push({
           return output.stackOnYouThenSpread();
         if (data.thunderousEchoPlayer === undefined)
           return output.stackThenSpread();
-        return output.stackOnThenSpread({ player: data.ShortName(data.thunderousEchoPlayer) });
+        return output.stackOnThenSpread({ player: data.party.member(data.thunderousEchoPlayer) });
       },
       outputStrings: {
         stackThenSpread: Outputs.stackThenSpread,
@@ -1163,7 +1165,7 @@ Options.Triggers.push({
           return output.baitPuddle();
         if (matches.target === data.me)
           return output.stackOnYou();
-        return output.stackOn({ player: data.ShortName(matches.target) });
+        return output.stackOn({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         // TODO: should this also say "In", e.g. "In + Spread" or "Spread (In)"?
@@ -1522,7 +1524,7 @@ Options.Triggers.push({
           if (name === data.me)
             continue;
           if (id === myBuff) {
-            partner = data.ShortName(name);
+            partner = data.party.member(name);
             break;
           }
         }
@@ -1536,7 +1538,7 @@ Options.Triggers.push({
           de: 'Steh im ersten Turm (mit ${player})',
           fr: 'Prenez les tours (avec ${player})',
           ja: 'さきに塔を踏み (+${player})',
-          cn: '踩 1 塔 (与 ${player})',
+          cn: '踩 1 塔 (与${player})',
           ko: '첫번째 기둥 밟기 (${player})',
         },
         spreadFirst: {
@@ -1544,7 +1546,7 @@ Options.Triggers.push({
           de: 'Zuerst verteilen (mit ${player})',
           fr: 'Écartez-vous d\'abord (avec ${player})',
           ja: 'さきに散会 (+${player})',
-          cn: '先分散 (与 ${player})',
+          cn: '先分散 (与${player})',
           ko: '산개 먼저 (${player})',
         },
         unknown: Outputs.unknown,
@@ -2402,7 +2404,6 @@ Options.Triggers.push({
     },
     {
       'locale': 'fr',
-      'missingTranslations': true,
       'replaceSync': {
         'Aqueduct Belladonna': 'belladone des aqueducs',
         'Aqueduct Dryad': 'dryade des aqueducs',
@@ -2477,7 +2478,6 @@ Options.Triggers.push({
     },
     {
       'locale': 'ja',
-      'missingTranslations': true,
       'replaceSync': {
         'Aqueduct Belladonna': 'アクアダクト・ベラドンナ',
         'Aqueduct Dryad': 'アクアダクト・ドライアド',

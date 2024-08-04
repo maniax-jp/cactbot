@@ -116,7 +116,7 @@ Options.Triggers.push({
           return;
         if (data.target === data.me)
           return output.busterOnYou();
-        return output.busterOnTarget({ player: data.ShortName(data.target) });
+        return output.busterOnTarget({ player: data.party.member(data.target) });
       },
       outputStrings: {
         busterOnYou: Outputs.tankBusterOnYou,
@@ -384,12 +384,12 @@ Options.Triggers.push({
     },
     {
       'locale': 'fr',
-      'missingTranslations': true,
       'replaceSync': {
         'Lively Bait': 'amuse-gueule',
         'Proto-Carbuncle': 'Proto-Carbuncle',
       },
       'replaceText': {
+        '--towers--': '--Tours--',
         'Acidic Slaver': 'Salive acide',
         'Claw to Tail': 'Griffes et queue',
         'Devour': 'Dévoration',

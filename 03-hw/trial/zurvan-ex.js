@@ -31,17 +31,23 @@ Options.Triggers.push({
       },
       alertText: (data, matches, output) => {
         if (!(data.me === matches.target))
-          return output.avoidWaveCannon({ target: data.ShortName(matches.target) });
+          return output.avoidWaveCannon({ target: data.party.member(matches.target) });
       },
       outputStrings: {
         waveCannonTarget: {
           en: 'Wave Cannon on YOU',
           de: 'Wellenkanone auf DIR',
+          fr: 'Canon plasma sur VOUS',
+          ja: '波動砲対象',
+          cn: '波动炮点名',
           ko: '파동포 대상자',
         },
         avoidWaveCannon: {
           en: 'Away from ${target} -- Wave Cannon',
           de: 'Weg von ${target} -- Wellenkanone',
+          fr: 'Éloignez-vous de ${target} -- Canon plasma',
+          ja: '${target} から離れる -- 波動砲',
+          cn: '远离 ${target} -- 波动炮',
           ko: '${target} 피하기 -- 파동포',
         },
       },
@@ -57,7 +63,7 @@ Options.Triggers.push({
           return;
         if (data.waveTarget === undefined)
           return output.unknownStackTarget();
-        return output.stackOn({ player: data.ShortName(data.waveTarget) });
+        return output.stackOn({ player: data.party.member(data.waveTarget) });
       },
       outputStrings: {
         unknownStackTarget: Outputs.stackMarker,
@@ -83,6 +89,9 @@ Options.Triggers.push({
         demonClawYou: {
           en: 'Knockback from boss on YOU',
           de: 'Rückstoß vom Boss auf DIR',
+          fr: 'Poussée depuis le boss sur VOUS',
+          ja: 'デモンクロー ノックバック対象',
+          cn: 'BOSS击退点名',
           ko: '넉백공격 대상자',
         },
       },
@@ -105,7 +114,7 @@ Options.Triggers.push({
           return;
         if (matches.target === data.me)
           return output.stackYou();
-        return output.stackOn({ player: data.ShortName(matches.target) });
+        return output.stackOn({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         stackYou: Outputs.stackOnYou,
@@ -123,6 +132,9 @@ Options.Triggers.push({
         demonicSpread: {
           en: 'Spread -- Don\'t stack!',
           de: 'Verteilen -- Nicht aufeinander!',
+          fr: 'Écartez-vous - Ne vous packez pas !',
+          ja: '散開 -- 重ならないで！',
+          cn: '分散 -- 不要集合!',
           ko: '산개 -- 쉐어맞으면 안됨!',
         },
       },
@@ -160,6 +172,9 @@ Options.Triggers.push({
         text: {
           en: 'Stay outside hitbox',
           de: 'Auserhalb der Hitbox stehen',
+          fr: 'Restez à l\'extérieur de la hitbox',
+          ja: '範囲攻撃を避ける',
+          cn: '站在判定圈外',
           ko: '히트박스 밖으로',
         },
       },
@@ -186,6 +201,9 @@ Options.Triggers.push({
         baitSouthernCross: {
           en: 'Bait Ice Puddles',
           de: 'Eisflächen ködern',
+          fr: 'Bait les puddles de glace',
+          ja: '氷範囲を捨てる',
+          cn: '诱导冰圈',
           ko: '얼음장판 유도',
         },
       },
@@ -207,12 +225,15 @@ Options.Triggers.push({
         data.tetherBuddy ??= buddy;
       },
       alertText: (data, _matches, output) => {
-        return output.tetherBuddy({ buddy: data.ShortName(data.tetherBuddy) });
+        return output.tetherBuddy({ buddy: data.party.member(data.tetherBuddy) });
       },
       outputStrings: {
         tetherBuddy: {
           en: 'Tethered with ${buddy}',
           de: 'Mit ${buddy} verbunden',
+          fr: 'Lié avec ${buddy}',
+          ja: '${buddy} とペア',
+          cn: '与 ${buddy} 连线',
           ko: '선 연결 ${buddy}',
         },
       },
@@ -240,16 +261,25 @@ Options.Triggers.push({
         infiniteDebuff: {
           en: '${element} on you',
           de: '${element} auf dir',
+          fr: '${element} sur vous',
+          ja: '${element} 付与',
+          cn: '${element} 点名',
           ko: '${element}',
         },
         fire: {
           en: 'Fire',
           de: 'Feuer',
+          fr: 'Feu',
+          ja: '炎',
+          cn: '火',
           ko: '불',
         },
         ice: {
           en: 'Ice',
           de: 'Eis',
+          fr: 'Glace',
+          ja: '氷',
+          cn: '冰',
           ko: '얼음',
         },
         unknown: Outputs.unknown,
@@ -266,22 +296,31 @@ Options.Triggers.push({
         if (data.infiniteElement === 'ice')
           element = output.ice();
         const buddy = data.tetherBuddy;
-        return output.sealTowers({ element: element, buddy: data.ShortName(buddy) });
+        return output.sealTowers({ element: element, buddy: data.party.member(buddy) });
       },
       outputStrings: {
         sealTowers: {
           en: '${element} towers with ${buddy}',
           de: '${element} Türme mit ${buddy}',
+          fr: 'Tour de ${element} avec ${buddy}',
+          ja: '${buddy} と ${element} の塔に入る',
+          cn: '与${buddy}踩${element}塔',
           ko: '${element} 기둥 +${buddy}',
         },
         fire: {
           en: 'Fire',
           de: 'Feuer',
+          fr: 'Feu',
+          ja: '炎',
+          cn: '火',
           ko: '불',
         },
         ice: {
           en: 'Ice',
           de: 'Eis',
+          fr: 'Glace',
+          ja: '氷',
+          cn: '冰',
           ko: '얼음',
         },
         unknown: Outputs.unknown,
@@ -337,12 +376,17 @@ Options.Triggers.push({
     },
     {
       'locale': 'fr',
-      'missingTranslations': true,
       'replaceSync': {
         'Execrated Wile': 'ruse honnie',
         'Zurvan': 'Zurvan',
       },
       'replaceText': {
+        '\\(circles\\)': '(Cerles)',
+        '\\(explosion\\)': '(Explosion)',
+        '\\(puddle\\)': '(Puddle)',
+        '\\(snapshot\\)': '(Copie)',
+        '\\(avoid\\)': '(Évitez)',
+        '\\(stack\\)': '(Package)',
         'Ahura Mazda': 'Ahura Mazda',
         'Biting Halberd': 'Hallebarde mordante',
         'Broken Seal': 'Marque brisée',
@@ -369,7 +413,6 @@ Options.Triggers.push({
     },
     {
       'locale': 'ja',
-      'missingTranslations': true,
       'replaceSync': {
         'Execrated Wile': 'テンパード・ワイル',
         'Zurvan': 'ズルワーン',
@@ -397,6 +440,43 @@ Options.Triggers.push({
         'Tyrfing': 'ティルフィング',
         'Wave Cannon': '波動砲',
         'the Purge': 'パージ',
+      },
+    },
+    {
+      'locale': 'cn',
+      'replaceSync': {
+        'Execrated Wile': '狡诈信徒',
+        'Zurvan': '祖尔宛',
+      },
+      'replaceText': {
+        '\\(circles\\)': '(圆)',
+        '\\(explosion\\)': '(爆炸)',
+        '\\(puddle\\)': '(圈)',
+        '\\(snapshot\\)': '(快照)',
+        '\\(avoid\\)': '(躲避)',
+        '\\(stack\\)': '(集合)',
+        'Ahura Mazda': '阿胡拉·马兹达',
+        'Biting Halberd': '刺骨冰戟',
+        'Broken Seal': '冰炎之纹',
+        'Ciclicle': '旋冰射线',
+        'Cool Flame': '冷炎',
+        'Demonic Dive': '鬼神冲',
+        'Fire III': '爆炎',
+        'Flaming Halberd': '焚身炎戟',
+        'Flare Star': '耀星',
+        'Ice and Fire': '冰与火',
+        'Infinite Fire': '炎之刻印',
+        'Infinite Ice': '冰之刻印',
+        'Metal Cutter': '金属利刃',
+        'Sarva': '变异',
+        'Soar': '飞翔',
+        'Southern Cross': '南十字星',
+        'Tail End': '煞尾',
+        'The Demon\'s Claw': '鬼神之爪',
+        'Twin Spirit': '多重灵身',
+        'Tyrfing': '提尔锋',
+        'Wave Cannon': '波动炮',
+        'the Purge': '肃清',
       },
     },
     {

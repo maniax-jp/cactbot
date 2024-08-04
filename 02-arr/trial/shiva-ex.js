@@ -73,7 +73,7 @@ Options.Triggers.push({
           },
         };
         if (data.role === 'tank') {
-          if (data.currentTank && data.blunt[data.currentTank])
+          if (data.currentTank !== undefined && data.blunt[data.currentTank])
             return { alertText: output.staffTankSwap() };
         }
         return { infoText: output.staff() };
@@ -105,7 +105,7 @@ Options.Triggers.push({
           },
         };
         if (data.role === 'tank') {
-          if (data.currentTank && data.slashing[data.currentTank])
+          if (data.currentTank !== undefined && data.slashing[data.currentTank])
             return { alertText: output.swordTankSwap() };
         }
         return { infoText: output.sword() };
@@ -246,7 +246,9 @@ Options.Triggers.push({
       type: 'Ability',
       netRegex: { id: 'C8A' },
       condition: Conditions.targetIsNotYou(),
-      infoText: (data, matches, output) => output.text({ player: data.ShortName(matches.target) }),
+      infoText: (data, matches, output) => {
+        return output.text({ player: data.party.member(matches.target) });
+      },
       outputStrings: {
         text: {
           en: 'Free ${player}',

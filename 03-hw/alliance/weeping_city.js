@@ -70,17 +70,16 @@ Options.Triggers.push({
       // Because of this, we restrict those triggers for each boss to activate
       // only when that boss is in progress.
       id: 'Weeping City HeadMarker Arachne',
-      type: 'GameLog',
-      netRegex: NetRegexes.message({
-        line: 'The Queen\'s Room will be sealed off.*?',
-        capture: false,
-      }),
+      type: 'SystemLogMessage',
+      // The Queen's Room will be sealed off
+      netRegex: { id: '7DC', param1: '6E0', capture: false },
       run: (data) => data.arachneStarted = true,
     },
     {
       id: 'Weeping City HeadMarker Ozma',
-      type: 'GameLog',
-      netRegex: NetRegexes.message({ line: 'The Gloriole will be sealed off.*?', capture: false }),
+      type: 'SystemLogMessage',
+      // The Gloriole will be sealed off
+      netRegex: { id: '7DC', param1: '6E5', capture: false },
       run: (data) => {
         data.arachneStarted = false;
         data.ozmaStarted = true;
@@ -88,11 +87,9 @@ Options.Triggers.push({
     },
     {
       id: 'Weeping City HeadMarker Calofisteri',
-      type: 'GameLog',
-      netRegex: NetRegexes.message({
-        line: 'The Tomb Of The Nullstone will be sealed off.*?',
-        capture: false,
-      }),
+      type: 'SystemLogMessage',
+      // The Tomb Of The Nullstone will be sealed off
+      netRegex: { id: '7DC', param1: '6E6', capture: false },
       run: (data) => {
         data.ozmaStarted = false;
         data.calStarted = true;
@@ -177,7 +174,7 @@ Options.Triggers.push({
       type: 'StartsUsing',
       netRegex: { id: '17CB', source: 'Forgall', capture: false },
       // Hell Wind sets HP to single digits, so mitigations don't work. Don't notify non-healers.
-      condition: (data) => data.role === 'healer',
+      condition: (data) => data.role === 'healer' || data.job === 'BLU',
       response: Responses.aoe(),
     },
     {
@@ -278,7 +275,7 @@ Options.Triggers.push({
       id: 'Weeping City Flare Star Orbs',
       type: 'AddedCombatant',
       netRegex: { npcBaseId: '4889', capture: false },
-      condition: (data) => data.role === 'tank' || data.role === 'healer',
+      condition: (data) => data.role === 'tank' || data.role === 'healer' || data.job === 'BLU',
       infoText: (_data, _matches, output) => output.text(),
       outputStrings: {
         text: {

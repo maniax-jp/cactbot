@@ -113,7 +113,7 @@ Options.Triggers.push({
       id: 'WOLEx Terror Unleashed',
       type: 'Ability',
       netRegex: { source: 'Warrior Of Light', id: '4F09', capture: false },
-      condition: (data) => data.role === 'healer',
+      condition: (data) => data.role === 'healer' || data.job === 'BLU',
       suppressSeconds: 5,
       alertText: (_data, _matches, output) => output.text(),
       outputStrings: {
@@ -354,7 +354,7 @@ Options.Triggers.push({
       // This is still 1 second before this cast goes off, giving ~7 seconds before LB is needed.
       delaySeconds: 4,
       alarmText: (data, _matches, output) => {
-        if (data.role === 'tank')
+        if (data.role === 'tank' || data.job === 'BLU')
           return output.text();
       },
       run: (data) => {
@@ -544,7 +544,7 @@ Options.Triggers.push({
         if (matches.target === data.me)
           return output.stackOnYou?.();
         if (!data.deluge)
-          return output.stackOnTarget?.({ player: data.ShortName(matches.target) });
+          return output.stackOnTarget?.({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         stackOnYou: Outputs.stackOnYou,
@@ -594,7 +594,7 @@ Options.Triggers.push({
       alertText: (data, _matches, output) => {
         const next = data.quintuplecasts?.shift();
         // The last cast of 4EF0 will not have a next mechanic to call.
-        if (next)
+        if (next !== undefined)
           return output[next]();
       },
       outputStrings: quintupleOutputStrings,

@@ -14,7 +14,7 @@ Options.Triggers.push({
       id: 'O9N Orbs Fiend',
       type: 'StartsUsing',
       netRegex: { id: '315C', source: 'Chaos', capture: false },
-      condition: (data) => data.role === 'tank',
+      condition: (data) => data.role === 'tank' || data.job === 'BLU',
       alarmText: (_data, _matches, output) => output.text(),
       outputStrings: {
         text: {
@@ -155,6 +155,7 @@ Options.Triggers.push({
       'locale': 'de',
       'replaceSync': {
         'Chaos': 'Chaos',
+        'The crystal...destroyed!?': 'Ihr habt den Kristall zerstört?!',
         'YOU DARE!': 'Wie könnt ihr es wagen?!',
       },
       'replaceText': {
@@ -179,6 +180,7 @@ Options.Triggers.push({
       'locale': 'fr',
       'replaceSync': {
         'Chaos': 'Chaos',
+        'The crystal...destroyed!?': '... Mon cristal!?',
         'YOU DARE!': '... Mon cristal !? Impossible !',
       },
       'replaceText': {
@@ -203,6 +205,7 @@ Options.Triggers.push({
       'locale': 'ja',
       'replaceSync': {
         'Chaos': 'カオス',
+        'The crystal...destroyed!?': 'まさか……黒水晶を……！？',
         'YOU DARE!': 'まさか……黒水晶を……！？',
       },
       'replaceText': {
@@ -227,6 +230,7 @@ Options.Triggers.push({
       'locale': 'cn',
       'replaceSync': {
         'Chaos': '卡奥斯',
+        'The crystal...destroyed!?': '居然……把黑水晶给',
         'YOU DARE!': '居然……把黑水晶给……',
       },
       'replaceText': {
@@ -251,6 +255,7 @@ Options.Triggers.push({
       'locale': 'ko',
       'replaceSync': {
         'Chaos': '카오스',
+        'The crystal...destroyed!?': '설마…… 흑수정을……!?',
         'YOU DARE!': '네 이노오오옴',
       },
       'replaceText': {

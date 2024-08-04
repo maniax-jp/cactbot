@@ -1,6 +1,6 @@
 const dualspells = {
-  fireIce: '8154',
-  thunderIce: '8155',
+  fireIce: ['8154', '8184'],
+  thunderIce: ['8155', '8185'],
 };
 const headmarkers = {
   // vfx/lockon/eff/tank_lockonae_0m_5s_01t.avfx
@@ -29,6 +29,30 @@ const limitCutMarkers = [
   headmarkers.limitCut7,
   headmarkers.limitCut8,
 ];
+const limitCutNumberMap = {
+  '004F': 1,
+  '0050': 2,
+  '0051': 3,
+  '0052': 4,
+  '0053': 5,
+  '0054': 6,
+  '0055': 7,
+  '0056': 8,
+};
+const limitCutPlayerActive = [
+  // These ordered nested arrays contain the limit cut headmarkers for [ dash order, tower soak order ]
+  [2, 6],
+  [4, 8],
+  [6, 2],
+  [8, 4],
+];
+// Time between headmarker and defamation for Chimeric Succession.
+const chimericLimitCutTime = {
+  1: 10,
+  2: 13,
+  3: 16,
+  4: 19,
+};
 const firstHeadmarker = parseInt(headmarkers.dualityOfDeath, 16);
 const getHeadmarkerId = (data, matches) => {
   // If we naively just check !data.decOffset and leave it, it breaks if the first marker is 00DA.
@@ -40,16 +64,27 @@ const getHeadmarkerId = (data, matches) => {
   // since we know all the IDs that will be present in the encounter.
   return (parseInt(matches.id, 16) - data.decOffset).toString(16).toUpperCase().padStart(4, '0');
 };
+const centerX = 100;
+const centerY = 100;
 Options.Triggers.push({
   id: 'AnabaseiosTheNinthCircleSavage',
   zoneId: ZoneId.AnabaseiosTheNinthCircleSavage,
   timelineFile: 'p9s.txt',
+  initData: () => {
+    return {
+      dualityBuster: [],
+      levinOrbs: {},
+      limitCutDash: 0,
+      limitCut1Count: 0,
+    };
+  },
   triggers: [
     {
       id: 'P9S Headmarker Tracker',
       type: 'HeadMarker',
       netRegex: {},
       condition: (data) => data.decOffset === undefined,
+      suppressSeconds: 99999,
       // Unconditionally set the first headmarker here so that future triggers are conditional.
       run: (data, matches) => getHeadmarkerId(data, matches),
     },
@@ -67,20 +102,31 @@ Options.Triggers.push({
       response: Responses.aoe(),
     },
     {
+      id: 'P9S Duality of Death Collect',
+      type: 'HeadMarker',
+      netRegex: {},
+      condition: (data, matches) => getHeadmarkerId(data, matches) === headmarkers.dualityOfDeath,
+      run: (data, matches) => data.dualityBuster.push(matches.target),
+    },
+    {
       id: 'P9S Duality of Death',
       type: 'StartsUsing',
       netRegex: { id: '8151', source: 'Kokytos', capture: false },
       response: (data, _matches, output) => {
         // cactbot-builtin-response
         output.responseOutputStrings = {
+          tankBusterOnYou: Outputs.tankBusterOnYou,
           tankSwap: Outputs.tankSwap,
           tankBusters: Outputs.tankBusters,
         };
-        // TODO: track headmarkers?
-        if (data.role === 'tank')
+        if (data.dualityBuster.includes(data.me)) {
+          if (data.role !== 'tank' && data.job !== 'BLU')
+            return { alarmText: output.tankBusterOnYou() };
           return { alertText: output.tankSwap() };
+        }
         return { infoText: output.tankBusters() };
       },
+      run: (data) => data.dualityBuster = [],
     },
     {
       id: 'P9S Dualspell Fire/Ice',
@@ -94,7 +140,9 @@ Options.Triggers.push({
           en: 'Partners + Donut',
           de: 'Partner + Donut',
           fr: 'Partenaires + Donut',
+          ja: 'ペア + ドーナツ',
           cn: '双人分摊 + 月环',
+          ko: '파트너 + 도넛',
         },
       },
     },
@@ -110,7 +158,9 @@ Options.Triggers.push({
           en: 'Protean + Donut',
           de: 'Himmelsrichtungen + Donut',
           fr: 'Positions + Donut',
+          ja: '基本散会 + ドーナツ',
           cn: '八方分散 + 月环',
+          ko: '8방향 산개 + 도넛',
         },
       },
     },
@@ -119,7 +169,9 @@ Options.Triggers.push({
       type: 'Ability',
       netRegex: { id: '8122', source: 'Kokytos', capture: false },
       alertText: (data, _matches, output) => {
-        if (data.lastDualspellId === dualspells.fireIce)
+        if (data.lastDualspellId === undefined)
+          return output.out();
+        if (dualspells.fireIce.includes(data.lastDualspellId))
           return output.fireIceOut();
         return output.out();
       },
@@ -129,7 +181,9 @@ Options.Triggers.push({
           en: 'Out + Partners',
           de: 'Raus + Partner',
           fr: 'Extérieur + Partenaires',
+          ja: '外側へ + ペア',
           cn: '远离 + 双人分摊',
+          ko: '밖으로 + 파트너',
         },
         out: Outputs.out,
       },
@@ -139,9 +193,11 @@ Options.Triggers.push({
       type: 'Ability',
       netRegex: { id: '8123', source: 'Kokytos', capture: false },
       alertText: (data, _matches, output) => {
-        if (data.lastDualspellId === dualspells.fireIce)
+        if (data.lastDualspellId === undefined)
+          return output.in();
+        if (dualspells.fireIce.includes(data.lastDualspellId))
           return output.fireIceIn();
-        if (data.lastDualspellId === dualspells.thunderIce)
+        if (dualspells.thunderIce.includes(data.lastDualspellId))
           return output.thunderIceIn();
         return output.in();
       },
@@ -151,13 +207,17 @@ Options.Triggers.push({
           en: 'In + Partners',
           de: 'Rein + Partner',
           fr: 'Intérieur + Partenaires',
+          ja: '内側へ + ペア',
           cn: '靠近 + 双人分摊',
+          ko: '안으로 + 파트너',
         },
         thunderIceIn: {
           en: 'In + Protean',
           de: 'Rein + Himmelsrichtungen',
           fr: 'Intérieur + Positions',
+          ja: '内側へ + 基本散会',
           cn: '靠近 + 八方分散',
+          ko: '안으로 + 8방향 산개',
         },
         in: Outputs.in,
       },
@@ -167,7 +227,9 @@ Options.Triggers.push({
       type: 'Ability',
       netRegex: { id: '815C', source: 'Kokytos', capture: false },
       alertText: (data, _matches, output) => {
-        if (data.lastDualspellId === dualspells.thunderIce)
+        if (data.lastDualspellId === undefined)
+          return output.out();
+        if (dualspells.thunderIce.includes(data.lastDualspellId))
           return output.thunderIceOut();
         return output.out();
       },
@@ -177,7 +239,9 @@ Options.Triggers.push({
           en: 'Out + Protean',
           de: 'Raus + Himmelsrichtungen',
           fr: 'Extérieur + Positions',
+          ja: '外側へ + 基本散会',
           cn: '远离 + 八方分散',
+          ko: '밖으로 + 8방향 산개',
         },
         out: Outputs.out,
       },
@@ -198,7 +262,9 @@ Options.Triggers.push({
           en: 'Knockback into Wall',
           de: 'Rückstoß in die Wand',
           fr: 'Poussée sur un mur',
+          ja: 'ノックバック',
           cn: '向墙边击退',
+          ko: '벽으로 넉백',
         },
       },
     },
@@ -212,33 +278,157 @@ Options.Triggers.push({
       },
     },
     {
-      id: 'P9S Limit Cut',
+      // Ball of Levin combatants are added ~0.3 seconds after Kokytos finishes using Levinstrike Summoning
+      // and ~1.7 before Kokytos begins using Scrambled Succession (which is when limit cut markers appear)
+      // These combatants are added in their actual positions, so no need to check OP for combatant data.
+      id: 'P9S Limit Cut Levin Orb Collect',
+      type: 'AddedCombatant',
+      // There are multiple invsible combatants that share this name, but the ones that receive HeadMarkers
+      // in limit cut (the ones we care about) are distinguishable because their level attribute is set to 90.
+      netRegex: { name: 'Ball of Levin', level: '5A' },
+      run: (data, matches) => {
+        // (0 = N, 1 = NE ... 7 = NW)
+        const orb8Dir = Directions.addedCombatantPosTo8Dir(matches, centerX, centerY);
+        data.levinOrbs[matches.id] = { dir: orb8Dir };
+      },
+    },
+    {
+      id: 'P9S Limit Cut Levin Orb Order Collect',
       type: 'HeadMarker',
       netRegex: {},
       condition: (data, matches) => {
-        return data.me === matches.target &&
-          limitCutMarkers.includes(getHeadmarkerId(data, matches));
+        return limitCutMarkers.includes(getHeadmarkerId(data, matches)) &&
+          Object.keys(data.levinOrbs).includes(matches.targetId);
       },
-      preRun: (data, matches) => {
+      run: (data, matches) => {
         const correctedMatch = getHeadmarkerId(data, matches);
-        const limitCutNumberMap = {
-          '004F': 1,
-          '0050': 2,
-          '0051': 3,
-          '0052': 4,
-          '0053': 5,
-          '0054': 6,
-          '0055': 7,
-          '0056': 8,
-        };
-        data.limitCutNumber = limitCutNumberMap[correctedMatch];
+        const orbLimitCutNumber = limitCutNumberMap[correctedMatch];
+        // Levin orbs should always receive a odd-numbered limit cut headmarker
+        const expectedOrbLimitCutNumbers = [1, 3, 5, 7];
+        if (
+          orbLimitCutNumber === undefined || !expectedOrbLimitCutNumbers.includes(orbLimitCutNumber)
+        ) {
+          console.error('Invalid limit cut headmarker on orb');
+          return;
+        }
+        const orbData = data.levinOrbs[matches.targetId] ?? {};
+        if (typeof orbData.dir === 'undefined') {
+          console.error('Limit cut headmarker on unknown orb');
+          return;
+        }
+        orbData.order = orbLimitCutNumber;
+        data.levinOrbs[matches.targetId] = orbData;
       },
-      durationSeconds: (data) => data.seenChimericSuccession ? 20 : 30,
+    },
+    {
+      id: 'P9S Limit Cut Levin Orb Start and Rotation',
+      type: 'StartsUsing',
+      netRegex: { id: '817D', source: 'Kokytos', capture: false },
+      delaySeconds: 1.5,
       infoText: (data, _matches, output) => {
-        return output.text({ num: data.limitCutNumber ?? output.unknown() });
+        let firstOrb8Dir;
+        let secondOrb8Dir;
+        // Orb order is limit cut headmarkers 1 > 3 > 5 > 7
+        // 1 is always adjacent to 3, 3 is always adjacent to 5, and so on.
+        for (const combatant in data.levinOrbs) {
+          switch (data.levinOrbs[combatant]?.order) {
+            case 1:
+              firstOrb8Dir = data.levinOrbs[combatant]?.dir;
+              break;
+            case 3:
+              secondOrb8Dir = data.levinOrbs[combatant]?.dir;
+              break;
+          }
+        }
+        if (firstOrb8Dir === undefined || secondOrb8Dir === undefined)
+          return;
+        const firstOrb8DirStr = Directions.outputFrom8DirNum(firstOrb8Dir);
+        if (firstOrb8DirStr === undefined)
+          return;
+        const firstOrbDir = output[firstOrb8DirStr]();
+        const rotationDir = (secondOrb8Dir - firstOrb8Dir + 8) % 8 === 2
+          ? output.clockwise()
+          : output.counterclock();
+        if (firstOrbDir !== undefined && rotationDir !== undefined)
+          return output.text({ dir: firstOrbDir, rotation: rotationDir });
+        return;
       },
       outputStrings: {
         text: {
+          en: 'First Orb ${dir} => ${rotation}',
+          de: 'Erster Orb ${dir} => ${rotation}',
+          fr: 'Premier orbe ${dir} => ${rotation}',
+          ja: '1回目の玉 ${dir} => ${rotation}',
+          cn: '第一个球 ${dir} => ${rotation}',
+          ko: '첫번째 구슬 ${dir} => ${rotation}',
+        },
+        clockwise: Outputs.clockwise,
+        counterclock: Outputs.counterclockwise,
+        ...Directions.outputStrings8Dir,
+      },
+    },
+    {
+      id: 'P9S Limit Cut 1 Player Number',
+      type: 'HeadMarker',
+      netRegex: {},
+      condition: (data, matches) => {
+        return !data.seenChimericSuccession &&
+          limitCutMarkers.includes(getHeadmarkerId(data, matches));
+      },
+      preRun: (data, matches) => {
+        data.limitCut1Count++;
+        if (data.me === matches.target) {
+          const correctedMatch = getHeadmarkerId(data, matches);
+          data.limitCutNumber = limitCutNumberMap[correctedMatch];
+        }
+      },
+      durationSeconds: 30,
+      infoText: (data, matches, output) => {
+        if (data.me !== matches.target)
+          return;
+        const expectedLimitCutNumbers = [2, 4, 6, 8];
+        if (
+          data.limitCutNumber === undefined ||
+          !expectedLimitCutNumbers.includes(data.limitCutNumber)
+        )
+          return;
+        return output[data.limitCutNumber]();
+      },
+      tts: (data, matches, output) => {
+        if (data.me !== matches.target || data.limitCutNumber === undefined)
+          return;
+        return output.tts({ num: data.limitCutNumber });
+      },
+      outputStrings: {
+        2: {
+          en: '2: First dash, third tower',
+          de: '2: 1. Raus, 3. Turm',
+          fr: '2: 1er Saut, 3ème tour',
+          cn: '2麻 1火3塔',
+          ko: '2: 1돌진, 3기둥',
+        },
+        4: {
+          en: '4: Second dash, last tower',
+          de: '4: 2. Raus, 4. Turm',
+          fr: '4: 2nd Saut, Dernière tour',
+          cn: '4麻 2火4塔',
+          ko: '4: 2돌진, 4기둥',
+        },
+        6: {
+          en: '6: First tower, third dash',
+          de: '6: 1. Turm, 3. Raus',
+          fr: '6: 1ère Tour, 3ème Saut',
+          cn: '6麻 1塔3火',
+          ko: '6: 1기둥, 3돌진',
+        },
+        8: {
+          en: '8: Second tower, last dash',
+          de: '8: 2. Turm, 4. Raus',
+          fr: '8: 2ème Tour, Dernier Saut',
+          cn: '8麻 2塔4火',
+          ko: '8: 2기둥, 4돌진',
+        },
+        tts: {
           en: '${num}',
           de: '${num}',
           fr: '${num}',
@@ -246,11 +436,181 @@ Options.Triggers.push({
           cn: '${num}',
           ko: '${num}',
         },
-        unknown: Outputs.unknown,
       },
     },
     {
-      id: 'P9S Defamation',
+      id: 'P9S Limit Cut 1 Early Defamation',
+      type: 'HeadMarker',
+      netRegex: {},
+      condition: (data, matches) => {
+        return data.limitCut1Count === 4 && !data.seenChimericSuccession &&
+          limitCutMarkers.includes(getHeadmarkerId(data, matches));
+      },
+      infoText: (data, _matches, output) => {
+        if (data.limitCutNumber !== undefined)
+          return;
+        return output.defamationLater();
+      },
+      outputStrings: {
+        defamationLater: {
+          en: 'Defamation on you (later)',
+          de: 'Ehrenstrafe auf dir (später)',
+          fr: 'Diffamation sur vous (après)',
+          cn: '大圈点名 (稍后放置)',
+          ko: '광역 대상자 (나중에)',
+        },
+      },
+    },
+    {
+      id: 'P9S Chimeric Limit Cut Player Number',
+      type: 'HeadMarker',
+      netRegex: {},
+      condition: (data, matches) => {
+        return data.seenChimericSuccession && data.me === matches.target &&
+          limitCutMarkers.includes(getHeadmarkerId(data, matches));
+      },
+      preRun: (data, matches) => {
+        const correctedMatch = getHeadmarkerId(data, matches);
+        data.limitCutNumber = limitCutNumberMap[correctedMatch];
+      },
+      durationSeconds: 20,
+      infoText: (data, _matches, output) => {
+        const expectedLimitCutNumbers = [1, 2, 3, 4];
+        if (
+          data.limitCutNumber === undefined ||
+          !expectedLimitCutNumbers.includes(data.limitCutNumber)
+        )
+          return;
+        return output.number({ num: data.limitCutNumber });
+      },
+      outputStrings: {
+        number: {
+          en: '${num}',
+          de: '${num}',
+          fr: '${num}',
+          ja: '${num}',
+          cn: '${num}',
+          ko: '${num}',
+        },
+      },
+    },
+    {
+      id: 'P9S Chimeric Limit Cut Defamation',
+      type: 'HeadMarker',
+      netRegex: {},
+      condition: (data, matches) => {
+        return data.seenChimericSuccession && data.me === matches.target &&
+          data.limitCutNumber !== undefined &&
+          limitCutMarkers.includes(getHeadmarkerId(data, matches));
+      },
+      delaySeconds: (data) => {
+        if (data.limitCutNumber === undefined)
+          return 0;
+        const time = chimericLimitCutTime[data.limitCutNumber];
+        if (time === undefined)
+          return 0;
+        // 6 seconds ahead of time
+        return time - 6;
+      },
+      alarmText: (_data, _matches, output) => output.defamation(),
+      outputStrings: {
+        defamation: {
+          en: 'Defamation on YOU',
+          de: 'Ehrenstrafe aud DIR',
+          fr: 'Diffamation sur VOUS',
+          ja: '自分の巨大な爆発',
+          cn: '大圈点名',
+          ko: '광역징 대상자',
+        },
+      },
+    },
+    {
+      // When Kokytos uses 'Scrambled Succession' (817D), there is ~4.0s. until the first tower appears (8181)
+      // and about ~5.0s until he dashes and uses Firemeld (8180) on the #2 limit cut player.  Because these abilities
+      // have very short (or no) cast times, we can base the first combo trigger on the use of Scrambled Succession, and
+      // base subsequent combo triggers on the prior use of Firemeld (which is ~4.6s before the next tower spawns)
+      id: 'P9S Limit Cut First Dash/Tower Combo',
+      type: 'Ability',
+      netRegex: { id: '817D', source: 'Kokytos', capture: false },
+      condition: (data) => data.limitCutDash === 0,
+      alertText: (data, _matches, output) => {
+        const activePlayers = limitCutPlayerActive[data.limitCutDash];
+        if (activePlayers === undefined)
+          return;
+        const [dashPlayer, soakPlayer] = activePlayers;
+        if (dashPlayer === undefined || soakPlayer === undefined)
+          return;
+        if (data.limitCutNumber === dashPlayer)
+          return output.dash();
+        else if (data.limitCutNumber === soakPlayer)
+          return output.soak();
+        return;
+      },
+      outputStrings: {
+        dash: {
+          en: 'Bait dash',
+          de: 'Sprung ködern',
+          fr: 'Encaissez le saut',
+          ja: '突進誘導',
+          cn: '引导BOSS',
+          ko: '돌진 유도',
+        },
+        soak: {
+          en: 'Soak tower',
+          de: 'Im Turm stehen',
+          fr: 'Prenez votre tour',
+          ja: '塔踏み',
+          cn: '踩塔',
+          ko: '기둥 들어가기',
+        },
+      },
+    },
+    {
+      id: 'P9S Limit Cut Combo Tracker',
+      type: 'Ability',
+      netRegex: { id: '8180', source: 'Kokytos', capture: false },
+      run: (data) => data.limitCutDash++,
+    },
+    {
+      id: 'P9S Limit Cut Later Dash/Tower Combo',
+      type: 'Ability',
+      netRegex: { id: '8180', source: 'Kokytos', capture: false },
+      condition: (data) => data.limitCutDash > 0 && data.limitCutDash < 4,
+      delaySeconds: (data) => {
+        // delay 'soak tower' call by 1 second to prevent confusion due to ability timing
+        return limitCutPlayerActive[data.limitCutDash]?.[1] === data.limitCutNumber ? 1 : 0;
+      },
+      alertText: (data, _matches, output) => {
+        const [dashPlayer, soakPlayer] = limitCutPlayerActive[data.limitCutDash] ?? [];
+        if (dashPlayer === undefined || soakPlayer === undefined)
+          return;
+        if (data.limitCutNumber === dashPlayer)
+          return output.dash();
+        else if (data.limitCutNumber === soakPlayer)
+          return output.soak();
+        return;
+      },
+      outputStrings: {
+        dash: {
+          en: 'Bait dash',
+          de: 'Sprung ködern',
+          fr: 'Encaissez le saut',
+          ja: '突進誘導',
+          cn: '引导BOSS',
+          ko: '돌진 유도',
+        },
+        soak: {
+          en: 'Soak tower',
+          de: 'Im Turm stehen',
+          fr: 'Prenez votre tour',
+          ja: '塔踏み',
+          cn: '踩塔',
+          ko: '기둥 들어가기',
+        },
+      },
+    },
+    {
+      id: 'P9S Limit Cut 1 Defamation',
       type: 'HeadMarker',
       netRegex: {},
       condition: (data, matches) => {
@@ -263,9 +623,9 @@ Options.Triggers.push({
           en: 'Defamation on YOU',
           de: 'Ehrenstrafe aud DIR',
           fr: 'Diffamation sur VOUS',
-          ja: '名誉罰',
+          ja: '自分に巨大な爆発',
           cn: '大圈点名',
-          ko: '명예형: 보스 밑에서 나 홀로!!!',
+          ko: '광역징 대상자',
         },
       },
     },
@@ -286,7 +646,9 @@ Options.Triggers.push({
           en: 'Out => Back',
           de: 'Raus => Hinten',
           fr: 'Extérieur => Derrière',
+          ja: '外側 => 後ろへ',
           cn: '远离 => 去背后',
+          ko: '밖으로 => 뒤로',
         },
       },
     },
@@ -301,7 +663,9 @@ Options.Triggers.push({
           en: 'In => Back',
           de: 'Rein => Hinten',
           fr: 'Intérieur => Derrière',
+          ja: '内側 => 後ろへ',
           cn: '靠近 => 去背后',
+          ko: '안으로 => 뒤로',
         },
       },
     },
@@ -316,7 +680,9 @@ Options.Triggers.push({
           en: 'Out => Front',
           de: 'Raus => Vorne',
           fr: 'Extérieur => Devant',
+          ja: '外側 => 前へ',
           cn: '远离 => 去面前',
+          ko: '밖으로 => 앞으로',
         },
       },
     },
@@ -331,7 +697,9 @@ Options.Triggers.push({
           en: 'In => Front',
           de: 'Rein => Vorne',
           fr: 'Intérieur => Devant',
+          ja: '内側 => 前へ',
           cn: '靠近 => 去面前',
+          ko: '안으로 => 앞으로',
         },
       },
     },
@@ -367,25 +735,33 @@ Options.Triggers.push({
           en: 'Out + Front',
           de: 'Raus + Vorne',
           fr: 'Extérieur + Devant',
+          ja: '外側 + 前へ',
           cn: '远离 => 去面前',
+          ko: '밖으로 + 앞으로',
         },
         outAndBack: {
           en: 'Out + Back',
           de: 'Raus + Hinten',
           fr: 'Extérieur + Derrière',
+          ja: '外側 + 後ろへ',
           cn: '远离 => 去背后',
+          ko: '밖으로 + 뒤로',
         },
         inAndFront: {
           en: 'In + Front',
           de: 'Rein + Vorne',
           fr: 'Intérieur + Devant',
+          ja: '内側 + 前へ',
           cn: '靠近 => 去面前',
+          ko: '안으로 + 앞으로',
         },
         inAndBack: {
           en: 'In + Back',
           de: 'Rein + Hinten',
           fr: 'Intérieur + Derrière',
+          ja: '内側 + 後ろへ',
           cn: '靠近 => 去背后',
+          ko: '안으로 + 뒤로',
         },
       },
     },
@@ -394,6 +770,44 @@ Options.Triggers.push({
       type: 'StartsUsing',
       netRegex: { id: '81BB', source: 'Kokytos', capture: false },
       run: (data) => data.seenChimericSuccession = true,
+    },
+    {
+      id: 'P9S Front Firestrikes',
+      type: 'StartsUsing',
+      netRegex: { id: '878E', source: 'Kokytos', capture: false },
+      alertText: (_data, _matches, output) => output.text(),
+      outputStrings: {
+        text: {
+          en: 'Charge => Stay',
+          de: 'Sprung => Stehen bleiben',
+          fr: 'Saut => Restez',
+          ja: '突進 => 止まれ',
+          cn: '突进 => 停',
+          ko: '돌진 => 가만히',
+        },
+      },
+    },
+    {
+      id: 'P9S Rear Firestrikes',
+      type: 'StartsUsing',
+      netRegex: { id: '878F', source: 'Kokytos', capture: false },
+      alertText: (_data, _matches, output) => output.text(),
+      outputStrings: {
+        text: {
+          en: 'Charge => Run Through',
+          de: 'Sprung => Geh durch den Boss',
+          fr: 'Saut => Traversez le boss',
+          ja: '突進 => 移動',
+          cn: '突进 => 穿',
+          ko: '돌진 => 가로지르기',
+        },
+      },
+    },
+    {
+      id: 'P9S Beastly Fury',
+      type: 'StartsUsing',
+      netRegex: { id: '8186', source: 'Kokytos', capture: false },
+      response: Responses.aoe(),
     },
   ],
   timelineReplace: [
@@ -409,8 +823,8 @@ Options.Triggers.push({
     },
     {
       'locale': 'de',
-      'missingTranslations': true,
       'replaceSync': {
+        'Ball of Levin': 'Elektrosphäre',
         'Comet': 'Komet',
         'Kokytos(?!\')': 'Kokytos',
         'Kokytos\'s Echo': 'Phantom-Kokytos',
@@ -468,8 +882,8 @@ Options.Triggers.push({
     },
     {
       'locale': 'fr',
-      'missingTranslations': true,
       'replaceSync': {
+        'Ball of Levin': 'orbe de foudre',
         'Comet': 'Comète',
         'Kokytos(?!\')': 'Cocyte',
         'Kokytos\'s Echo': 'spectre de Cocyte',
@@ -519,8 +933,8 @@ Options.Triggers.push({
     },
     {
       'locale': 'ja',
-      'missingTranslations': true,
       'replaceSync': {
+        'Ball of Levin': '雷球',
         'Comet': 'コメット',
         'Kokytos(?!\')': 'コキュートス',
         'Kokytos\'s Echo': 'コキュートスの幻影',
@@ -566,6 +980,126 @@ Options.Triggers.push({
         'Thunder(?!( |bolt))': 'サンダー',
         'Thunderbolt': 'サンダーボルト',
         'Two Minds': '憑魔双撃',
+      },
+    },
+    {
+      'locale': 'cn',
+      'replaceSync': {
+        'Ball of Levin': '雷球',
+        'Comet': '彗星',
+        'Kokytos(?!\')': '科库托斯',
+        'Kokytos\'s Echo': '科库托斯的幻影',
+      },
+      'replaceText': {
+        '\\(Beast': '(野兽',
+        '\\(Chimera': '(合成体',
+        '\\(Fighter': '(武术家',
+        '\\(Final\\)': '(最终)',
+        '\\(Mage': '(魔法师',
+        '\\(cast\\)': '(咏唱)',
+        '\\(resolve\\)': '(判定)',
+        '\\(stacks\\)': '(分摊)',
+        'Aero IV': '飙风',
+        'Archaic Demolish': '古式破碎拳',
+        'Archaic Rockbreaker': '古式地烈劲',
+        'Ascendant Fist': '穿升拳',
+        'Beastly Bile': '野兽胆汁',
+        'Beastly Fury': '野兽之怒',
+        'Blizzard III': '冰封',
+        'Burst': '飞散',
+        'Charybdis': '大漩涡',
+        'Chimeric Succession': '合成体连击',
+        'Comet': '彗星',
+        'Disgorge': '吐魂',
+        'Disintegration': '崩毁',
+        'Duality of Death': '双重死亡',
+        'Dualspell': '双重咏唱',
+        'Ecliptic Meteor': '黄道陨石',
+        'Fire IV': '炽炎',
+        'Fire(?!( |m|s))': '火炎',
+        'Firemeld': '炎魔冲',
+        'Front Combination': '前方连转脚',
+        'Front Firestrikes': '前方炎连击',
+        'Gluttony\'s Augur': '暴食预兆',
+        'Ice(?!meld)': '冰结',
+        'Icemeld': '冰魔冲',
+        'Inside Roundhouse': '内转脚',
+        'Levinstrike Summoning': '雷电召唤',
+        'Outside Roundhouse': '外转脚',
+        'Pile Pyre': '烈火桩',
+        'Pyremeld': '重炎击',
+        'Ravening': '噬魂',
+        'Rear Combination': '后方连转脚',
+        'Rear Firestrikes': '后方炎连击',
+        'Scrambled Succession': '混乱连击',
+        'Shock(?!wave)': '放电',
+        'Shockwave': '冲击波',
+        'Soul Surge': '灵魂涌动',
+        'Swinging Kick': '旋身击',
+        'Thunder III': '暴雷',
+        'Thunder(?!( |bolt))': '闪雷',
+        'Thunderbolt': '霹雳',
+        'Two Minds': '附魂双击',
+      },
+    },
+    {
+      'locale': 'ko',
+      'replaceSync': {
+        'Ball of Levin': '번개 구체',
+        'Comet': '혜성',
+        'Kokytos(?!\')': '코퀴토스',
+        'Kokytos\'s Echo': '코퀴토스의 환영',
+      },
+      'replaceText': {
+        '\\(Beast': '(마수',
+        '\\(Chimera': '(합성영혼',
+        '\\(Fighter': '(격투가',
+        '\\(Final\\)': '(전멸기)',
+        '\\(Mage': '(마도사',
+        '\\(cast\\)': '(시전)',
+        '\\(resolve\\)': '(실행)',
+        '\\(stacks\\)': '(쉐어)',
+        'Aero IV': '에어로쟈',
+        'Archaic Demolish': '고대 파쇄권',
+        'Archaic Rockbreaker': '고대 지열참',
+        'Ascendant Fist': '천승권',
+        'Beastly Bile': '마수 담즙',
+        'Beastly Fury': '짐승의 격분',
+        'Blizzard III': '블리자가 기둥',
+        'Burst': '산산조각',
+        'Charybdis': '대소용돌이',
+        'Chimeric Succession': '합성 연격',
+        'Comet': '혜성',
+        'Disgorge': '영혼 토출',
+        'Disintegration': '영혼 분열',
+        'Duality of Death': '거듭되는 죽음',
+        'Dualspell': '이중 시전',
+        'Ecliptic Meteor': '황도 메테오',
+        'Fire IV': '파이쟈',
+        'Fire(?!( |m|s))': '불',
+        'Firemeld': '화염 충격',
+        'Front Combination': '전방 연속 돌려차기',
+        'Front Firestrikes': '전방 연속 화염격',
+        'Gluttony\'s Augur': '폭식의 전조',
+        'Ice(?!meld)': '얼음',
+        'Icemeld': '빙결 충격',
+        'Inside Roundhouse': '안쪽 돌려차기',
+        'Levinstrike Summoning': '번개 소환',
+        'Outside Roundhouse': '바깥쪽 돌려차기',
+        'Pile Pyre': '불더미',
+        'Pyremeld': '겹불꽃 충격 ',
+        'Ravening': '영혼 포식',
+        'Rear Combination': '후방 연속 돌려차기',
+        'Rear Firestrikes': '후방 연속 화염격',
+        'Scrambled Succession': '뒤죽박죽 연격',
+        'Shock(?!wave)': '방전',
+        'Shockwave': '충격파',
+        'Soul Surge': '영혼 격동',
+        'Swinging Kick': '후려차기',
+        'Thunder III': '선더가',
+        'Thunder(?!( |bolt))': '번개',
+        'Thunderbolt': '낙뢰',
+        'Two Minds': '빙의 쌍격',
       },
     },
   ],

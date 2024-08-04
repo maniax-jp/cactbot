@@ -77,11 +77,9 @@ Options.Triggers.push({
     },
     {
       id: 'T1 Slime Timer First',
-      type: 'GameLog',
-      netRegex: NetRegexes.message({
-        line: 'The Allagan megastructure will be sealed off.*?',
-        capture: false,
-      }),
+      type: 'SystemLogMessage',
+      // The Allagan megastructure will be sealed off
+      netRegex: { id: '7DC', param1: '379', capture: false },
       delaySeconds: 35,
       suppressSeconds: 5,
       infoText: (_data, _matches, output) => output.text(),

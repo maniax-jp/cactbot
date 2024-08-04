@@ -62,7 +62,7 @@ Options.Triggers.push({
       },
       infoText: (data, matches, output) => {
         if (matches.target !== data.me)
-          return output.sizzlebeamOn({ player: data.ShortName(matches.target) });
+          return output.sizzlebeamOn({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         sizzlebeamOn: {
@@ -228,11 +228,12 @@ Options.Triggers.push({
   timelineReplace: [
     {
       'locale': 'de',
-      'missingTranslations': true,
       'replaceSync': {
         'Bomb': 'Bombe',
         'Boomtype Magitek Gobwalker G-VII': 'Gob-Stampfer VII-L',
+        'Frostbite': 'Erfrierung',
         'Padlock': 'Vorhängeschloss',
+        'Pyretic': 'Pyretisch',
         'Quickthinx Allthoughts': 'Denkfix',
         'Shanoa': 'Schwarz(?:e|er|es|en) Katze',
         'Sturm Doll': 'Sturmpuppe',
@@ -261,28 +262,39 @@ Options.Triggers.push({
     },
     {
       'locale': 'fr',
-      'missingTranslations': true,
       'replaceSync': {
         'Bomb': 'bombe',
         'Boomtype Magitek Gobwalker G-VII': 'gobblindé magitek G-VII Lamineur',
+        'Frostbite': 'Gelure',
         'Padlock': 'cadenas',
+        'Pyretic': 'Chaleur',
         'Quickthinx Allthoughts': 'Quickthinx le Cerveau',
         'Shanoa': 'Chat-noir',
         'Sturm Doll': 'poupée sturm',
         'The electrocution gallery': 'square d\'exécution publique',
       },
       'replaceText': {
+        'Big Doll': 'Grosse poupée',
         'Bomb': 'Bombe',
+        '(?<! )Doll': 'Poupée',
         'Flamethrower': 'Lance-flammes',
+        'Hammertime': 'Coup de marteau',
+        'Jails': 'Prison',
+        'Get Prey': 'Prenez le repère',
+        'Get Tether': 'Prenez le lien',
+        'Kill Heart': 'Tuez le cœur',
+        'Resync': 'Resynchro',
         'Sizzlebeam': 'Gobrayon',
         'Sizzlespark': 'Gobétincelle',
+        'Small Doll(?!s)': 'Petite poupée',
+        'Small Dolls': 'Petites poupées',
+        'Stun Heart': 'Étourdissez le cœur',
         'Uplander Doom': 'Fusillade',
         'Zoomdoom': 'Gobroquette',
       },
     },
     {
       'locale': 'ja',
-      'missingTranslations': true,
       'replaceSync': {
         'Bomb': '爆弾',
         'Boomtype Magitek Gobwalker G-VII': 'VII号ゴブリウォーカーL型',
@@ -317,7 +329,6 @@ Options.Triggers.push({
     },
     {
       'locale': 'cn',
-      'missingTranslations': true,
       'replaceSync': {
         'Bomb': '炸弹',
         'Boomtype Magitek Gobwalker G-VII': '7号哥布林战车L型',
@@ -328,7 +339,6 @@ Options.Triggers.push({
         'Shanoa': '夏诺雅',
         'Sturm Doll': '风暴人偶',
         'The electrocution gallery': '公开处刑广场',
-        'Undying Affection': '声援',
       },
       'replaceText': {
         'Big Doll': '大人偶',
@@ -353,10 +363,10 @@ Options.Triggers.push({
     },
     {
       'locale': 'ko',
-      'missingTranslations': true,
       'replaceSync': {
         'Bomb': '폭탄',
         'Boomtype Magitek Gobwalker G-VII': 'VII호 고블린워커 L형',
+        'Frostbite': '동상',
         'Padlock': '자물쇠',
         'Quickthinx Allthoughts': '만능의 퀵싱크스',
         'Shanoa': '샤노아',
@@ -375,6 +385,7 @@ Options.Triggers.push({
         'Hammertime': '장판',
         'Jails': '감옥',
         'Kill Heart': '진심 없애기',
+        'Resync': '재동기화',
         'Small Doll(?!s)': '작은 인형',
         'Small Dolls': '작은 인형',
         'Sizzlebeam': '고블린식 파동포',

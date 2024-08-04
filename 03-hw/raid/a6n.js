@@ -14,14 +14,14 @@ Options.Triggers.push({
       id: 'A6N Brute Force',
       regex: /Brute Force/,
       beforeSeconds: 4,
-      condition: (data) => data.role === 'tank' || data.role === 'healer',
+      condition: (data) => data.role === 'tank' || data.role === 'healer' || data.job === 'BLU',
       response: Responses.miniBuster(),
     },
     {
       id: 'A6N Magicked Mark',
       regex: /Magicked Mark/,
       beforeSeconds: 4,
-      condition: (data) => data.role === 'tank' || data.role === 'healer',
+      condition: (data) => data.role === 'tank' || data.role === 'healer' || data.job === 'BLU',
       response: Responses.miniBuster(),
     },
   ],
@@ -109,7 +109,7 @@ Options.Triggers.push({
       infoText: (data, matches, output) => {
         // 0040 = 2, 0041 = 3, 0042 = 4
         const count = 2 + parseInt(matches.id, 16) - parseInt('0040', 16);
-        return output.text({ player: data.ShortName(matches.target), count: count });
+        return output.text({ player: data.party.member(matches.target), count: count });
       },
       outputStrings: {
         text: {

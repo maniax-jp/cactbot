@@ -52,7 +52,7 @@ Options.Triggers.push({
       id: 'O12N Local Resonance',
       type: 'GainsEffect',
       netRegex: { target: 'Omega', effectId: '67E', capture: false },
-      condition: (data) => data.role === 'tank',
+      condition: (data) => data.role === 'tank' || data.job === 'BLU',
       alertText: (_data, _matches, output) => output.text(),
       outputStrings: {
         text: {
@@ -119,7 +119,7 @@ Options.Triggers.push({
         // since it's stack, but also get away from Ground Zero purple marker.
         if (data.me === matches.target)
           return output.stackOnYou();
-        return output.stackOnPlayer({ player: data.ShortName(matches.target) });
+        return output.stackOnPlayer({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         stackOnYou: Outputs.stackOnYou,
@@ -178,8 +178,8 @@ Options.Triggers.push({
         'Omega-M': 'Omega-M',
         'Optical Unit': 'Optikmodul',
         'Progress to party combat': 'Initiiere Gruppenkampf',
-        '\\\\<blip\\\\> Warning\\\\\. Calculations indicate':
-          '<biep> Warnung. Erhöhte Wahrscheinlichkeit',
+        '<blip> Limits of single combatant': '<biep> Leistungsgrenze als Einzelkämpfer',
+        '<blip> Warning\\. Calculations indicate': '<biep> Warnung. Erhöhte Wahrscheinlichkeit',
       },
       'replaceText': {
         'Beyond Strength': 'Schildkombo G',
@@ -213,14 +213,14 @@ Options.Triggers.push({
     {
       'locale': 'fr',
       'replaceSync': {
-        '\\\\<blip\\\\> Warning\\\\\. Calculations indicate':
-          'Alerte... Alerte... Forte augmentation',
         'Calculations indicate increased probability of defeat':
           'Forte augmentation des probabilités de défaite',
         'Omega(?!-)': 'Oméga',
         'Omega-M': 'Oméga-M',
         'Optical Unit': 'unité optique',
         'Progress to party combat': 'Limites du combat en solitaire atteintes',
+        '<blip> Limits of single combatant': 'Bip... Bip... Limites du combat en solitaire',
+        '<blip> Warning\\. Calculations indicate': 'Alerte... Alerte... Forte augmentation',
       },
       'replaceText': {
         'Beyond Strength': 'Combo bouclier G',
@@ -258,7 +258,8 @@ Options.Triggers.push({
         'Omega-M': 'オメガM',
         'Optical Unit': 'オプチカルユニット',
         'Progress to party combat': '単独戦闘による限界を確認',
-        '\\\\<blip\\\\> Warning\\\\\. Calculations indicate': '警告……警告……敗北の危険性が上昇……',
+        '<blip> Limits of single combatant': '分析……単独戦闘による',
+        '<blip> Warning\\. Calculations indicate': '警告……警告……敗北の危険性が上昇……',
       },
       'replaceText': {
         'Beyond Strength': 'シールドコンボG',
@@ -297,7 +298,8 @@ Options.Triggers.push({
         'Omega-M': '欧米茄M',
         'Optical Unit': '视觉组',
         'Progress to party combat': '确认到单独战斗的极限',
-        '\\\\<blip\\\\> Warning\\\\\. Calculations indicate': '警告……警告……失败的危险性上升……',
+        '<blip> Limits of single combatant': '分析……确认到单',
+        '<blip> Warning\\. Calculations indicate': '警告……警告……失败的危险性上升……',
       },
       'replaceText': {
         'Beyond Strength': '盾连击G',
@@ -336,7 +338,8 @@ Options.Triggers.push({
         'Optical Unit': '광학 유닛',
         'Progress to party combat': '단독 전투 한계 확인',
         'Calculations indicate increased probability of defeat': '패배 위험성 상승',
-        '\\\\<blip\\\\> Warning\\\\\. Calculations indicate': '패배 위험성 상승',
+        '<blip> Limits of single combatant': '분석…… 단독 전투 한계',
+        '<blip> Warning\\. Calculations indicate': '패배 위험성 상승',
       },
       'replaceText': {
         'Beyond Strength': '방패 연격 G',

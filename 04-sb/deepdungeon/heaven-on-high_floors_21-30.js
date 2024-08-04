@@ -28,6 +28,8 @@ Options.Triggers.push({
         text: {
           en: 'Stand under a cloud',
           de: 'Steh unter einer Wolke',
+          fr: 'Restez sous un nuage',
+          ja: '雲の下に立つ',
           cn: '站在一朵云下',
           ko: '구름 아래에 서기',
         },

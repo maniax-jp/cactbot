@@ -16,7 +16,9 @@ Options.Triggers.push({
       type: 'StartsUsing',
       netRegex: { id: '775', source: 'Ranting Ranks Gremlin' },
       condition: Conditions.targetIsNotYou(),
-      infoText: (data, matches, output) => output.comfort({ name: data.ShortName(matches.target) }),
+      infoText: (data, matches, output) => {
+        return output.comfort({ name: data.party.member(matches.target) });
+      },
       outputStrings: {
         comfort: {
           en: '/comfort ${name}',
@@ -136,12 +138,14 @@ Options.Triggers.push({
           pop: {
             en: 'Pop stone orb',
             de: 'Nimm Stein Orb',
+            fr: 'Prenez l\'orbe en pierre',
             cn: '踩石圈',
             ko: '스톤 구슬 부딪히기',
           },
           avoid: {
             en: 'Avoid stone orb',
             de: 'Vermeide Stein Orb',
+            fr: 'Évitez l\'orbe de pierre',
             cn: '躲避石圈',
             ko: '스톤 구슬 피하기',
           },
@@ -161,12 +165,14 @@ Options.Triggers.push({
           pop: {
             en: 'Pop aero orb',
             de: 'Nimm Wind Orb',
+            fr: 'Prenez l\'orbe de vent',
             cn: '踩风圈',
             ko: '에어로 구슬 부딪히기',
           },
           avoid: {
             en: 'Avoid aero orb',
             de: 'Vermeide Wind Orb',
+            fr: 'Évitez l\'orbe de vent',
             cn: '躲避风圈',
             ko: '에어로 구슬 피하기',
           },
@@ -180,11 +186,13 @@ Options.Triggers.push({
       id: 'LostCityHard Winged Lion Ancient Holy',
       type: 'Ability',
       netRegex: { id: '15CA', source: 'Winged Lion', capture: false },
+      suppressSeconds: 1,
       alertText: (_data, _matches, output) => output.text(),
       outputStrings: {
         text: {
           en: 'Pop holy orb',
           de: 'Nimm Sanctus Orb',
+          fr: 'Prenez l\'orbe de lumière',
           cn: '踩神圣圈',
           ko: '홀리 구슬 잡기',
         },
@@ -208,7 +216,7 @@ Options.Triggers.push({
       id: 'LostCityHard Kuribu Regen',
       type: 'StartsUsing',
       netRegex: { id: '15DC', source: 'Kuribu', capture: false },
-      condition: (data) => data.role === 'tank',
+      condition: (data) => data.role === 'tank' || data.job === 'BLU',
       infoText: (_data, _matches, output) => output.text(),
       outputStrings: {
         text: {
@@ -224,7 +232,6 @@ Options.Triggers.push({
       id: 'LostCityHard Kuribu Cure IV',
       type: 'StartsUsing',
       netRegex: { id: '15DF', source: 'Kuribu', capture: false },
-      condition: (data) => data.role === 'tank',
       alertText: (_data, _matches, output) => output.text(),
       outputStrings: {
         text: {
@@ -235,6 +242,12 @@ Options.Triggers.push({
           ko: '보스 장판 안으로',
         },
       },
+    },
+    {
+      id: 'LostCityHard Kuribu Cure IV Reverse',
+      type: 'StartsUsing',
+      netRegex: { id: '15E0', source: 'Kuribu', capture: false },
+      response: Responses.aoe(),
     },
     {
       id: 'LostCityHard Kuribu Cure III',
@@ -282,7 +295,6 @@ Options.Triggers.push({
     },
     {
       'locale': 'fr',
-      'missingTranslations': true,
       'replaceSync': {
         'Achamoth': 'Achamoth',
         'Dark Wings': 'Ailes sombres',
@@ -297,6 +309,7 @@ Options.Triggers.push({
         'light sprite': 'élémentaire de lumière',
       },
       'replaceText': {
+        '--adds--': '--Adds--',
         'Ancient Aero': 'Vent ancien',
         'Ancient Holy': 'Miracle ancien',
         'Ancient Libra': 'Acuité ancienne',

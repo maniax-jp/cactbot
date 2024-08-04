@@ -251,10 +251,14 @@ Options.Triggers.push({
           6: output.west(),
           7: output.northwest(),
         }[adjustedDir];
-        if (!outputDir)
+        if (outputDir === undefined)
           throw new UnreachableCode();
-        if (parentTether)
-          return output.playerTether({ dir: outputDir, player: data.ShortName(myTether.source) });
+        if (parentTether) {
+          return output.playerTether({
+            dir: outputDir,
+            player: data.party.member(myTether.source),
+          });
+        }
         return output.birdTether({ dir: outputDir });
       },
       outputStrings: {

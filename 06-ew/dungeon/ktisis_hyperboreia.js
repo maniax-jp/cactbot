@@ -2,6 +2,11 @@ Options.Triggers.push({
   id: 'KtisisHyperboreia',
   zoneId: ZoneId.KtisisHyperboreia,
   timelineFile: 'ktisis_hyperboreia.txt',
+  initData: () => {
+    return {
+      ladonBreaths: [],
+    };
+  },
   triggers: [
     {
       id: 'Ktisis Lyssa Skull Dasher',
@@ -38,6 +43,56 @@ Options.Triggers.push({
       type: 'StartsUsing',
       netRegex: { id: '648E', source: 'Ladon Lord' },
       response: Responses.stackMarkerOn(),
+    },
+    {
+      // AFC: Center head; AFD: Right head; AFE: Left head
+      id: 'Ktisis Ladon Lord Pyric Breath Collect',
+      type: 'GainsEffect',
+      netRegex: { effectId: ['AFC', 'AFD', 'AFE'] },
+      run: (data, matches) => data.ladonBreaths.push(matches.effectId),
+    },
+    {
+      id: 'Ktisis Ladon Lord Pyric Breath Call',
+      type: 'Ability',
+      netRegex: { id: '6485', source: 'Ladon Lord', capture: false },
+      delaySeconds: 2,
+      alertText: (data, _matches, output) => {
+        // Somehow we have no breath data. Sadge.
+        if (data.ladonBreaths.length === 0)
+          return;
+        // The first breath in the encounter is always center head
+        if (data.ladonBreaths.length === 1)
+          return output.awayFromFront();
+        const safeId = ['AFC', 'AFD', 'AFE'].filter((id) => !data.ladonBreaths.includes(id))[0];
+        if (safeId === undefined)
+          return;
+        return {
+          AFC: output.goFront,
+          AFD: output.backLeft,
+          AFE: output.backRight,
+        }[safeId]();
+      },
+      run: (data) => data.ladonBreaths = [],
+      outputStrings: {
+        awayFromFront: Outputs.awayFromFront,
+        goFront: Outputs.goFront,
+        backRight: {
+          en: 'Get behind and right',
+          de: 'Nach Hinten und Rechts',
+          fr: 'Allez derrière et à droite',
+          ja: '右後ろ',
+          cn: '去右后',
+          ko: '오른쪽 뒤로',
+        },
+        backLeft: {
+          en: 'Get behind and left',
+          de: 'Nach Hinten und Links',
+          fr: 'Allez derrière et à gauche',
+          ja: '左後ろ',
+          cn: '去左后',
+          ko: '왼쪽 뒤로',
+        },
+      },
     },
     {
       id: 'Ktisis Hermes Trimegistos',

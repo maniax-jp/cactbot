@@ -61,28 +61,35 @@ Options.Triggers.push({
     },
   ],
   triggers: [
+    // https://xivapi.com/LogMessage/916
+    // en: 7 minutes have elapsed since your last activity. [...]
+    // There is no network packet for these log lines; so have to use GameLog.
     {
       id: 'BA Falling Asleep',
       type: 'GameLog',
       netRegex: { line: '7 minutes have elapsed since your last activity..*?', capture: false },
       response: Responses.wakeUp(),
     },
+    // https://xivapi.com/LogMessage/9069
+    // en: The memories of heroes past live on again!
     {
-      id: 'BA Saved By Rememberance',
-      type: 'GameLog',
-      netRegex: { line: 'The memories of heroes past live on again.*?', capture: false },
+      id: 'BA Saved By Remembrance',
+      type: 'ActorControlSelfExtra',
+      netRegex: { category: Util.actorControlType.logMsg, param1: '236D', capture: false },
       sound: 'Long',
     },
     {
       id: 'BA Seal',
-      type: 'GameLog',
-      netRegex: NetRegexes.message({ line: '.* will be sealed off.*?', capture: false }),
+      type: 'SystemLogMessage',
+      // "will be sealed off"
+      netRegex: { id: '7DC', capture: false },
       run: (data) => data.sealed = true,
     },
     {
       id: 'BA Clear Data',
-      type: 'GameLog',
-      netRegex: NetRegexes.message({ line: '.*is no longer sealed.*?', capture: false }),
+      type: 'SystemLogMessage',
+      // "is no longer sealed"
+      netRegex: { id: '7DE', capture: false },
       run: (data) => {
         delete data.side;
         delete data.mythcall;
@@ -96,19 +103,22 @@ Options.Triggers.push({
     {
       id: 'BA West Side',
       type: 'Ability',
-      netRegex: NetRegexes.ability({ id: '3956', source: 'Art', target: '[^:]+', capture: false }),
+      // The two sides are far enough apart that even though you see the autos
+      // from the opposite boss, you don't see the player target (which is blank).
+      // This considers you on the west side if Art autos somebody, and the name isn't blank.
+      netRegex: { id: '3956', source: 'Art', target: '[^:]+', capture: false },
       suppressSeconds: 1000,
       run: (data) => data.side = 'west',
     },
     {
       id: 'BA East Side',
       type: 'Ability',
-      netRegex: NetRegexes.ability({
+      netRegex: {
         id: '3957',
         source: 'Owain',
         target: '[^:]+',
         capture: false,
-      }),
+      },
       suppressSeconds: 1000,
       run: (data) => data.side = 'east',
     },
@@ -228,10 +238,16 @@ Options.Triggers.push({
       condition: (data, matches) => data.side === 'east' && data.me === matches.target,
       response: Responses.doritoStack(),
     },
+    // https://xivapi.com/PublicContentTextData/2122
+    // en: Munderg, turn flesh to ash!
     {
       id: 'BA Owain Fire Element',
-      type: 'GameLog',
-      netRegex: NetRegexes.dialog({ line: '[^:]*:Munderg, turn flesh to ash.*?', capture: false }),
+      type: 'ActorControlExtra',
+      netRegex: {
+        category: Util.actorControlType.publicContentText,
+        param2: '84A',
+        capture: false,
+      },
       condition: (data) => data.side === 'east',
       alertText: (_data, _matches, output) => output.getToIce(),
       infoText: (_data, _matches, output) => output.switchMagia(),
@@ -254,10 +270,16 @@ Options.Triggers.push({
         },
       },
     },
+    // https://xivapi.com/PublicContentTextData/2123
+    // en: Munderg, turn blood to ice!
     {
       id: 'BA Owain Ice Element',
-      type: 'GameLog',
-      netRegex: NetRegexes.dialog({ line: '[^:]*:Munderg, turn blood to ice.*?', capture: false }),
+      type: 'ActorControlExtra',
+      netRegex: {
+        category: Util.actorControlType.publicContentText,
+        param2: '84B',
+        capture: false,
+      },
       condition: (data) => data.side === 'east',
       alertText: (_data, _matches, output) => output.getToFire(),
       infoText: (_data, _matches, output) => output.switchMagia(),
@@ -479,12 +501,22 @@ Options.Triggers.push({
     },
     {
       // Note: These use 00:3...: lines, without any proper "gains effect" lines.
-      // In other words, they need to be the fully translated in game log.
+      // In other words, they need to be fully translated in the game log.
       // There are no "gainsEffect" lines for the clones, only for Absolute Virtue directly.
       // Ideally parser logic could be added for this case, but this is where we are.
+      // Note: Use .*? in the regex, as it appears from recent logs that special characters
+      // may be included in these lines, e.g.:
+      // 332E||Relative Virtue gains the effect of Umbral Essence.|
+      //
+      // TODO: There are ActorControl packets (GainEffect, category=0x0014) for these effects,
+      // but the FFXIV parsing plugin does not emit 0x1A lines. This is being looked at.
+      // See OverlayPlugin/cactbot#99 for further info.
       id: 'BA AV Eidos Relative Virtue Astral',
       type: 'GameLog',
-      netRegex: { line: 'Relative Virtue gains the effect of Astral Essence.*?', capture: false },
+      netRegex: {
+        line: 'Relative Virtue gains the effect of .*?Astral Essence.*?',
+        capture: false,
+      },
       condition: (data) => data.sealed,
       run: (data) => {
         // RV clones get buffs in the reverse order that they do their attacks in.
@@ -496,7 +528,10 @@ Options.Triggers.push({
       // See note above for `BA AV Eidos Relative Virtue Astral`.
       id: 'BA AV Eidos Relative Virtue Umbral',
       type: 'GameLog',
-      netRegex: { line: 'Relative Virtue gains the effect of Umbral Essence.*?', capture: false },
+      netRegex: {
+        line: 'Relative Virtue gains the effect of .*?Umbral Essence.*?',
+        capture: false,
+      },
       condition: (data) => data.sealed,
       run: (data) => {
         // RV clones get buffs in the reverse order that they do their attacks in.
@@ -839,9 +874,9 @@ Options.Triggers.push({
         'The Shin-Zantetsuken Containment Unit': 'Shin-Zantetsuken-Quarantäneblock',
         'The Lance of Virtue Containment Unit': 'Lanze der Tugend-Quarantäneblock',
         'The Proto Ozma Containment Unit': 'Proto-Yadis-Quarantäneblock',
-        'Relative Virtue gains the effect of Astral Essence':
+        'Relative Virtue gains the effect of .*?Astral Essence.*?':
           'Die Relative Tugend erhält den Effekt von.*?Arm der Lichts',
-        'Relative Virtue gains the effect of Umbral Essence':
+        'Relative Virtue gains the effect of .*?Umbral Essence.*?':
           'Die Relative Tugend erhält den Effekt von.*?Arm der Dunkelheit',
       },
       'replaceText': {
@@ -928,9 +963,9 @@ Options.Triggers.push({
         'Proto Ozma(?! containment)': 'Proto-Ozma',
         'Raiden': 'Raiden',
         'Relative Virtue(?! gains)': 'Vertu relative',
-        'Relative Virtue gains the effect of Astral Essence':
+        'Relative Virtue gains the effect of .*?Astral Essence.*?':
           'Vertu relative bénéficie de l\'effet.*?Bras de Lumière',
-        'Relative Virtue gains the effect of Umbral Essence':
+        'Relative Virtue gains the effect of .*?Umbral Essence.*?':
           'Vertu relative bénéficie de l\'effet.*?Bras de Ténèbres',
         'Shadow': 'Ombre de Proto-Ozma',
         'Streak Lightning': 'Éclair chargeant',
@@ -1129,8 +1164,8 @@ Options.Triggers.push({
         'The Lance of Virtue Containment Unit': '美德之枪封印区',
         'The Shin-Zantetsuken Containment Unit': '真·斩铁剑封印区',
         'The Proto Ozma Containment Unit': '奥兹玛原型封印区',
-        'Relative Virtue gains the effect of Astral Essence': '相对的美德附加了“光之腕”效果',
-        'Relative Virtue gains the effect of Umbral Essence': '相对的美德附加了“暗之腕”效果',
+        'Relative Virtue gains the effect of .*?Astral Essence.*?': '相对的美德附加了“光之腕”效果',
+        'Relative Virtue gains the effect of .*?Umbral Essence.*?': '相对的美德附加了“暗之腕”效果',
       },
       'replaceText': {
         'Acallam Na Senorach': '真妖枪旋',

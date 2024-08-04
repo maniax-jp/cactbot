@@ -15,7 +15,7 @@ const getHeadmarkerId = (data, matches) => {
   // The leading zeroes are stripped when converting back to string, so we re-add them here.
   // Fortunately, we don't have to worry about whether or not this is robust,
   // since we know all the IDs that will be present in the encounter.
-  return '00' + (parseInt(matches.id, 16) - data.decOffset).toString(16).toUpperCase();
+  return `00${(parseInt(matches.id, 16) - data.decOffset).toString(16).toUpperCase()}`;
 };
 const kDecreeNisi = ['8AE', '8AF', '859', '85A'];
 const kFinalJudgementNisi = ['8B0', '8B1', '85B', '85C'];
@@ -224,7 +224,7 @@ const namedNisiPass = (data, output) => {
       return output.passNisi({ type: nisiToString(myNisi, output) });
     // The common case.  Hopefully there's only one person in the names list,
     // but you never know.
-    const players = namesWithoutNisi.map((x) => data.ShortName(x)).join(', ');
+    const players = namesWithoutNisi.map((x) => data.party.member(x));
     return output.passNisiTo({ type: nisiToString(myNisi, output), players: players });
   }
   // If you don't have nisi, then you need to go get it from a person who does.
@@ -237,7 +237,7 @@ const namedNisiPass = (data, output) => {
     return output.getNisi({ type: nisiToString(myNisi, output) });
   return output.getNisiFrom({
     type: nisiToString(myNisi, output),
-    player: data.ShortName(names[0]),
+    player: data.party.member(names[0]),
   });
 };
 const betaInstructions = (idx, output) => {
@@ -287,7 +287,8 @@ Options.Triggers.push({
           'Enable cactbot Wormhole strat: https://ff14.toolboxgaming.space/?id=17050133675751&preview=1',
         de:
           'Aktiviere Cactbot Wormhole Strategie: https://ff14.toolboxgaming.space/?id=17050133675751&preview=1',
-        fr: 'Alex fatal : activer cactbot pour la strat Wormhole',
+        fr:
+          'Activer cactbot pour la strat Wormhole : https://ff14.toolboxgaming.space/?id=17050133675751&preview=1',
         ja: '絶アレキサンダー討滅戦：cactbot「次元断絶のマーチ」ギミック',
         cn: '启用 cactbot 灵泉策略: https://ff14.toolboxgaming.space/?id=17050133675751&preview=1',
         ko: 'cactbot 웜홀 공략방식 사용: https://ff14.toolboxgaming.space/?id=17050133675751&preview=1',
@@ -317,8 +318,8 @@ Options.Triggers.push({
         if (data.role === 'healer') {
           if (multipleSwings)
             return output.tankBusters();
-          if (data.liquidTank)
-            return output.tankBusterOn({ player: data.ShortName(data.liquidTank) });
+          if (data.liquidTank !== undefined)
+            return output.tankBusterOn({ player: data.party.member(data.liquidTank) });
           return output.tankBuster();
         }
         if (data.role === 'tank') {
@@ -435,16 +436,16 @@ Options.Triggers.push({
       alertText: (data, matches, output) => {
         // data.puddle is set by 'TEA Wormhole TPS Strat' (or by some user trigger).
         // If that's disabled, this will still just call out puddle counts.
-        if (matches[1] && parseInt(matches[1]) === data.puddle)
+        if (matches[1] !== undefined && parseInt(matches[1]) === data.puddle)
           return output.soakThisPuddle({ num: matches[1] });
       },
       infoText: (data, matches, output) => {
-        if (matches[1] && parseInt(matches[1]) === data.puddle)
+        if (matches[1] !== undefined && parseInt(matches[1]) === data.puddle)
           return;
         return output.puddle({ num: matches[1] });
       },
       tts: (data, matches, output) => {
-        if (matches[1] && parseInt(matches[1]) === data.puddle)
+        if (matches[1] !== undefined && parseInt(matches[1]) === data.puddle)
           return output.soakThisPuddleTTS();
       },
       outputStrings: {
@@ -887,7 +888,7 @@ Options.Triggers.push({
         if (data.enumerations?.length !== 2)
           return;
         const names = data.enumerations.sort();
-        return output.text({ players: names.map((x) => data.ShortName(x)).join(', ') });
+        return output.text({ players: names.map((x) => data.party.member(x)) });
       },
       outputStrings: {
         text: {
@@ -1112,7 +1113,7 @@ Options.Triggers.push({
         if (data.me === matches.target)
           return output.sharedTankbusterOnYou();
         if (data.role === 'tank' || data.role === 'healer')
-          return output.sharedTankbusterOn({ player: data.ShortName(matches.target) });
+          return output.sharedTankbusterOn({ player: data.party.member(matches.target) });
       },
       infoText: (data, _matches, output) => {
         if (data.role === 'tank' || data.role === 'healer')
@@ -1188,7 +1189,7 @@ Options.Triggers.push({
       durationSeconds: 10,
       suppressSeconds: 1,
       infoText: (data, _matches, output) => {
-        if (data.buffMap?.[data.me])
+        if (data.buffMap?.[data.me] !== undefined)
           return;
         return output.text();
       },
@@ -1263,7 +1264,8 @@ Options.Triggers.push({
       netRegex: { effectId: '462' },
       condition: (data) => data.phase === 'inception',
       delaySeconds: 3,
-      infoText: (data, matches, output) => output.text({ player: data.ShortName(matches.target) }),
+      infoText: (data, matches, output) =>
+        output.text({ player: data.party.member(matches.target) }),
       outputStrings: {
         text: {
           en: 'Shared Sentence on ${player}',
@@ -1301,7 +1303,7 @@ Options.Triggers.push({
         if (matches.target === data.me)
           return output.tankBusterOnYou();
         if (data.role === 'healer')
-          return output.busterOn({ player: data.ShortName(matches.target) });
+          return output.busterOn({ player: data.party.member(matches.target) });
       },
       // As this seems to usually seems to be invulned,
       // don't make a big deal out of it.
@@ -1310,7 +1312,7 @@ Options.Triggers.push({
           return;
         if (data.role !== 'tank')
           return;
-        return output.busterOn({ player: data.ShortName(matches.target) });
+        return output.busterOn({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         busterOn: Outputs.tankBusterOnPlayer,
@@ -1706,8 +1708,8 @@ Options.Triggers.push({
         data.opticalStack ??= [];
         if (data.opticalStack.length === 1)
           return;
-        const names = data.opticalStack.map((x) => data.ShortName(x)).sort();
-        return output.opticalStackPlayers({ players: names.join(', ') });
+        const names = data.opticalStack.map((x) => data.party.member(x)).sort();
+        return output.opticalStackPlayers({ players: names });
       },
       outputStrings: {
         opticalStackPlayers: {
@@ -1912,7 +1914,7 @@ Options.Triggers.push({
           fr: 'Pas de clone : package ?',
           ja: 'クローン無し: 多分シェア?',
           cn: '没有分身: 或许要集合?',
-          ko: '클론 없음: 아마도 오른쪽/함께 맞기?',
+          ko: '분신 없음: 아마도 오른쪽/함께 맞기?',
         },
         unknown: {
           en: 'No clone: ???',
@@ -1920,7 +1922,7 @@ Options.Triggers.push({
           fr: 'Pas de clone : ???',
           ja: 'クローン無し: ???',
           cn: '没有分身: ¿¿¿',
-          ko: '클론 없음: ???',
+          ko: '분신 없음: ???',
         },
         defamation: {
           en: 'Defamation on YOU',
@@ -1928,7 +1930,7 @@ Options.Triggers.push({
           fr: 'Diffamation sur VOUS',
           ja: '名誉罰',
           cn: '大圈点名',
-          ko: '명예형: 보스 밑에서 나 홀로!!!',
+          ko: '명예형: 큰 광역공격',
         },
         solidarity: {
           en: 'Shared Sentence: stack',
@@ -2205,7 +2207,7 @@ Options.Triggers.push({
           fr: 'Pas de Clone : peut-être E->S ???',
           ja: 'クローン無し: 多分東から南???',
           cn: '没有分身: 可能紫色 东->南 ???',
-          ko: '클론 없음: 아마도 동→남 ???',
+          ko: '분신 없음: 아마도 동→남 ???',
         },
         purpleBait: {
           en: 'Purple Bait: bait E',
@@ -2295,7 +2297,7 @@ Options.Triggers.push({
           3: 'west',
         };
         data.radiantOutputStringKey = outputMap[idx];
-        if (data.radiantOutputStringKey)
+        if (data.radiantOutputStringKey !== undefined)
           return output[data.radiantOutputStringKey]();
       },
       outputStrings: radiantOutputStrings,
@@ -2356,8 +2358,10 @@ Options.Triggers.push({
         // Error?
         if (!data.betaBait || data.betaBait.length === 0)
           return output.opticalStack();
-        const names = data.betaBait.map((x) => x ? data.ShortName(x) : output.unknown()).sort();
-        return output.opticalStackPlayers({ players: names.join(', ') });
+        const names = data.betaBait.map((x) =>
+          x !== undefined ? data.party.member(x) : output.unknown()
+        ).sort();
+        return output.opticalStackPlayers({ players: names });
       },
       outputStrings: {
         unknown: Outputs.unknown,
@@ -2399,7 +2403,7 @@ Options.Triggers.push({
       id: 'TEA Beta Radiant Final',
       type: 'Ability',
       netRegex: { source: 'Perfect Alexander', id: '4B14', capture: false },
-      condition: (data) => !!data.radiantOutputStringKey,
+      condition: (data) => data.radiantOutputStringKey !== undefined,
       delaySeconds: 16,
       alertText: (data, _matches, output) => output[data.radiantOutputStringKey ?? 'unknown'](),
       outputStrings: radiantOutputStrings,
@@ -2445,7 +2449,7 @@ Options.Triggers.push({
           108: 'y',
         };
         const thisTrine = trineMap[y];
-        if (!thisTrine)
+        if (thisTrine === undefined)
           return;
         data.trine.push(thisTrine);
         // Call out after two, because that's when the mechanic is fully known.
@@ -2456,7 +2460,7 @@ Options.Triggers.push({
         const threeArr = ['r', 'g', 'y'].filter((x) => !data.trine?.includes(x));
         const [three] = threeArr;
         const [one] = data.trine;
-        if (!one || !three)
+        if (one === undefined || three === undefined)
           return;
         // Start on the third trine, then move to the first.
         const threeOne = three + one;

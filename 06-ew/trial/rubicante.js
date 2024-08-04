@@ -59,14 +59,16 @@ Options.Triggers.push({
           7: output.northwest(),
         };
         const dirUnknown = output.unknown();
-        let idx = data.purgationLoc ? purgationLocations.indexOf(data.purgationLoc) : undefined;
+        let idx = data.purgationLoc !== undefined
+          ? purgationLocations.indexOf(data.purgationLoc)
+          : undefined;
         if (idx === undefined || idx === -1)
           return output.avoidCone({ dir: dirUnknown });
         // adjust idx for 2nd & 3rd+ purgations based on jagged middle lines or rotation
         if (data.purgation === 2) {
           // 2nd purgation - CW/CCW line only, no rotation
           const jaggedLineFlags = [purgationCWLineFlag, purgationCCWLineFlag];
-          if (!data.purgationLine || !jaggedLineFlags.includes(data.purgationLine))
+          if (data.purgationLine === undefined || !jaggedLineFlags.includes(data.purgationLine))
             return output.avoidCone({ dir: dirUnknown });
           const modIdx = data.purgationLine === purgationCWLineFlag ? 1 : -1; // +1 if CW line, -1 if CCW line
           idx = (idx + purgationLocations.length + modIdx) % purgationLocations.length;
@@ -74,7 +76,8 @@ Options.Triggers.push({
           // 3rd+ purgation - straight line, CW/CCW rotation.
           // CW rotation results in CCW final path, and vice versa.
           if (
-            !data.purgationMidRotate || !purgationMidRotateFlags.includes(data.purgationMidRotate)
+            data.purgationMidRotate === undefined ||
+            !purgationMidRotateFlags.includes(data.purgationMidRotate)
           )
             return output.avoidCone({ dir: dirUnknown });
           const modIdx = data.purgationMidRotate === purgationMidRotateCCWFlag ? 1 : -1;
@@ -103,6 +106,7 @@ Options.Triggers.push({
           en: 'Avoid cone (from ${dir})',
           de: 'Weiche dem KEgel aus (von ${dir})',
           fr: 'Évitez le cône (depuis ${dir})',
+          ja: '${dir}からの扇回避',
           cn: '躲避扇形 (从${dir})',
           ko: '${dir}의 삼각형 장판 피하기',
         },
@@ -140,6 +144,8 @@ Options.Triggers.push({
         avoid: {
           en: 'Avoid line cleave, then in',
           de: 'Weiche Linien Cleave aus, dann rein',
+          fr: 'Évitez le cleave en ligne, puis intérieur',
+          ja: '直線AOE回避 => 中へ',
           cn: '躲避直线攻击, 然后去中间',
           ko: '직선 장판 피하고, 안으로',
         },
@@ -195,6 +201,7 @@ Options.Triggers.push({
         stackBehind: {
           en: 'Stack behind Boss',
           de: 'Hinter dem Boss sammeln',
+          fr: 'Packez-vous derrière le boss',
           ja: 'ボスの後ろで頭割り',
           cn: 'BOSS背后分摊',
           ko: '보스 뒤에서 쉐어',
@@ -241,7 +248,6 @@ Options.Triggers.push({
     },
     {
       'locale': 'fr',
-      'missingTranslations': true,
       'replaceSync': {
         'Circle of Purgatory': 'cercle arcanique du Purgatoire',
         '(?<!Greater )Flamesent': 'flamme démoniaque',
@@ -276,7 +282,6 @@ Options.Triggers.push({
     },
     {
       'locale': 'ja',
-      'missingTranslations': true,
       'replaceSync': {
         'Circle of Purgatory': '煉獄魔陣',
         '(?<!Greater )Flamesent': '炎妖',
@@ -343,6 +348,42 @@ Options.Triggers.push({
         'Soulscald': '灭土烧尽',
         'Sweeping Immolation': '赤灭热波',
         'Total Immolation': '赤灭热波：重炎',
+      },
+    },
+    {
+      'locale': 'ko',
+      'replaceSync': {
+        'Circle of Purgatory': '연옥 마법진',
+        '(?<!Greater )Flamesent': '불꽃 요마',
+        'Greater Flamesent': '업화의 요마',
+        'Rubicante(?! )': '루비칸테',
+        'Rubicante Mirage': '루비칸테의 환영',
+      },
+      'replaceText': {
+        '\\(aoe\\)': '(광역)',
+        '\\(spread\\)': '(산개)',
+        'Arcane Revelation': '마법진 전개',
+        'Arch Inferno': '열풍화연류',
+        'Blazing Rapture': '광란의 불꽃',
+        'Conflagration': '불보라',
+        'Dualfire': '쌍염류',
+        'Explosive Pyre': '폭염격',
+        'Fiery Expiation': '지옥불',
+        'Flamerake': '열화적멸조',
+        'Ghastly Flame': '요마의 불',
+        'Ghastly Torch': '요마의 화염',
+        'Ghastly Wind': '요마의 불바람',
+        'Hope Abandon Ye': '연옥 출현',
+        'Infernal Slaughter': '화연난격',
+        '(?<!(Arch |Erz))Inferno(?! Devil)': '화연류',
+        'Inferno Devil': '화연선풍',
+        'Ordeal of Purgation': '연옥의 홍염',
+        'Radial Flagration': '갈래불',
+        'Scalding Fleet': '멸토 소진: 돌진',
+        'Shattering Heat': '염격',
+        'Soulscald': '멸토 소진',
+        'Sweeping Immolation': '적멸열파',
+        'Total Immolation': '적멸열파: 집중',
       },
     },
   ],

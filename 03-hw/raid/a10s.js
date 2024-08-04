@@ -138,7 +138,7 @@ Options.Triggers.push({
         if (data.charges.length === 0)
           return;
         const charge = data.charges.shift();
-        if (charge)
+        if (charge !== undefined)
           return { alertText: output[charge]() };
       },
     },
@@ -173,7 +173,7 @@ Options.Triggers.push({
         if (data.role === 'tank')
           return output.tankSwap();
         if (data.role === 'healer' || data.job === 'BLU')
-          return output.shieldPlayer({ player: data.ShortName(matches.target) });
+          return output.shieldPlayer({ player: data.party.member(matches.target) });
       },
       outputStrings: {
         tankSwap: Outputs.tankSwap,
